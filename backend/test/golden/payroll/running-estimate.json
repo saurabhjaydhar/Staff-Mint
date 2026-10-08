@@ -1,0 +1,174 @@
+{
+  "input": {
+    "month": "2026-02",
+    "currency": "INR",
+    "settings": {
+      "monthDivisor": "days_in_month",
+      "weekOffsPaid": true,
+      "holidaysPaid": true,
+      "sickLeavePaid": true,
+      "dailyPaysOffDays": false,
+      "roundToRupee": true
+    },
+    "asOfDate": "2026-02-10",
+    "employee": {
+      "employeeId": "e1",
+      "name": "Ramesh",
+      "wageType": "monthly",
+      "ratePaise": 2800000,
+      "joiningDate": null,
+      "exitDate": null,
+      "adjustments": [],
+      "advances": [],
+      "lastNetPaise": null,
+      "days": [
+        {
+          "date": "2026-02-01",
+          "status": "week_off",
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-02",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-03",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-04",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-05",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-06",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-07",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-08",
+          "status": "week_off",
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-09",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-10",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-11",
+          "status": null,
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-12",
+          "status": null,
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-13",
+          "status": null,
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-14",
+          "status": null,
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-15",
+          "status": null,
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-16",
+          "status": null,
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-17",
+          "status": null,
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-18",
+          "status": null,
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-19",
+          "status": null,
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-20",
+          "status": null,
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-21",
+          "status": null,
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-22",
+          "status": null,
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-23",
+          "status": null,
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-24",
+          "status": null,
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-25",
+          "status": null,
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-26",
+          "status": null,
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-27",
+          "status": null,
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-28",
+          "status": null,
+          "leaveType": null
+        }
+      ]
+    }
+  },
+  "expected": {
+    "payableDays": 10,
+    "grossPaise": 1000000,
+    "netPaise": 1000000,
+    "anomalies": []
+  }
+}

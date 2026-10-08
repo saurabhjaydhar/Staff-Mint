@@ -1,0 +1,191 @@
+{
+  "input": {
+    "month": "2026-10",
+    "currency": "INR",
+    "settings": {
+      "monthDivisor": "30",
+      "weekOffsPaid": true,
+      "holidaysPaid": true,
+      "sickLeavePaid": true,
+      "dailyPaysOffDays": false,
+      "roundToRupee": true
+    },
+    "employee": {
+      "employeeId": "e1",
+      "name": "Ramesh",
+      "wageType": "monthly",
+      "ratePaise": 1200000,
+      "joiningDate": null,
+      "exitDate": null,
+      "adjustments": [],
+      "advances": [],
+      "lastNetPaise": null,
+      "days": [
+        {
+          "date": "2026-10-01",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-10-02",
+          "status": "holiday",
+          "leaveType": null
+        },
+        {
+          "date": "2026-10-03",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-10-04",
+          "status": "week_off",
+          "leaveType": null
+        },
+        {
+          "date": "2026-10-05",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-10-06",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-10-07",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-10-08",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-10-09",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-10-10",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-10-11",
+          "status": "week_off",
+          "leaveType": null
+        },
+        {
+          "date": "2026-10-12",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-10-13",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-10-14",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-10-15",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-10-16",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-10-17",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-10-18",
+          "status": "week_off",
+          "leaveType": null
+        },
+        {
+          "date": "2026-10-19",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-10-20",
+          "status": "holiday",
+          "leaveType": null
+        },
+        {
+          "date": "2026-10-21",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-10-22",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-10-23",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-10-24",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-10-25",
+          "status": "week_off",
+          "leaveType": null
+        },
+        {
+          "date": "2026-10-26",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-10-27",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-10-28",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-10-29",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-10-30",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-10-31",
+          "status": "present",
+          "leaveType": null
+        }
+      ]
+    }
+  },
+  "expected": {
+    "payableDays": 31,
+    "grossPaise": 1200000,
+    "netPaise": 1200000,
+    "anomalies": [],
+    "explainIncludes": [
+      "capped"
+    ]
+  }
+}
