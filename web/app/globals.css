@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+@theme {
+  --color-mint-50: #ecfaf2;
+  --color-mint-100: #d2f3e0;
+  --color-mint-200: #a8e6c4;
+  --color-mint-300: #74d4a2;
+  --color-mint-400: #45c383;
+  --color-mint-500: #2bb673;
+  --color-mint-600: #22965e;
+  --color-mint-700: #1c774c;
+  --color-mint-800: #195e3e;
+  --color-mint-900: #144d34;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Noto Sans Devanagari",
+    "Helvetica Neue", Arial, sans-serif;
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased;
+}
+
+/* number inputs without spinners in dense tables */
+.no-spin::-webkit-outer-spin-button,
+.no-spin::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.no-spin {
+  -moz-appearance: textfield;
+}

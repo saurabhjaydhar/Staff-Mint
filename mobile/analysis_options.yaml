@@ -1,0 +1,21 @@
+# Static analysis for StaffMint. `flutter analyze` must stay clean.
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - build/**
+    - android/**
+    - ios/**
+  language:
+    strict-casts: false
+
+formatter:
+  page_width: 120
+
+linter:
+  rules:
+    - prefer_single_quotes
+    - always_declare_return_types
+    - avoid_print
+    - prefer_final_locals
+    - unawaited_futures

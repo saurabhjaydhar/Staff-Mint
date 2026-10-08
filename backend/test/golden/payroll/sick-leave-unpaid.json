@@ -1,0 +1,183 @@
+{
+  "input": {
+    "month": "2026-02",
+    "currency": "INR",
+    "settings": {
+      "monthDivisor": "days_in_month",
+      "weekOffsPaid": true,
+      "holidaysPaid": true,
+      "sickLeavePaid": false,
+      "dailyPaysOffDays": false,
+      "roundToRupee": true
+    },
+    "employee": {
+      "employeeId": "e1",
+      "name": "Ramesh",
+      "wageType": "monthly",
+      "ratePaise": 2800000,
+      "joiningDate": null,
+      "exitDate": null,
+      "adjustments": [],
+      "advances": [],
+      "lastNetPaise": null,
+      "days": [
+        {
+          "date": "2026-02-01",
+          "status": "week_off",
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-02",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-03",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-04",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-05",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-06",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-07",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-08",
+          "status": "week_off",
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-09",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-10",
+          "status": "leave",
+          "leaveType": "sick"
+        },
+        {
+          "date": "2026-02-11",
+          "status": "leave",
+          "leaveType": "sick"
+        },
+        {
+          "date": "2026-02-12",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-13",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-14",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-15",
+          "status": "week_off",
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-16",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-17",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-18",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-19",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-20",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-21",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-22",
+          "status": "week_off",
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-23",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-24",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-25",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-26",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-27",
+          "status": "present",
+          "leaveType": null
+        },
+        {
+          "date": "2026-02-28",
+          "status": "present",
+          "leaveType": null
+        }
+      ]
+    }
+  },
+  "expected": {
+    "payableDays": 26,
+    "grossPaise": 2600000,
+    "netPaise": 2600000,
+    "summary": {
+      "present": 22,
+      "halfDay": 0,
+      "absent": 0,
+      "paidLeave": 0,
+      "unpaidLeave": 2,
+      "holidays": 0,
+      "weekOffs": 4,
+      "unmarked": 0
+    },
+    "anomalies": []
+  }
+}

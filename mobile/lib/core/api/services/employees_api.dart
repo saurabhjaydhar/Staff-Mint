@@ -1,0 +1,44 @@
+import '../../models/models.dart';
+import '../../utils/json.dart';
+import '../api_client.dart';
+
+class BulkCreateResult {
+  const BulkCreateResult({required this.created, required this.skipped});
+  final List<Employee> created;
+  final List<({String phone, String reason})> skipped;
+}
+
+class EmployeesApi {
+  EmployeesApi(this._c);
+  final ApiClient _c;
+
+  Future<List<Employee>> list({String? search, String status = 'active', String? branchId}) async => asList(
+    await _c.get('/employees', query: {'search': search, 'status': status, 'branchId': branchId}),
+    Employee.fromJson,
+  );
+
+  Future<Employee> create(NewEmployee e) async =>
+      Employee.fromJson(asMap(await _c.post('/employees', body: e.toJson())));
+
+  Future<BulkCreateResult> bulkCreate(List<NewEmployee> list) async {
+    final d = asMap(await _c.post('/employees/bulk', body: {'employees': list.map((e) => e.toJson()).toList()}));
+    return BulkCreateResult(
+      created: asList(d['created'], Employee.fromJson),
+      skipped: asList(d['skipped'], (j) => (phone: asString(j['phone']), reason: asString(j['reason']))),
+    );
+  }
+
+  Future<Employee> get(String id) async => Employee.fromJson(asMap(await _c.get('/employees/$id')));
+
+  Future<Employee> update(String id, Json partial) async =>
+      Employee.fromJson(asMap(await _c.patch('/employees/$id', body: partial)));
+
+  Future<Employee> deactivate(String id, {String? reason}) async => Employee.fromJson(
+    asMap(
+      await _c.post('/employees/$id/deactivate', body: {if (reason != null && reason.isNotEmpty) 'reason': reason}),
+    ),
+  );
+
+  Future<Employee> resetDevice(String id) async =>
+      Employee.fromJson(asMap(await _c.post('/employees/$id/reset-device')));
+}

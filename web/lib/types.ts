@@ -1,0 +1,485 @@
+// Shared types mirroring docs/API.md (StaffMint API v1).
+// Money is always integer paise. Dates are YYYY-MM-DD, months YYYY-MM, instants ISO-8601.
+
+export type Role = "owner" | "manager" | "employee" | "ca";
+export type Lang = "en" | "hi";
+
+export interface User {
+  id: string;
+  phone: string;
+  name: string;
+  role: Role;
+  companyId: string | null;
+  employeeId: string | null;
+  language: Lang;
+}
+
+export type PlanFeature =
+  | "attendance"
+  | "leave"
+  | "digest"
+  | "payroll"
+  | "advances"
+  | "payslips"
+  | "assistant"
+  | "branches"
+  | "reports"
+  | "whatsapp_payslips"
+  | "ca_access"
+  | "priority_support";
+
+export interface Plan {
+  code: string;
+  name: string;
+  priceMonthlyPaise: number;
+  priceYearlyPaise: number;
+  currency: string;
+  staffLimit: number;
+  extraStaffPricePaise: number;
+  trialDays: number;
+  features: (PlanFeature | string)[];
+}
+
+export interface GeoPoint {
+  lat: number;
+  lng: number;
+  address?: string;
+}
+
+export type MonthDivisor = "days_in_month" | "30" | "26";
+
+export interface CompanySettings {
+  graceMinutes: number;
+  halfDayHours: number;
+  monthDivisor: MonthDivisor;
+  missingCheckoutPolicy: "half_day" | "present" | "flag";
+  weekOffsPaid: boolean;
+  holidaysPaid: boolean;
+  sickLeavePaid: boolean;
+  outsideGeofencePolicy: "block" | "request_approval";
+  language: Lang;
+  digestTime: string;
+  roundToRupee: boolean;
+  selfieRequired: boolean;
+  maxDeviceTimeDriftMin: number;
+  selfieRetentionDays: number;
+  whatsappAlerts: boolean;
+}
+
+export type SubscriptionStatus = "trialing" | "active" | "past_due" | "cancelled" | "free";
+
+export interface Subscription {
+  status: SubscriptionStatus;
+  planCode: string;
+  currentPeriodEnd: string | null;
+}
+
+export interface Company {
+  id: string;
+  name: string;
+  businessType: string;
+  country: string;
+  currency: string;
+  timezone: string;
+  location: GeoPoint;
+  settings: CompanySettings;
+  plan: Plan;
+  subscription: Subscription;
+}
+
+export interface Branch {
+  id: string;
+  name: string;
+  location: GeoPoint;
+  radiusM: number;
+  shiftId: string | null;
+}
+
+export interface Shift {
+  id: string;
+  name: string;
+  start: string;
+  end: string;
+  graceMinutes: number | null;
+  weeklyOff: number[];
+}
+
+export type WageType = "monthly" | "daily";
+
+export interface Employee {
+  id: string;
+  name: string;
+  phone: string;
+  branchId: string | null;
+  shiftId: string | null;
+  wageType: WageType;
+  ratePaise: number;
+  designation?: string;
+  joiningDate?: string;
+  status: "active" | "inactive";
+  consent: { location: boolean; at?: string };
+  hasDevice: boolean;
+  language: Lang;
+}
+
+export interface EmployeeInput {
+  name: string;
+  phone: string;
+  wageType?: WageType;
+  ratePaise?: number;
+  branchId?: string;
+  shiftId?: string;
+  designation?: string;
+  joiningDate?: string;
+}
+
+export type PunchFlag =
+  | "late_sync"
+  | "device_time_drift"
+  | "mock_location"
+  | "low_accuracy"
+  | "outside_geofence";
+
+export interface Punch {
+  id: string;
+  type: "in" | "out";
+  clientTime: string;
+  serverTime: string;
+  geo: { lat: number; lng: number; accuracyM: number } | null;
+  distanceM: number | null;
+  insideGeofence: boolean | null;
+  selfieUrl: string | null;
+  mockLocation: boolean;
+  deviceId: string;
+  source: "app" | "offline_sync" | "owner" | "assistant" | "import";
+  flags: (PunchFlag | string)[];
+  approval: "not_required" | "pending" | "approved" | "rejected";
+}
+
+export type AttendanceStatus =
+  | "present"
+  | "absent"
+  | "half_day"
+  | "leave"
+  | "holiday"
+  | "week_off";
+
+export type LeaveType = "paid" | "sick" | "unpaid";
+
+export interface Attendance {
+  id: string;
+  employeeId: string;
+  date: string;
+  status: AttendanceStatus | null;
+  leaveType?: LeaveType;
+  punches: Punch[];
+  lateMinutes: number;
+  earlyOutMinutes: number;
+  workedMinutes: number;
+  overridden: boolean;
+  overrideReason?: string;
+  flags: string[];
+}
+
+export type DisplayStatus =
+  | "present"
+  | "late"
+  | "checked_in"
+  | "absent"
+  | "half_day"
+  | "leave"
+  | "holiday"
+  | "week_off"
+  | "not_marked";
+
+export interface DayRow {
+  employee: { id: string; name: string; phone: string; designation?: string };
+  record: Attendance | null;
+  displayStatus: DisplayStatus;
+}
+
+export interface MonthGrid {
+  month: string;
+  days: string[];
+  rows: {
+    employee: { id: string; name: string; phone?: string; designation?: string };
+    days: Record<string, DisplayStatus | null>;
+    totals: Record<string, number>;
+  }[];
+}
+
+export interface Leave {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  type: LeaveType;
+  from: string;
+  to: string;
+  days: number;
+  halfDay: boolean;
+  reason?: string;
+  status: "pending" | "approved" | "rejected" | "cancelled";
+  decidedAt?: string;
+  note?: string;
+}
+
+export interface LeaveBalance {
+  employeeId: string;
+  year: number;
+  paid: number;
+  sick: number;
+  usedPaid: number;
+  usedSick: number;
+}
+
+export interface Advance {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  amountPaise: number;
+  date: string;
+  mode: "installments" | "full_next";
+  installments: number;
+  installmentPaise: number;
+  repaidPaise: number;
+  balancePaise: number;
+  status: "active" | "closed";
+  skipMonths: string[];
+  note?: string;
+}
+
+export interface Adjustment {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  month: string;
+  type: "bonus" | "deduction";
+  amountPaise: number;
+  note?: string;
+}
+
+export interface PayslipLine {
+  code: string;
+  kind: "earning" | "deduction";
+  label: string;
+  amountPaise: number;
+  explanation: string;
+}
+
+export interface Payslip {
+  id: string;
+  runId: string;
+  employeeId: string;
+  employeeName: string;
+  month: string;
+  revision: number;
+  wageType: WageType;
+  ratePaise: number;
+  payableDays: number;
+  daysInMonth: number;
+  divisor: number;
+  summary: {
+    present: number;
+    halfDay: number;
+    absent: number;
+    paidLeave: number;
+    unpaidLeave: number;
+    holidays: number;
+    weekOffs: number;
+    unmarked: number;
+  };
+  lines: PayslipLine[];
+  grossPaise: number;
+  deductionsPaise: number;
+  netPaise: number;
+  status: "draft" | "final" | "sent";
+  pdfUrl: string | null;
+  sentAt?: string;
+}
+
+export interface PayrollAnomaly {
+  employeeId: string;
+  employeeName: string;
+  code: string;
+  message: string;
+}
+
+export interface PayrollRun {
+  id: string;
+  month: string;
+  revision: number;
+  status: "draft" | "approved" | "paid" | "superseded";
+  engineVersion: string;
+  totals: { grossPaise: number; deductionsPaise: number; netPaise: number; employees: number };
+  anomalies: PayrollAnomaly[];
+  approvedAt?: string;
+  paidAt?: string;
+  payslips?: Payslip[];
+}
+
+export interface CompareRow {
+  employeeName: string;
+  ours: number | null;
+  theirs: number | null;
+  diffPaise: number | null;
+  reasons: string[];
+}
+
+export interface CompareResult {
+  rows: CompareRow[];
+  matched: number;
+  // The contract does not pin the shape; accept a count or a list of names.
+  unmatched: number | (string | { name?: string; employeeName?: string })[];
+}
+
+export type AuditChannel = "app" | "web" | "assistant" | "whatsapp" | "system" | "import";
+
+export interface AuditLog {
+  id: string;
+  actorId: string;
+  actorName: string;
+  channel: AuditChannel;
+  action: string;
+  entity: string;
+  entityId: string;
+  before: unknown;
+  after: unknown;
+  at: string;
+}
+
+export interface Holiday {
+  id: string;
+  date: string;
+  name: string;
+}
+
+// ---- Auth ----
+export interface OtpRequestResult {
+  requestId: string;
+  expiresInSec: number;
+  devCode?: string;
+}
+
+export interface Tokens {
+  accessToken: string;
+  refreshToken: string;
+}
+
+export interface OtpVerifyResult extends Tokens {
+  user: User;
+  needsCompanySetup: boolean;
+}
+
+export interface MeResult {
+  user: User;
+  company: Company | null;
+  employee: Employee | null;
+}
+
+export interface CompanySetupInput {
+  name: string;
+  businessType: string;
+  location: GeoPoint;
+  openingTime: string;
+  closingTime?: string;
+  weeklyOff: number[];
+  country?: string;
+  timezone?: string;
+  currency?: string;
+}
+
+export interface CompanySetupResult extends Tokens {
+  company: Company;
+}
+
+// ---- Dashboard ----
+export interface DashboardToday {
+  date: string;
+  counts: {
+    total: number;
+    present: number;
+    late: number;
+    absent: number;
+    onLeave: number;
+    notMarked: number;
+    checkedIn: number;
+  };
+  needsAction: {
+    leaveRequests: Leave[];
+    punchApprovals: { attendanceId: string; employeeName: string; punch: Punch }[];
+    flags: { employeeName: string; date: string; flags: string[] }[];
+  };
+  plan: { staffCount: number; staffLimit: number };
+}
+
+// ---- Imports ----
+export type ImportKind = "staff" | "attendance";
+export type ImportSource = "auto" | "salarybox" | "pagarbook" | "generic";
+
+export type ImportField =
+  | "name"
+  | "phone"
+  | "ratePaise"
+  | "wageType"
+  | "designation"
+  | "joiningDate"
+  | "branch"
+  | "advanceBalancePaise"
+  | "paidLeaveBalance"
+  | "sickLeaveBalance"
+  | "lastSalaryPaise";
+
+export interface ImportRow {
+  index: number;
+  values: Record<string, unknown>;
+  issues: { field: string; message: string }[];
+  /** Not in the contract; honoured if the backend sends it. */
+  skipped?: boolean;
+}
+
+export interface ImportSession {
+  id: string;
+  kind: ImportKind;
+  source: ImportSource;
+  status: "review" | "committed" | "rolled_back";
+  headers: string[];
+  mapping: Record<string, string | null>;
+  rows: ImportRow[];
+  flaggedCount: number;
+  totalRows: number;
+  undoUntil?: string;
+  rollbackUntil?: string;
+  /** Not in the contract; honoured if the backend sends it. */
+  skipRows?: number[];
+}
+
+export interface ImportPatch {
+  mapping?: Record<string, string | null>;
+  fixes?: { row: number; field: string; value: unknown }[];
+  skipRows?: number[];
+}
+
+export interface ImportCommitResult {
+  created: number;
+  updated: number;
+  skipped: number;
+  undoUntil: string;
+  rollbackUntil: string;
+}
+
+// ---- Billing ----
+export interface SubscriptionInfo {
+  subscription: Subscription;
+  plan: Plan;
+  staffCount: number;
+}
+
+export interface SubscribeResult {
+  provider: string;
+  subscriptionId: string;
+  checkoutUrl: string;
+  keyId?: string;
+}
+
+export type ReportType = "attendance" | "salary" | "advances" | "late";
+export type ReportFormat = "pdf" | "xlsx";
