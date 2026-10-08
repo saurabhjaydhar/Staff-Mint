@@ -1,0 +1,151 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../features/assistant/assistant_screen.dart';
+import '../../features/auth/auth_controller.dart';
+import '../../features/auth/login_screen.dart';
+import '../../features/auth/otp_screen.dart';
+import '../../features/auth/splash_screen.dart';
+import '../../features/employee/attendance/employee_attendance_screen.dart';
+import '../../features/employee/consent/consent_screen.dart';
+import '../../features/employee/home/employee_home_screen.dart';
+import '../../features/employee/leave/employee_leave_screen.dart';
+import '../../features/employee/profile/employee_profile_screen.dart';
+import '../../features/employee/salary/employee_salary_screen.dart';
+import '../../features/employee/shell/employee_shell.dart';
+import '../../features/owner/attendance/attendance_screen.dart';
+import '../../features/owner/home/owner_home_screen.dart';
+import '../../features/owner/more/audit_screen.dart';
+import '../../features/owner/more/billing_screen.dart';
+import '../../features/owner/more/branches_screen.dart';
+import '../../features/owner/more/help_screen.dart';
+import '../../features/owner/more/holidays_screen.dart';
+import '../../features/owner/more/leaves_screen.dart';
+import '../../features/owner/more/more_screen.dart';
+import '../../features/owner/more/reports_screen.dart';
+import '../../features/owner/more/settings_screen.dart';
+import '../../features/owner/more/shifts_screen.dart';
+import '../../features/owner/salary/salary_screen.dart';
+import '../../features/owner/shell/owner_shell.dart';
+import '../../features/owner/staff/add_staff_screen.dart';
+import '../../features/owner/staff/staff_list_screen.dart';
+import '../../features/owner/staff/staff_profile_screen.dart';
+import '../../features/setup/setup_screen.dart';
+import '../../features/setup/setup_staff_screen.dart';
+import 'redirect.dart';
+import 'routes.dart';
+
+final _rootKey = GlobalKey<NavigatorState>(debugLabel: 'root');
+
+/// Bridges Riverpod session changes to go_router's `refreshListenable`.
+class _SessionListenable extends ChangeNotifier {
+  void notify() => notifyListeners();
+}
+
+final routerProvider = Provider<GoRouter>((ref) {
+  final listenable = _SessionListenable();
+  ref.listen(authControllerProvider, (_, _) => listenable.notify());
+  ref.onDispose(listenable.dispose);
+
+  GoRoute r(String path, Widget Function(GoRouterState s) build, {List<RouteBase> routes = const []}) =>
+      GoRoute(path: path, builder: (_, s) => build(s), routes: routes);
+
+  final router = GoRouter(
+    navigatorKey: _rootKey,
+    initialLocation: Routes.splash,
+    refreshListenable: listenable,
+    redirect: (context, state) => computeRedirect(ref.read(authControllerProvider), state.matchedLocation),
+    routes: [
+      r(Routes.splash, (_) => const SplashScreen()),
+      r(
+        Routes.login,
+        (_) => const LoginScreen(),
+        routes: [
+          GoRoute(
+            path: 'otp',
+            builder: (_, s) => OtpScreen(
+              phone: s.uri.queryParameters['phone'] ?? '',
+              devCode: s.uri.queryParameters['devCode'],
+              channel: s.uri.queryParameters['channel'] ?? 'sms',
+            ),
+          ),
+        ],
+      ),
+      r(
+        Routes.setup,
+        (_) => const SetupScreen(),
+        routes: [GoRoute(path: 'staff', builder: (_, _) => const SetupStaffScreen())],
+      ),
+      GoRoute(
+        path: Routes.assistant,
+        parentNavigatorKey: _rootKey,
+        pageBuilder: (_, _) => const MaterialPage(fullscreenDialog: true, child: AssistantScreen()),
+      ),
+      r(Routes.employeeConsent, (_) => const ConsentScreen()),
+
+      // ---------------------------------------------------------- Owner
+      StatefulShellRoute.indexedStack(
+        builder: (_, _, shell) => OwnerShell(navigationShell: shell),
+        branches: [
+          StatefulShellBranch(routes: [r(Routes.ownerHome, (_) => const OwnerHomeScreen())]),
+          StatefulShellBranch(
+            routes: [
+              r(
+                Routes.ownerStaff,
+                (_) => const StaffListScreen(),
+                routes: [
+                  GoRoute(path: 'add', builder: (_, _) => const AddStaffScreen()),
+                  GoRoute(
+                    path: ':id',
+                    builder: (_, s) => StaffProfileScreen(employeeId: s.pathParameters['id']!),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          StatefulShellBranch(routes: [r(Routes.ownerAttendance, (_) => const AttendanceScreen())]),
+          StatefulShellBranch(routes: [r(Routes.ownerSalary, (_) => const SalaryScreen())]),
+          StatefulShellBranch(
+            routes: [
+              r(
+                Routes.ownerMore,
+                (_) => const MoreScreen(),
+                routes: [
+                  GoRoute(path: 'leaves', builder: (_, _) => const LeavesScreen()),
+                  GoRoute(path: 'reports', builder: (_, _) => const ReportsScreen()),
+                  GoRoute(
+                    path: 'settings',
+                    builder: (_, _) => const SettingsScreen(),
+                    routes: [
+                      GoRoute(path: 'shifts', builder: (_, _) => const ShiftsScreen()),
+                      GoRoute(path: 'branches', builder: (_, _) => const BranchesScreen()),
+                      GoRoute(path: 'holidays', builder: (_, _) => const HolidaysScreen()),
+                    ],
+                  ),
+                  GoRoute(path: 'billing', builder: (_, _) => const BillingScreen()),
+                  GoRoute(path: 'audit', builder: (_, _) => const AuditScreen()),
+                  GoRoute(path: 'help', builder: (_, _) => const HelpScreen()),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+
+      // ------------------------------------------------------- Employee
+      StatefulShellRoute.indexedStack(
+        builder: (_, _, shell) => EmployeeShell(navigationShell: shell),
+        branches: [
+          StatefulShellBranch(routes: [r(Routes.employeeHome, (_) => const EmployeeHomeScreen())]),
+          StatefulShellBranch(routes: [r(Routes.employeeAttendance, (_) => const EmployeeAttendanceScreen())]),
+          StatefulShellBranch(routes: [r(Routes.employeeLeave, (_) => const EmployeeLeaveScreen())]),
+          StatefulShellBranch(routes: [r(Routes.employeeSalary, (_) => const EmployeeSalaryScreen())]),
+          StatefulShellBranch(routes: [r(Routes.employeeProfile, (_) => const EmployeeProfileScreen())]),
+        ],
+      ),
+    ],
+  );
+  ref.onDispose(router.dispose);
+  return router;
+});
