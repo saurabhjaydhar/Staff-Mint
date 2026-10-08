@@ -1,0 +1,52 @@
+# Local / single-VPS stack: MongoDB, Redis, API, worker, web dashboard.
+#   docker compose up -d --build
+#   docker compose exec api node dist/scripts/seed.js --demo   # optional demo data
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes: [mongo-data:/data/db]
+    ports: ["127.0.0.1:27017:27017"]
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes: [redis-data:/data]
+  api:
+    build: ./backend
+    restart: unless-stopped
+    env_file: [./backend/.env]
+    environment:
+      MONGODB_URI: mongodb://mongo:27017/staffmint
+      REDIS_URL: redis://redis:6379
+      JOBS_DRIVER: bullmq
+      STORAGE_PROVIDER: ${STORAGE_PROVIDER:-local}
+      LOCAL_STORAGE_DIR: /data/storage
+    volumes: [api-storage:/data/storage]
+    ports: ["4000:4000"]
+    depends_on: [mongo, redis]
+  worker:
+    build: ./backend
+    restart: unless-stopped
+    command: ["node", "dist/worker.js"]
+    env_file: [./backend/.env]
+    environment:
+      MONGODB_URI: mongodb://mongo:27017/staffmint
+      REDIS_URL: redis://redis:6379
+      JOBS_DRIVER: bullmq
+      STORAGE_PROVIDER: ${STORAGE_PROVIDER:-local}
+      LOCAL_STORAGE_DIR: /data/storage
+    volumes: [api-storage:/data/storage]
+    depends_on: [mongo, redis]
+  web:
+    build:
+      context: ./web
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:4000/api/v1}
+    restart: unless-stopped
+    ports: ["3000:3000"]
+    depends_on: [api]
+volumes:
+  mongo-data:
+  redis-data:
+  api-storage:
