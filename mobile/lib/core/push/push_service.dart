@@ -19,7 +19,8 @@ class PushService {
   /// Call once from `main()`. Never throws.
   Future<void> init() async {
     try {
-      await Firebase.initializeApp();
+      // Bounded: push must never block app start (missing Play Services, offline, placeholder config).
+      await Firebase.initializeApp().timeout(const Duration(seconds: 5));
       _initialized = true;
     } catch (e) {
       debugPrint('Push disabled (Firebase init failed): $e');

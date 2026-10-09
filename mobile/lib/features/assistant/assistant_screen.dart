@@ -360,7 +360,8 @@ class _ConfirmCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (reply.text.isNotEmpty) Text(reply.text, style: const TextStyle(fontSize: 17)),
+                // The API text repeats the preview rows (it is meant for WhatsApp), so show it only without a preview.
+                if (p == null && reply.text.isNotEmpty) Text(reply.text, style: const TextStyle(fontSize: 17)),
                 if (p != null) ...[
                   const SizedBox(height: 8),
                   Text(p.title, style: Theme.of(context).textTheme.titleMedium),

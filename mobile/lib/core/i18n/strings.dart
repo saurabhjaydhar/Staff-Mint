@@ -448,6 +448,7 @@ class S {
     'मौजूदा हाज़िरी से नया ड्राफ़्ट (संशोधन) बनेगा।',
   );
   String payableDays(num d, num div) => _t('Payable days: $d / $div', 'भुगतान वाले दिन: $d / $div');
+  String payableDaysOnly(num d) => _t('Payable days: $d', 'भुगतान वाले दिन: $d');
   String get payslips => _t('Payslips', 'पेस्लिप');
   String get openPdf => _t('Open PDF', 'PDF खोलें');
   String get advances => _t('Advances', 'एडवांस');

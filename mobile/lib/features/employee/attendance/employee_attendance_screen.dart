@@ -55,9 +55,9 @@ class _EmployeeAttendanceScreenState extends ConsumerState<EmployeeAttendanceScr
                           children: [
                             for (final e in row.totals.entries)
                               Chip(
-                                backgroundColor: AppColors.forStatus(e.key).withValues(alpha: 0.15),
+                                backgroundColor: AppColors.forStatus(_statusKey(e.key)).withValues(alpha: 0.15),
                                 side: BorderSide.none,
-                                label: Text('${s.statusLabel(e.key)}: ${e.value}'),
+                                label: Text('${s.statusLabel(_statusKey(e.key))}: ${e.value}'),
                               ),
                           ],
                         ),
@@ -133,3 +133,6 @@ class _Calendar extends StatelessWidget {
     );
   }
 }
+
+/// Month totals use camelCase keys (`halfDay`, `weekOff`, `notMarked`); statuses use snake_case.
+String _statusKey(String key) => key.replaceAllMapped(RegExp('[A-Z]'), (m) => '_${m[0]!.toLowerCase()}');
