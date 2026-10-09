@@ -20,7 +20,7 @@ Plan      { code, name, priceMonthlyPaise, priceYearlyPaise, currency, staffLimi
           // features: attendance, leave, digest, payroll, advances, payslips, assistant, branches, reports, whatsapp_payslips, ca_access, priority_support
 Company   { id, name, businessType, country, currency, timezone, location:{lat,lng,address?},
             settings: { graceMinutes, halfDayHours, monthDivisor:'days_in_month'|'30'|'26', missingCheckoutPolicy:'half_day'|'present'|'flag',
-                        weekOffsPaid, holidaysPaid, sickLeavePaid, outsideGeofencePolicy:'block'|'request_approval', language, digestTime:'09:30',
+                        weekOffsPaid, holidaysPaid, sickLeavePaid, outsideGeofencePolicy:'block'|'request_approval', phoneLockPolicy:'off'|'recommended'|'required', language, digestTime:'09:30',
                         roundToRupee, selfieRequired, maxDeviceTimeDriftMin, selfieRetentionDays, whatsappAlerts },
             plan: Plan, subscription: { status:'trialing'|'active'|'past_due'|'cancelled'|'free', planCode, currentPeriodEnd|null } }
 Branch    { id, name, location:{lat,lng,address?}, radiusM, shiftId }
@@ -28,8 +28,8 @@ Shift     { id, name, start:'09:00', end:'19:00', graceMinutes:number|null, week
 Employee  { id, name, phone, branchId, shiftId, wageType:'monthly'|'daily', ratePaise, designation?, joiningDate?, status:'active'|'inactive',
             consent:{ location:boolean, at?:string }, hasDevice:boolean, language }
 Punch     { id, type:'in'|'out', clientTime /* effective time: server time online, device time for offline sync */, deviceTime, serverTime, geo:{lat,lng,accuracyM}|null, distanceM|null, insideGeofence|null, selfieUrl|null,
-            mockLocation, deviceId, source:'app'|'offline_sync'|'owner'|'assistant'|'import', flags:string[], approval:'not_required'|'pending'|'approved'|'rejected' }
-            // flags: late_sync, device_time_drift, mock_location, low_accuracy, outside_geofence
+            mockLocation, lockCheck:'passed'|'failed'|'unavailable'|null, deviceId, source:'app'|'offline_sync'|'owner'|'assistant'|'import', flags:string[], approval:'not_required'|'pending'|'approved'|'rejected' }
+            // flags: late_sync, device_time_drift, mock_location, low_accuracy, outside_geofence, phone_lock_failed, no_phone_lock
 Attendance { id, employeeId, date, status:'present'|'absent'|'half_day'|'leave'|'holiday'|'week_off'|null, leaveType?:'paid'|'sick'|'unpaid',
              punches: Punch[], lateMinutes, earlyOutMinutes, workedMinutes, overridden, overrideReason?, flags:string[] }
 DayRow    { employee: {id,name,phone,designation}, record: Attendance|null,
@@ -112,7 +112,7 @@ Phone: E.164 (`+919876543210`) or 10-digit Indian (`9876543210`, normalised serv
 Fields: `name, phone, ratePaise, wageType, designation, joiningDate, branch, advanceBalancePaise, paidLeaveBalance, sickLeaveBalance, lastSalaryPaise`. Review UI shows only rows with `issues.length > 0`.
 
 ### Attendance
-| POST | /attendance/check-in | `{clientTime, geo:{lat,lng,accuracyM}, mockLocation:boolean, deviceId, selfieBase64?, clientPunchId}` (employee) | `{record: Attendance, punch: Punch}` ; 422 `OUTSIDE_GEOFENCE` if blocked |
+| POST | /attendance/check-in | `{clientTime, geo:{lat,lng,accuracyM}, mockLocation:boolean, lockCheck?:'passed'\|'failed'\|'unavailable', deviceId, selfieBase64?, clientPunchId}` (employee) | `{record: Attendance, punch: Punch}` ; 422 `OUTSIDE_GEOFENCE` if blocked. `lockCheck` is the phone screen-lock result (the app never sees the biometric). It never blocks: with `phoneLockPolicy:'recommended'` a non-pass is only flagged; with `'required'` anything but `passed` (including a missing value) makes the punch `pending` for owner approval |
 | POST | /attendance/check-out | same | same |
 | POST | /attendance/sync | `{punches: [{type:'in'\|'out', ...same as above}]}` (offline queue) | `{results: {clientPunchId, ok, error?, punch?}[]}` — idempotent by `clientPunchId` |
 | GET | /attendance/today | (employee) | `{date, record: Attendance\|null, shift: Shift, branch: Branch}` |

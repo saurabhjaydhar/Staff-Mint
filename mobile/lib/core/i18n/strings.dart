@@ -367,6 +367,8 @@ class S {
   String leaveRequestLine(String type, String from, String to, num days) =>
       _t('$type · $from – $to ($days days)', '$type · $from – $to ($days दिन)');
   String get outsidePunchApproval => _t('Punch outside shop area', 'दुकान के दायरे से बाहर पंच');
+  String get lockPunchApproval => _t('Punch without phone lock', 'फ़ोन लॉक खोले बिना पंच');
+  String lockTagShort(String issue) => issue == 'failed' ? _t('Lock ✗', 'लॉक ✗') : _t('No lock', 'बिना लॉक');
   String distanceAway(num m) => _t('${m.round()} m away', '${m.round()} मीटर दूर');
   String staffUsage(int count, int limit) =>
       _t('$count of $limit staff on your plan', 'आपके प्लान में $limit में से $count स्टाफ़');
@@ -517,6 +519,14 @@ class S {
   String get outsideGeofencePolicy => _t('If staff are outside the shop area', 'अगर स्टाफ़ दुकान के दायरे से बाहर हो');
   String get policyBlock => _t('Block check-in', 'चेक-इन रोकें');
   String get policyRequestApproval => _t('Allow, but ask me to approve', 'होने दें, पर मुझसे मंज़ूरी लें');
+  String get phoneLockPolicy => _t('Phone lock at check-in', 'चेक-इन पर फ़ोन लॉक');
+  String get phoneLockPolicyHelp => _t(
+    'Staff unlock their own phone (fingerprint, face, PIN or pattern). StaffMint only learns whether it opened — never the fingerprint or face.',
+    'स्टाफ़ अपना फ़ोन लॉक खोलेगा (फ़िंगरप्रिंट, चेहरा, PIN या पैटर्न)। StaffMint को सिर्फ़ इतना पता चलता है कि लॉक खुला या नहीं — फ़िंगरप्रिंट या चेहरा कभी नहीं।',
+  );
+  String get lockPolicyOff => _t('Don\'t ask', 'न पूछें');
+  String get lockPolicyRecommended => _t('Ask, tag me if it fails', 'पूछें, न खुले तो मुझे टैग दिखाएँ');
+  String get lockPolicyRequired => _t('Ask, I approve if it fails', 'पूछें, न खुले तो मेरी मंज़ूरी');
   String get digestTime => _t('Daily summary time', 'रोज़ की रिपोर्ट का समय');
   String get weekOffsPaid => _t('Weekly offs are paid', 'साप्ताहिक छुट्टी का वेतन मिलेगा');
   String get holidaysPaid => _t('Holidays are paid', 'त्योहार की छुट्टी का वेतन मिलेगा');
@@ -639,12 +649,14 @@ class S {
     '$company uses StaffMint to record attendance.\n\n'
         '• When you tap Check in or Check out, we record your location (GPS), a selfie and the time — only at that moment. We never track you in the background.\n'
         '• This data is used only for attendance and salary at $company.\n'
+        '• You may be asked to unlock your phone (fingerprint, face, PIN or pattern). Your fingerprint and face never leave your phone — StaffMint only learns whether it unlocked.\n'
         '• Selfies are deleted automatically after 90 days.\n'
         '• You can ask your employer to see or correct your data at any time.\n\n'
         'This notice follows India’s Digital Personal Data Protection (DPDP) Act, 2023.',
     '$company हाज़िरी दर्ज करने के लिए StaffMint का उपयोग करता है।\n\n'
         '• जब आप चेक-इन या चेक-आउट दबाते हैं, तभी आपकी लोकेशन (GPS), सेल्फ़ी और समय दर्ज होता है। हम आपको बैकग्राउंड में कभी ट्रैक नहीं करते।\n'
         '• यह डेटा सिर्फ़ $company में हाज़िरी और सैलरी के लिए इस्तेमाल होता है।\n'
+        '• आपसे फ़ोन लॉक (फ़िंगरप्रिंट, चेहरा, PIN या पैटर्न) खोलने को कहा जा सकता है। आपका फ़िंगरप्रिंट और चेहरा आपके फ़ोन से बाहर नहीं जाता — StaffMint को सिर्फ़ पता चलता है कि लॉक खुला या नहीं।\n'
         '• सेल्फ़ी 90 दिन बाद अपने आप मिटा दी जाती हैं।\n'
         '• आप कभी भी अपने नियोक्ता से अपना डेटा देखने या सुधारने को कह सकते हैं।\n\n'
         'यह सूचना भारत के डिजिटल व्यक्तिगत डेटा संरक्षण (DPDP) अधिनियम, 2023 के अनुसार है।',
@@ -664,6 +676,28 @@ class S {
   String checkedOutAt(String t) => _t('Checked out at $t', '$t पर चेक-आउट');
   String get gettingLocation => _t('Getting your location…', 'आपकी लोकेशन ली जा रही है…');
   String get takingSelfie => _t('Take a selfie', 'सेल्फ़ी लें');
+  String get unlockingPhone => _t('Unlock your phone…', 'अपना फ़ोन लॉक खोलें…');
+  String get unlockReason => _t('Unlock to check in', 'हाज़िरी के लिए फ़ोन लॉक खोलें');
+  String get unlockFailedTitle => _t('Phone lock did not open', 'फ़ोन लॉक नहीं खुला');
+  String unlockFailedBody(bool required) => required
+      ? _t(
+          'Try again, or check in without it — your owner will need to approve this check-in.',
+          'फिर कोशिश करें, या बिना लॉक के हाज़िरी लगाएँ — यह हाज़िरी मालिक की मंज़ूरी के बाद लगेगी।',
+        )
+      : _t(
+          'Try again, or check in without it — your owner will see a tag on this check-in.',
+          'फिर कोशिश करें, या बिना लॉक के हाज़िरी लगाएँ — मालिक को इस हाज़िरी पर टैग दिखेगा।',
+        );
+  String get continueWithoutLock => _t('Check in without it', 'बिना लॉक के लगाएँ');
+  String get phoneLockLabel => _t('Phone lock', 'फ़ोन लॉक');
+  String lockCheckLabel(String? v) => switch (v) {
+    'passed' => _t('Unlocked', 'खुला'),
+    'failed' => _t('Did not open', 'नहीं खुला'),
+    'unavailable' => _t('No lock on phone', 'फ़ोन पर लॉक नहीं'),
+    _ => _t('Not asked', 'नहीं पूछा'),
+  };
+  String get lockPendingNote =>
+      _t('Phone lock not opened — sent to owner for approval', 'फ़ोन लॉक नहीं खुला — मंज़ूरी के लिए मालिक को भेजा गया');
   String get submitting => _t('Saving…', 'सेव हो रहा है…');
   String pendingSync(int n) => _t('$n punch(es) waiting to sync', '$n पंच सिंक होने बाक़ी');
   String get syncNow => _t('Sync now', 'अभी सिंक करें');

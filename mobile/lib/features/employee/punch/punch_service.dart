@@ -16,6 +16,7 @@ class PunchRequest {
     required this.mockLocation,
     required this.deviceId,
     this.selfieBase64,
+    this.lockCheck,
     String? clientPunchId,
   }) : clientPunchId = clientPunchId ?? const Uuid().v4();
 
@@ -27,6 +28,9 @@ class PunchRequest {
   final bool mockLocation;
   final String deviceId;
   final String? selfieBase64;
+
+  /// Phone screen-lock result; null when the company does not ask for it.
+  final String? lockCheck;
   final String clientPunchId;
 
   bool get isIn => type == 'in';
@@ -38,6 +42,7 @@ class PunchRequest {
     'mockLocation': mockLocation,
     'deviceId': deviceId,
     'selfieBase64': ?selfieBase64,
+    'lockCheck': ?lockCheck,
     'clientPunchId': clientPunchId,
   };
 

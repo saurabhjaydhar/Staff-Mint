@@ -57,6 +57,7 @@ export interface CompanySettings {
   holidaysPaid: boolean;
   sickLeavePaid: boolean;
   outsideGeofencePolicy: "block" | "request_approval";
+  phoneLockPolicy: "off" | "recommended" | "required";
   language: Lang;
   digestTime: string;
   roundToRupee: boolean;
@@ -138,7 +139,9 @@ export type PunchFlag =
   | "device_time_drift"
   | "mock_location"
   | "low_accuracy"
-  | "outside_geofence";
+  | "outside_geofence"
+  | "phone_lock_failed"
+  | "no_phone_lock";
 
 export interface Punch {
   id: string;
@@ -150,6 +153,8 @@ export interface Punch {
   insideGeofence: boolean | null;
   selfieUrl: string | null;
   mockLocation: boolean;
+  /** Phone screen-lock result; null when the company does not ask for it. */
+  lockCheck: "passed" | "failed" | "unavailable" | null;
   deviceId: string;
   source: "app" | "offline_sync" | "owner" | "assistant" | "import";
   flags: (PunchFlag | string)[];

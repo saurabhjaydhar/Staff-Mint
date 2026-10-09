@@ -23,6 +23,12 @@ The redesign follows [docs/design](../design/README.md): a warm paper ledger, Hi
 | <img src="mobile/31b-setup-2-pin.jpg" width="240"><br>Setup 2/5: pin and geofence | <img src="mobile/32-setup-3.jpg" width="240"><br>Setup 3/5: shop hours, prefilled per business type | <img src="mobile/33-setup-4.jpg" width="240"><br>Setup 4/5: weekly off |
 | <img src="mobile/34-setup-5-add-staff.jpg" width="240"><br>Setup 5/5: add staff from contacts or by hand |  |  |
 
+### Phone lock at check-in
+
+| | | |
+|---|---|---|
+| <img src="mobile/40-employee-checkout-phone-lock.jpg" width="240"><br>Check-in result shows the phone-lock outcome (web build has no screen lock, so "No lock on phone") | <img src="mobile/41-owner-today-lock-tag.jpg" width="240"><br>Owner ledger tags a check-in made without the phone lock ("बिना लॉक") | <img src="mobile/43-owner-settings-phone-lock.jpg" width="240"><br>Setting: don't ask / tag me / I approve |
+
 ## Web dashboard
 
 ### Login

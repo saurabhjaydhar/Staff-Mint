@@ -60,7 +60,7 @@ List<DayRow> _rows(String date) => [
       employeeId: 'e1',
       date: date,
       status: 'present',
-      punches: [Punch(id: 'p1', type: 'in', clientTime: _at(8, 56))],
+      punches: [Punch(id: 'p1', type: 'in', clientTime: _at(8, 56), lockCheck: 'unavailable')],
     ),
     displayStatus: 'present',
   ),
@@ -87,7 +87,15 @@ List<DayRow> _rows(String date) => [
       employeeId: 'e4',
       date: date,
       punches: [
-        Punch(id: 'p4', type: 'in', clientTime: _at(9, 10), distanceM: 560, insideGeofence: false, approval: 'pending'),
+        Punch(
+          id: 'p4',
+          type: 'in',
+          clientTime: _at(9, 10),
+          distanceM: 560,
+          insideGeofence: false,
+          approval: 'pending',
+          lockCheck: 'failed',
+        ),
       ],
     ),
     displayStatus: 'checked_in',
@@ -167,7 +175,9 @@ void main() {
     expect(find.text('38 min'), findsOneWidget);
     expect(inPill('e3', 'Leave'), findsOneWidget);
     expect(inPill('e4', 'Check'), findsOneWidget);
-    expect(find.text('560 m'), findsOneWidget);
+    // Distance and phone-lock tags share the row's meta line.
+    expect(find.text('560 m · Lock ✗'), findsOneWidget);
+    expect(find.text('No lock'), findsOneWidget);
     expect(inPill('e5', 'Not yet'), findsOneWidget);
 
     // The "needs you" card summarises pending work and expands into swipe cards.

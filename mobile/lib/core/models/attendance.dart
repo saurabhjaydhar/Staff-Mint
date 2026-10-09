@@ -23,6 +23,7 @@ class Punch {
     this.insideGeofence,
     this.selfieUrl,
     this.mockLocation = false,
+    this.lockCheck,
     this.deviceId,
     this.source = 'app',
     this.flags = const [],
@@ -38,6 +39,9 @@ class Punch {
   final bool? insideGeofence;
   final String? selfieUrl;
   final bool mockLocation;
+
+  /// passed | failed | unavailable — the phone screen-lock result, null when not asked.
+  final String? lockCheck;
   final String? deviceId;
   final String source;
   final List<String> flags;
@@ -56,6 +60,7 @@ class Punch {
     insideGeofence: j['insideGeofence'] == null ? null : asBool(j['insideGeofence']),
     selfieUrl: asStringOrNull(j['selfieUrl']),
     mockLocation: asBool(j['mockLocation']),
+    lockCheck: asStringOrNull(j['lockCheck']),
     deviceId: asStringOrNull(j['deviceId']),
     source: asString(j['source'], 'app'),
     flags: asStringList(j['flags']),
@@ -152,6 +157,15 @@ class DayRow {
 
   /// A punch is waiting for the owner's approve / reject.
   bool get needsCheck => record?.punches.any((p) => p.isPendingApproval) ?? false;
+
+  /// Worst phone screen-lock result of the day: `failed` beats `unavailable`;
+  /// null when every punch unlocked (or the lock was not asked).
+  String? get lockIssue {
+    final checks = (record?.punches ?? const <Punch>[]).where((p) => p.approval != 'rejected').map((p) => p.lockCheck);
+    if (checks.contains('failed')) return 'failed';
+    if (checks.contains('unavailable')) return 'unavailable';
+    return null;
+  }
 
   /// Farthest distance of a punch made outside the shop area, if any.
   num? get awayM {

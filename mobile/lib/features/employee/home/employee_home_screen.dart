@@ -86,12 +86,20 @@ class _EmployeeHomeScreenState extends ConsumerState<EmployeeHomeScreen> {
     final type = punchTypeFor(buttonState);
     final tappedAt = DateTime.now();
     final capture = ref.read(punchCaptureProvider);
-    final selfieRequired = ref.read(authControllerProvider).company?.settings.selfieRequired ?? true;
+    final settings = ref.read(authControllerProvider).company?.settings;
+    final selfieRequired = settings?.selfieRequired ?? true;
+    final lockPolicy = settings?.phoneLockPolicy ?? 'recommended';
 
     _setBusy(s.gettingLocation);
     // GPS (usually ready already) runs while the camera is open.
     final locationFuture = _location().then<Object>((l) => l, onError: (Object e) => e);
     try {
+      String? lockCheck;
+      if (lockPolicy != 'off') {
+        _setBusy(s.unlockingPhone);
+        lockCheck = await _unlock(capture, required: lockPolicy == 'required');
+        if (lockCheck == null || !mounted) return;
+      }
       String? selfie;
       if (selfieRequired) {
         _setBusy(s.takingSelfie);
@@ -116,6 +124,7 @@ class _EmployeeHomeScreenState extends ConsumerState<EmployeeHomeScreen> {
         mockLocation: loc.isMocked,
         deviceId: await ref.read(deviceIdServiceProvider).getDeviceId(),
         selfieBase64: selfie,
+        lockCheck: lockCheck,
       );
       final outcome = await ref.read(punchServiceProvider).submit(request);
       if (!mounted) return;
@@ -123,6 +132,7 @@ class _EmployeeHomeScreenState extends ConsumerState<EmployeeHomeScreen> {
       final rows = <(String, String)>[
         (s.timeLabel, Dates.time(tappedAt, s.languageCode)),
         (s.selfieLabel, selfie == null ? s.notNeeded : s.selfieSaved),
+        if (lockCheck != null) (s.phoneLockLabel, s.lockCheckLabel(lockCheck)),
         if (_placeText(info, loc) case final place?) (s.locationLabel, place),
         if (info?.shift case final shift?)
           (
@@ -146,7 +156,8 @@ class _EmployeeHomeScreenState extends ConsumerState<EmployeeHomeScreen> {
             ].join(' · '),
             rows: rows,
             note: [
-              if (response.punch.isPendingApproval) s.pendingApprovalNote,
+              if (response.punch.isPendingApproval)
+                response.punch.insideGeofence == false || loc.isMocked ? s.pendingApprovalNote : s.lockPendingNote,
               if (loc.isMocked) s.mockLocationWarning,
             ].join('\n').ifEmptyNull,
           );
@@ -175,6 +186,38 @@ class _EmployeeHomeScreenState extends ConsumerState<EmployeeHomeScreen> {
       if (mounted) showError(context, e);
     } finally {
       if (mounted) _setBusy(null);
+    }
+  }
+
+  /// Phone screen lock. A failure offers "try again" or "check in without
+  /// it" — it never blocks the check-in. Null when the user backs out.
+  Future<String?> _unlock(PunchCapture capture, {required bool required}) async {
+    final s = context.s;
+    while (true) {
+      final r = await capture.unlock(s.unlockReason);
+      if (r != LockCheck.failed || !mounted) return r;
+      final choice = await showDialog<String>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          icon: const Icon(Icons.lock_outline_rounded, color: AppColors.amber, size: 44),
+          title: Text(s.unlockFailedTitle),
+          content: Text(s.unlockFailedBody(required)),
+          actions: [
+            TextButton(
+              key: const Key('lockContinueWithout'),
+              onPressed: () => Navigator.pop(ctx, 'continue'),
+              child: Text(s.continueWithoutLock),
+            ),
+            FilledButton(
+              key: const Key('lockRetry'),
+              onPressed: () => Navigator.pop(ctx, 'retry'),
+              child: Text(s.retry),
+            ),
+          ],
+        ),
+      );
+      if (choice == 'continue') return LockCheck.failed;
+      if (choice != 'retry') return null;
     }
   }
 

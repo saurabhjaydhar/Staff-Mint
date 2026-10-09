@@ -73,6 +73,7 @@ class CompanySettings {
     this.holidaysPaid = true,
     this.sickLeavePaid = true,
     this.outsideGeofencePolicy = 'block',
+    this.phoneLockPolicy = 'recommended',
     this.language = 'en',
     this.digestTime = '09:30',
     this.roundToRupee = true,
@@ -90,6 +91,9 @@ class CompanySettings {
   final bool holidaysPaid;
   final bool sickLeavePaid;
   final String outsideGeofencePolicy;
+
+  /// off | recommended | required — ask the phone's own screen lock at check-in.
+  final String phoneLockPolicy;
   final String language;
   final String digestTime;
   final bool roundToRupee;
@@ -107,6 +111,7 @@ class CompanySettings {
     holidaysPaid: asBool(j['holidaysPaid'], true),
     sickLeavePaid: asBool(j['sickLeavePaid'], true),
     outsideGeofencePolicy: asString(j['outsideGeofencePolicy'], 'block'),
+    phoneLockPolicy: asString(j['phoneLockPolicy'], 'recommended'),
     language: asString(j['language'], 'en'),
     digestTime: asString(j['digestTime'], '09:30'),
     roundToRupee: asBool(j['roundToRupee'], true),
@@ -125,6 +130,7 @@ class CompanySettings {
     'holidaysPaid': holidaysPaid,
     'sickLeavePaid': sickLeavePaid,
     'outsideGeofencePolicy': outsideGeofencePolicy,
+    'phoneLockPolicy': phoneLockPolicy,
     'language': language,
     'digestTime': digestTime,
     'roundToRupee': roundToRupee,

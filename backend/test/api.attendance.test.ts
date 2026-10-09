@@ -53,6 +53,40 @@ describe('attendance — check-in/out', () => {
     expect(mock.status).toBe(422);
   });
 
+  it('phone lock (recommended, the default): a failed or missing lock tags the punch but never blocks it', async () => {
+    const { owner, e } = await setup();
+    const ok = await api().post(`${V}/attendance/check-in`).set(auth(e.token)).send(punchBody(e.deviceId, { lockCheck: 'passed' })).expect(201);
+    expect(ok.body.data.punch).toMatchObject({ lockCheck: 'passed', approval: 'not_required', flags: [] });
+    const out = await api().post(`${V}/attendance/check-out`).set(auth(e.token)).send(punchBody(e.deviceId, { lockCheck: 'failed' })).expect(201);
+    expect(out.body.data.punch).toMatchObject({ lockCheck: 'failed', approval: 'not_required' });
+    expect(out.body.data.punch.flags).toContain('phone_lock_failed');
+    const again = await api().post(`${V}/attendance/check-in`).set(auth(e.token)).send(punchBody(e.deviceId, { lockCheck: 'unavailable' })).expect(201);
+    expect(again.body.data.punch.flags).toContain('no_phone_lock');
+    // A failed unlock shows up in the owner's review list; a phone with no lock is only tagged.
+    const dash = await api().get(`${V}/dashboard/today`).set(auth(owner.token)).expect(200);
+    expect(dash.body.data.needsAction.flags[0].flags).toEqual(expect.arrayContaining(['phone_lock_failed', 'no_phone_lock']));
+    expect(dash.body.data.needsAction.punchApprovals).toHaveLength(0);
+  });
+
+  it('phone lock required: anything but a pass waits for the owner; off ignores the result', async () => {
+    const { owner, e } = await setup({ phoneLockPolicy: 'required' });
+    const r = await api().post(`${V}/attendance/check-in`).set(auth(e.token)).send(punchBody(e.deviceId, { lockCheck: 'unavailable' })).expect(201);
+    expect(r.body.data.punch).toMatchObject({ approval: 'pending', lockCheck: 'unavailable' });
+    const n = await Notification.findOne({ companyId: owner.companyId, 'data.type': 'punch_approval' }).sort({ createdAt: -1 }).lean();
+    expect(JSON.stringify(n)).toMatch(/without unlocking|फ़ोन लॉक खोले बिना/);
+    // Older app versions send no lockCheck at all: same as not passed.
+    const out = await api().post(`${V}/attendance/check-out`).set(auth(e.token)).send(punchBody(e.deviceId)).expect(201);
+    expect(out.body.data.punch).toMatchObject({ approval: 'pending', lockCheck: null, flags: ['no_phone_lock'] });
+
+    await api().patch(`${V}/company/settings`).set(auth(owner.token)).send({ phoneLockPolicy: 'off' }).expect(200);
+    const p2 = nextPhone();
+    await addEmployee(owner, { phone: p2, name: 'Suresh Yadav' });
+    const e2 = await employeeSession(p2);
+    const off = await api().post(`${V}/attendance/check-in`).set(auth(e2.token)).send(punchBody(e2.deviceId, { lockCheck: 'failed' })).expect(201);
+    expect(off.body.data.punch).toMatchObject({ approval: 'not_required', lockCheck: null, flags: [] });
+    expect((await api().patch(`${V}/company/settings`).set(auth(owner.token)).send({ phoneLockPolicy: 'always' })).status).toBe(400);
+  });
+
   it('request-approval policy: outside punch is pending until owner approves', async () => {
     const { owner, e } = await setup({ outsideGeofencePolicy: 'request_approval' });
     const r = await api().post(`${V}/attendance/check-in`).set(auth(e.token)).send(punchBody(e.deviceId, { geo: { lat: 28.62, lng: 77.21, accuracyM: 10 } }));

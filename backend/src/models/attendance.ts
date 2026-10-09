@@ -15,6 +15,8 @@ const punchSchema = new Schema({
   insideGeofence: { type: Boolean, default: null },
   selfieKey: { type: String, default: null },
   mockLocation: { type: Boolean, default: false },
+  /** Result of the phone screen-lock prompt; only pass/fail is known, never the biometric itself. */
+  lockCheck: { type: String, enum: ['passed', 'failed', 'unavailable', null], default: null },
   deviceId: String,
   clientPunchId: { type: String, index: true },
   source: { type: String, enum: ['app', 'offline_sync', 'owner', 'assistant', 'import'], default: 'app' },

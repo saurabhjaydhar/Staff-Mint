@@ -14,6 +14,8 @@ const FLAG_LABELS: Record<string, string> = {
   mock_location: "Fake GPS",
   low_accuracy: "Weak GPS",
   outside_geofence: "Outside shop area",
+  phone_lock_failed: "Phone lock didn't open",
+  no_phone_lock: "No phone lock",
 };
 
 export default function DashboardPage() {

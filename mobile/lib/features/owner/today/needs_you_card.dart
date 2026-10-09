@@ -180,6 +180,7 @@ class _PunchApprovalCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = context.s;
     final p = item.punch;
+    final outside = p.insideGeofence == false || p.mockLocation;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -195,7 +196,10 @@ class _PunchApprovalCard extends StatelessWidget {
                           width: 52,
                           height: 52,
                           color: AppColors.amberLight,
-                          child: const Icon(Icons.wrong_location_rounded, color: AppColors.amberDark),
+                          child: Icon(
+                            outside ? Icons.wrong_location_rounded : Icons.lock_open_rounded,
+                            color: AppColors.amberDark,
+                          ),
                         )
                       : Image.network(
                           p.selfieUrl!,
@@ -212,7 +216,7 @@ class _PunchApprovalCard extends StatelessWidget {
                     children: [
                       Text(item.employeeName, style: Theme.of(context).textTheme.titleMedium),
                       Text(
-                        '${s.outsidePunchApproval} · ${p.isIn ? s.checkInLabel : s.checkOutLabel} ${Dates.time(p.clientTime, s.languageCode)}',
+                        '${outside ? s.outsidePunchApproval : s.lockPunchApproval} · ${p.isIn ? s.checkInLabel : s.checkOutLabel} ${Dates.time(p.clientTime, s.languageCode)}',
                       ),
                       if (p.distanceM != null)
                         Text(s.distanceAway(p.distanceM!), style: const TextStyle(color: AppColors.red)),

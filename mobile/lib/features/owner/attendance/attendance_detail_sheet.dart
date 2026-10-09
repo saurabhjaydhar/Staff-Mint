@@ -291,6 +291,15 @@ class _PunchCard extends StatelessWidget {
                           label: Text(s.openMap),
                         ),
                       ],
+                      if (p.lockCheck != null)
+                        Text(
+                          '${s.phoneLockLabel}: ${s.lockCheckLabel(p.lockCheck)}',
+                          key: Key('lockCheck_${p.id}'),
+                          style: TextStyle(
+                            color: p.lockCheck == 'passed' ? AppColors.muted : AppColors.amberDark,
+                            fontWeight: p.lockCheck == 'passed' ? FontWeight.w400 : FontWeight.w700,
+                          ),
+                        ),
                       if (p.approval != 'not_required')
                         Text(
                           s.approvalLabel(p.approval),
