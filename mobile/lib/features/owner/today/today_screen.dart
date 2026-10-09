@@ -230,13 +230,19 @@ class _Ledger extends StatelessWidget {
               final inP = r.record?.firstIn;
               final late = r.record?.lateMinutes ?? 0;
               final away = r.awayM;
+              final lock = r.lockIssue;
+              final meta = [
+                if (r.needsCheck && away != null)
+                  s.metersShort(away)
+                else if (r.displayStatus == 'late' && late > 0)
+                  s.minutesShort(late),
+                if (lock != null) s.lockTagShort(lock),
+              ];
               return LedgerRow(
                 key: Key('ledgerRow_${r.employee.id}'),
                 margin: inP == null ? '—' : Dates.clock(inP.clientTime),
                 title: r.employee.name,
-                meta: r.needsCheck && away != null
-                    ? s.metersShort(away)
-                    : (r.displayStatus == 'late' && late > 0 ? s.minutesShort(late) : null),
+                meta: meta.isEmpty ? null : meta.join(' · '),
                 trailing: StatusPill(
                   key: Key('pill_${r.employee.id}'),
                   status: r.needsCheck ? StatusStyle.needsCheck : r.displayStatus,

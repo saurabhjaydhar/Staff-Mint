@@ -6,6 +6,7 @@ import '../../../core/api/providers.dart';
 import '../../../core/i18n/strings.dart';
 import '../../../core/models/models.dart';
 import '../../../core/router/routes.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/json.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/pickers.dart';
@@ -79,7 +80,7 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
     }
   }
 
-  Widget _radioGroup(String title, String key, List<(String, String)> options) {
+  Widget _radioGroup(String title, String key, List<(String, String)> options, {String? help}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -87,6 +88,11 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
           child: Text(title, style: Theme.of(context).textTheme.titleSmall),
         ),
+        if (help != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(help, style: const TextStyle(color: AppColors.muted, fontSize: 13)),
+          ),
         RadioGroup<String>(
           groupValue: _settings[key]?.toString(),
           onChanged: (v) {
@@ -168,6 +174,11 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
                 ('block', s.policyBlock),
                 ('request_approval', s.policyRequestApproval),
               ]),
+              _radioGroup(s.phoneLockPolicy, 'phoneLockPolicy', [
+                ('off', s.lockPolicyOff),
+                ('recommended', s.lockPolicyRecommended),
+                ('required', s.lockPolicyRequired),
+              ], help: s.phoneLockPolicyHelp),
             ],
           ),
         ),

@@ -18,6 +18,8 @@ export interface PunchInput {
   clientTime: string;
   geo?: { lat: number; lng: number; accuracyM?: number } | null;
   mockLocation?: boolean;
+  /** Phone screen-lock result from the app; absent on older app versions. */
+  lockCheck?: 'passed' | 'failed' | 'unavailable';
   deviceId: string;
   selfieBase64?: string | null;
   clientPunchId: string;
@@ -120,6 +122,18 @@ export async function punch(ctx: Ctx, input: PunchInput, source: 'app' | 'offlin
     approval = 'pending';
   }
 
+  // Phone screen lock: never blocks a check-in. "required" sends anything but a pass to the owner.
+  const lockPolicy = s.phoneLockPolicy ?? 'recommended';
+  if (lockPolicy !== 'off') {
+    if (input.lockCheck === 'failed') flags.push('phone_lock_failed');
+    if (input.lockCheck === 'unavailable') flags.push('no_phone_lock');
+    if (lockPolicy === 'required' && input.lockCheck !== 'passed') {
+      // Older app versions send nothing; tag those too so the owner sees why it waits.
+      if (!input.lockCheck) flags.push('no_phone_lock');
+      approval = 'pending';
+    }
+  }
+
   if (s.selfieRequired && !input.selfieBase64 && source === 'app') throw new AppError('VALIDATION_ERROR', 'Selfie is required for check-in');
 
   let record = await Attendance.findOne({ companyId: ctx.companyId, employeeId: employee._id, date });
@@ -152,6 +166,7 @@ export async function punch(ctx: Ctx, input: PunchInput, source: 'app' | 'offlin
     insideGeofence,
     selfieKey,
     mockLocation: !!input.mockLocation,
+    lockCheck: lockPolicy === 'off' ? null : (input.lockCheck ?? null),
     deviceId: input.deviceId,
     clientPunchId: input.clientPunchId,
     source,
@@ -166,8 +181,8 @@ export async function punch(ctx: Ctx, input: PunchInput, source: 'app' | 'offlin
       template: 'punch_approval',
       title: 'Check-in needs approval',
       titleHi: 'पंच को मंज़ूरी चाहिए',
-      body: `${employee.name} punched ${input.type} ${distanceM ?? '?'} m away from the shop`,
-      bodyHi: `${employee.name} ने दुकान से ${distanceM ?? '?'} मीटर दूर पंच किया`,
+      body: insideGeofence === false || input.mockLocation ? `${employee.name} punched ${input.type} ${distanceM ?? '?'} m away from the shop` : `${employee.name} punched ${input.type} without unlocking their phone`,
+      bodyHi: insideGeofence === false || input.mockLocation ? `${employee.name} ने दुकान से ${distanceM ?? '?'} मीटर दूर पंच किया` : `${employee.name} ने फ़ोन लॉक खोले बिना पंच किया`,
       data: { type: 'punch_approval', attendanceId: String(record._id), punchId: String(punchId) },
     });
   }
@@ -202,6 +217,7 @@ export async function punchView(p: any) {
     insideGeofence: p.insideGeofence ?? null,
     selfieUrl: p.selfieKey ? await storage.signedUrl(p.selfieKey, env.SIGNED_URL_TTL_SEC) : null,
     mockLocation: !!p.mockLocation,
+    lockCheck: p.lockCheck ?? null,
     deviceId: p.deviceId ?? null,
     source: p.source,
     flags: p.flags ?? [],
@@ -495,7 +511,7 @@ export async function dashboardToday(ctx: Ctx) {
   for (const r of pending)
     for (const p of r.punches.filter((x: any) => x.approval === 'pending'))
       punchApprovals.push({ attendanceId: String(r._id), employeeName: (r.employeeId as any)?.name, date: r.date, punch: await punchView(p) });
-  const flagged = await Attendance.find({ companyId: ctx.companyId, date: { $gte: date.slice(0, 8) + '01' }, flags: { $in: ['mock_location', 'device_time_drift', 'needs_review', 'late_sync'] }, employeeId: { $in: scopeIds } })
+  const flagged = await Attendance.find({ companyId: ctx.companyId, date: { $gte: date.slice(0, 8) + '01' }, flags: { $in: ['mock_location', 'device_time_drift', 'needs_review', 'late_sync', 'phone_lock_failed'] }, employeeId: { $in: scopeIds } })
     .sort({ date: -1 })
     .limit(20)
     .populate('employeeId', 'name')

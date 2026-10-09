@@ -97,7 +97,7 @@ describe('company setup', () => {
     const h = await api().get(`${V}/holidays?year=2026`).set(auth(owner.token));
     expect(h.body.data.length).toBeGreaterThan(5);
     const rules = await api().get(`${V}/company/rules`).set(auth(owner.token)).set('Accept-Language', 'hi');
-    expect(rules.body.data.rules.length).toBe(8);
+    expect(rules.body.data.rules.length).toBe(9);
     const s = await api().patch(`${V}/company/settings`).set(auth(owner.token)).send({ graceMinutes: 10, monthDivisor: '26' });
     expect(s.body.data.settings).toMatchObject({ graceMinutes: 10, monthDivisor: '26' });
     const bad = await api().patch(`${V}/company/settings`).set(auth(owner.token)).send({ unknownSetting: 1 });

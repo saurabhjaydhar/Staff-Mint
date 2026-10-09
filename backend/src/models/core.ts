@@ -11,6 +11,8 @@ const settingsSchema = new Schema(
     sickLeavePaid: { type: Boolean, default: true },
     dailyPaysOffDays: { type: Boolean, default: false },
     outsideGeofencePolicy: { type: String, enum: ['block', 'request_approval'], default: 'block' },
+    /** Ask the phone's own screen lock (fingerprint, face, PIN or pattern) at check-in. Nothing biometric reaches the server. */
+    phoneLockPolicy: { type: String, enum: ['off', 'recommended', 'required'], default: 'recommended' },
     language: { type: String, enum: ['en', 'hi'], default: 'hi' },
     digestTime: { type: String, default: '09:30' },
     roundToRupee: { type: Boolean, default: true },

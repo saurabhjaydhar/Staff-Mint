@@ -199,6 +199,15 @@ function SettingsForm({ settings, onSaved }: { settings: CompanySettings; onSave
               </Select>
             )}
           </Field>
+          <Field label="Phone lock at check-in (fingerprint, face, PIN or pattern — never stored)">
+            {(id) => (
+              <Select id={id} value={d.phoneLockPolicy} onChange={(e) => set("phoneLockPolicy", e.target.value as Draft["phoneLockPolicy"])}>
+                <option value="off">Don&apos;t ask</option>
+                <option value="recommended">Ask, tag me if it doesn&apos;t open</option>
+                <option value="required">Ask, I approve if it doesn&apos;t open</option>
+              </Select>
+            )}
+          </Field>
           <Field label="Daily summary time">
             {(id) => <Input id={id} type="time" value={d.digestTime} onChange={(e) => set("digestTime", e.target.value)} />}
           </Field>

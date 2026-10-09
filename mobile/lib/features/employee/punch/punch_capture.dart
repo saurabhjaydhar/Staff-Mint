@@ -1,7 +1,9 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:local_auth/local_auth.dart';
 
 import '../../../core/utils/location.dart';
 
@@ -20,6 +22,11 @@ abstract class PunchCapture {
 
   /// Front-camera selfie, ~640px JPEG, base64. Null if the user cancelled.
   Future<String?> selfie();
+
+  /// Asks the phone's own screen lock (fingerprint, face, PIN or pattern).
+  /// Returns `passed`, `failed` or `unavailable` (no lock set up / not
+  /// supported). The biometric itself never reaches the app.
+  Future<String> unlock(String reason);
 }
 
 class DevicePunchCapture implements PunchCapture {
@@ -46,6 +53,33 @@ class DevicePunchCapture implements PunchCapture {
     final bytes = await file.readAsBytes();
     return base64Encode(bytes);
   }
+
+  @override
+  Future<String> unlock(String reason) async {
+    if (kIsWeb) return LockCheck.unavailable;
+    final auth = LocalAuthentication();
+    try {
+      if (!await auth.isDeviceSupported()) return LockCheck.unavailable;
+      final ok = await auth.authenticate(localizedReason: reason, persistAcrossBackgrounding: true);
+      return ok ? LockCheck.passed : LockCheck.failed;
+    } on LocalAuthException catch (e) {
+      return switch (e.code) {
+        LocalAuthExceptionCode.noCredentialsSet ||
+        LocalAuthExceptionCode.noBiometricHardware ||
+        LocalAuthExceptionCode.uiUnavailable => LockCheck.unavailable,
+        _ => LockCheck.failed,
+      };
+    } catch (_) {
+      return LockCheck.unavailable;
+    }
+  }
+}
+
+/// Values of `lockCheck` sent with a punch.
+abstract final class LockCheck {
+  static const passed = 'passed';
+  static const failed = 'failed';
+  static const unavailable = 'unavailable';
 }
 
 final punchCaptureProvider = Provider<PunchCapture>((ref) => DevicePunchCapture());

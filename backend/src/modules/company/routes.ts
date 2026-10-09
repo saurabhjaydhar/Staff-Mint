@@ -51,6 +51,7 @@ const settingsSchema = z
     sickLeavePaid: z.boolean(),
     dailyPaysOffDays: z.boolean(),
     outsideGeofencePolicy: z.enum(['block', 'request_approval']),
+    phoneLockPolicy: z.enum(['off', 'recommended', 'required']),
     language: z.enum(['en', 'hi']),
     digestTime: zTime,
     roundToRupee: z.boolean(),

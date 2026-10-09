@@ -15,6 +15,7 @@ const punchSchema = z.object({
   clientTime: z.string().datetime({ offset: true }),
   geo: z.object({ lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180), accuracyM: z.number().min(0).max(100000).optional() }).nullable().optional(),
   mockLocation: z.boolean().default(false),
+  lockCheck: z.enum(['passed', 'failed', 'unavailable']).optional(),
   deviceId: z.string().min(4).max(200),
   selfieBase64: z.string().max(3_000_000).nullable().optional(),
   clientPunchId: z.string().min(8).max(80),

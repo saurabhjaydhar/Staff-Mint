@@ -20,9 +20,12 @@ import 'package:staffmint/features/employee/punch/punch_queue.dart';
 import 'package:staffmint/features/employee/punch/punch_service.dart';
 import 'package:staffmint/features/employee/punch/punch_state.dart';
 
+/// The company's phone-lock policy for the current test.
+var _lockPolicy = 'recommended';
+
 class _FakeAuth extends AuthController {
   @override
-  SessionState build() => const SessionState(
+  SessionState build() => SessionState(
     status: SessionStatus.authenticated,
     user: User(
       id: 'u1',
@@ -32,8 +35,13 @@ class _FakeAuth extends AuthController {
       companyId: 'c1',
       employeeId: 'e1',
     ),
-    company: Company(id: 'c1', name: 'Sharma Medical', businessType: 'pharmacy'),
-    employee: Employee(id: 'e1', name: 'Ramesh', phone: '9876543210', locationConsent: true),
+    company: Company(
+      id: 'c1',
+      name: 'Sharma Medical',
+      businessType: 'pharmacy',
+      settings: CompanySettings(phoneLockPolicy: _lockPolicy),
+    ),
+    employee: const Employee(id: 'e1', name: 'Ramesh', phone: '9876543210', locationConsent: true),
   );
 }
 
@@ -45,6 +53,15 @@ class _FakeCapture implements PunchCapture {
   Future<String?> selfie() async {
     selfies++;
     return 'c2VsZmll';
+  }
+
+  /// Results handed out in order; `passed` once they run out.
+  final List<String> lockResults = [];
+  int unlocks = 0;
+  @override
+  Future<String> unlock(String reason) async {
+    unlocks++;
+    return lockResults.isEmpty ? LockCheck.passed : lockResults.removeAt(0);
   }
 }
 
@@ -83,6 +100,7 @@ void main() {
     queue = PunchQueue(MemoryPunchQueueStore());
     capture = _FakeCapture();
     serverRecord = null;
+    _lockPolicy = 'recommended';
   });
 
   Future<_FakePunchApi> pumpHome(WidgetTester tester) async {
@@ -167,8 +185,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(capture.selfies, 1);
+    expect(capture.unlocks, 1);
     final body = api.bodies.single;
     expect(body['selfieBase64'], 'c2VsZmll');
+    expect(body['lockCheck'], 'passed');
     expect((body['geo'] as Map)['accuracyM'], 12);
     expect(body['mockLocation'], false);
     expect(body['deviceId'], isNotEmpty);
@@ -177,6 +197,7 @@ void main() {
     expect(find.byKey(const Key('successOnline')), findsOneWidget);
     expect(find.text('Checked in!'), findsOneWidget);
     expect(find.text('Sharma Medical · 11 m'), findsOneWidget);
+    expect(find.text('Unlocked'), findsOneWidget);
     await tester.tap(find.byKey(const Key('successDone')));
     await tester.pumpAndSettle();
     expect(find.text('Check out'), findsOneWidget);
@@ -217,6 +238,59 @@ void main() {
     expect(find.textContaining('350 m'), findsOneWidget);
     expect(queue.length, 0);
     expect(find.text('Check in'), findsOneWidget);
+  });
+
+  testWidgets('phone lock fails: Try again unlocks, nothing is sent until then', (tester) async {
+    final api = await pumpHome(tester);
+    capture.lockResults.add(LockCheck.failed);
+    await tester.tap(find.byKey(const Key('checkInButton')));
+    // The button keeps spinning behind the dialog, so pump frames instead of settling.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.text('Phone lock did not open'), findsOneWidget);
+    expect(find.textContaining('your owner will see a tag'), findsOneWidget);
+    expect(api.bodies, isEmpty);
+    await tester.tap(find.byKey(const Key('lockRetry')));
+    await tester.pumpAndSettle();
+    expect(capture.unlocks, 2);
+    expect(api.bodies.single['lockCheck'], 'passed');
+    expect(find.byKey(const Key('successOnline')), findsOneWidget);
+  });
+
+  testWidgets('phone lock never blocks: "check in without it" sends a failed result', (tester) async {
+    _lockPolicy = 'required';
+    final api = await pumpHome(tester);
+    capture.lockResults.add(LockCheck.failed);
+    await tester.tap(find.byKey(const Key('checkInButton')));
+    // The button keeps spinning behind the dialog, so pump frames instead of settling.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.textContaining('your owner will need to approve'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('lockContinueWithout')));
+    await tester.pumpAndSettle();
+    expect(api.bodies.single['lockCheck'], 'failed');
+    expect(find.text('Did not open'), findsOneWidget);
+  });
+
+  testWidgets('a phone with no screen lock checks in straight away', (tester) async {
+    final api = await pumpHome(tester);
+    capture.lockResults.add(LockCheck.unavailable);
+    await tester.tap(find.byKey(const Key('checkInButton')));
+    await tester.pumpAndSettle();
+    expect(find.text('Phone lock did not open'), findsNothing);
+    expect(api.bodies.single['lockCheck'], 'unavailable');
+    expect(find.text('No lock on phone'), findsOneWidget);
+  });
+
+  testWidgets('policy off: the phone lock is not asked and not sent', (tester) async {
+    _lockPolicy = 'off';
+    final api = await pumpHome(tester);
+    await tester.tap(find.byKey(const Key('checkInButton')));
+    await tester.pumpAndSettle();
+    expect(capture.unlocks, 0);
+    expect(api.bodies.single.containsKey('lockCheck'), isFalse);
   });
 
   group('CheckInButton', () {

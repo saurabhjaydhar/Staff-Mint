@@ -6,6 +6,8 @@
 	<string>StaffMint takes a selfie when you check in or check out.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>StaffMint records your location only at the moment you check in or check out, to confirm you are at work.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>StaffMint asks you to unlock with Face ID when you check in. Your face never leaves your phone.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Speak to the Mint assistant with voice messages.</string>
 	<key>NSContactsUsageDescription</key>
