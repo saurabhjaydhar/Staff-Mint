@@ -15,6 +15,7 @@ class Employee {
     this.status = 'active',
     this.locationConsent = false,
     this.consentAt,
+    this.faceStatus = 'none',
     this.hasDevice = false,
     this.language = 'en',
     this.leaveBalance,
@@ -33,6 +34,9 @@ class Employee {
   final String status;
   final bool locationConsent;
   final String? consentAt;
+
+  /// Face check photo: none | pending (owner to approve) | approved.
+  final String faceStatus;
   final bool hasDevice;
   final String language;
 
@@ -58,6 +62,7 @@ class Employee {
       status: asString(j['status'], 'active'),
       locationConsent: asBool(consent['location']),
       consentAt: asStringOrNull(consent['at']),
+      faceStatus: asString(asMap(j['face'])['status'], 'none'),
       hasDevice: asBool(j['hasDevice']),
       language: asString(j['language'], 'en'),
       leaveBalance: j['leaveBalance'] is Map ? LeaveBalance.fromJson(asMap(j['leaveBalance'])) : null,
@@ -113,4 +118,38 @@ class NewEmployee {
     'branchId': ?branchId,
     'joiningDate': ?joiningDate,
   };
+}
+
+/// A staff member's face check photo (`/me/face`, `/employees/:id/face`).
+class FaceInfo {
+  const FaceInfo({this.status = 'none', this.photoUrl, this.enrolledAt, this.approvedAt});
+  final String status; // none | pending | approved
+  final String? photoUrl;
+  final DateTime? enrolledAt;
+  final DateTime? approvedAt;
+
+  bool get isNone => status == 'none';
+  bool get isPending => status == 'pending';
+  bool get isApproved => status == 'approved';
+
+  factory FaceInfo.fromJson(Json j) => FaceInfo(
+    status: asString(j['status'], 'none'),
+    photoUrl: asStringOrNull(j['photoUrl']),
+    enrolledAt: asDateTimeOrNull(j['enrolledAt']),
+    approvedAt: asDateTimeOrNull(j['approvedAt']),
+  );
+}
+
+/// A face photo waiting for the owner (dashboard "needs you").
+class FaceEnrollment {
+  const FaceEnrollment({required this.employeeId, required this.employeeName, required this.face});
+  final String employeeId;
+  final String employeeName;
+  final FaceInfo face;
+
+  factory FaceEnrollment.fromJson(Json j) => FaceEnrollment(
+    employeeId: asString(j['employeeId']),
+    employeeName: asString(j['employeeName']),
+    face: FaceInfo.fromJson(j),
+  );
 }

@@ -1,11 +1,13 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:local_auth/local_auth.dart';
 
 import '../../../core/utils/location.dart';
+import '../face/live_selfie_screen.dart';
 
 class CapturedLocation {
   const CapturedLocation({required this.lat, required this.lng, required this.accuracyM, this.isMocked = false});
@@ -21,7 +23,9 @@ abstract class PunchCapture {
   Future<CapturedLocation> location();
 
   /// Front-camera selfie, ~640px JPEG, base64. Null if the user cancelled.
-  Future<String?> selfie();
+  /// [live] uses the blink-check camera (face check); phones that can't run
+  /// it fall back to the system camera.
+  Future<String?> selfie(BuildContext context, {bool live = false});
 
   /// Asks the phone's own screen lock (fingerprint, face, PIN or pattern).
   /// Returns `passed`, `failed` or `unavailable` (no lock set up / not
@@ -40,7 +44,17 @@ class DevicePunchCapture implements PunchCapture {
   }
 
   @override
-  Future<String?> selfie() async {
+  Future<String?> selfie(BuildContext context, {bool live = false}) async {
+    if (live) {
+      switch (await LiveSelfieScreen.open(context)) {
+        case LiveSelfieTaken(:final base64Jpeg):
+          return base64Jpeg;
+        case LiveSelfieCancelled():
+          return null;
+        case LiveSelfieUnavailable():
+          break; // system camera below
+      }
+    }
     final file = await _picker.pickImage(
       source: ImageSource.camera,
       preferredCameraDevice: CameraDevice.front,

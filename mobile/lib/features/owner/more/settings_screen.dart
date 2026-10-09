@@ -179,6 +179,10 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
                 ('recommended', s.lockPolicyRecommended),
                 ('required', s.lockPolicyRequired),
               ], help: s.phoneLockPolicyHelp),
+              _radioGroup(s.faceMatchPolicy, 'faceMatchPolicy', [
+                ('off', s.faceMatchOff),
+                ('review', s.faceMatchReview),
+              ], help: s.faceMatchPolicyHelp),
             ],
           ),
         ),

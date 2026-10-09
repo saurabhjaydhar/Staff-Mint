@@ -122,6 +122,10 @@ export async function updateCompany(ctx: Ctx, patch: { name?: string; businessTy
 
 export async function updateSettings(ctx: Ctx, patch: Record<string, unknown>) {
   const c = await getCompany(ctx);
+  if (patch.faceMatchPolicy === 'review') {
+    const { plan } = await companyPlan(c);
+    if (!plan.features.includes('face_match')) throw new AppError('FEATURE_NOT_IN_PLAN', 'Face check needs the Growth plan or higher', { feature: 'face_match', planCode: plan.code });
+  }
   const before = JSON.parse(JSON.stringify(c.settings));
   for (const [k, v] of Object.entries(patch)) (c.settings as any)[k] = v;
   await c.save();

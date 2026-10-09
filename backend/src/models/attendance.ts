@@ -17,6 +17,11 @@ const punchSchema = new Schema({
   mockLocation: { type: Boolean, default: false },
   /** Result of the phone screen-lock prompt; only pass/fail is known, never the biometric itself. */
   lockCheck: { type: String, enum: ['passed', 'failed', 'unavailable', null], default: null },
+  /** Selfie vs approved face photo; null when face check is off or the person is not enrolled. */
+  face: {
+    result: { type: String, enum: ['match', 'unsure', 'mismatch', 'no_face', 'many_faces', 'error', null], default: null },
+    similarity: { type: Number, default: null },
+  },
   deviceId: String,
   clientPunchId: { type: String, index: true },
   source: { type: String, enum: ['app', 'offline_sync', 'owner', 'assistant', 'import'], default: 'app' },

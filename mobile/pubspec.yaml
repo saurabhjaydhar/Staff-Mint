@@ -57,6 +57,8 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   local_auth: ^3.0.2
+  camera: ^0.12.1
+  google_mlkit_face_detection: ^0.15.1
 
 dev_dependencies:
   flutter_test:

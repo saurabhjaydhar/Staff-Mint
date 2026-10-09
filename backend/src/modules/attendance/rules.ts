@@ -96,7 +96,7 @@ export function computeDay(args: {
 
 /** Plain-language rules shown in Settings (PRD F4). */
 export function describeRules(
-  s: { graceMinutes: number; halfDayHours: number; missingCheckoutPolicy: string; weekOffsPaid: boolean; holidaysPaid: boolean; monthDivisor: string; outsideGeofencePolicy: string; phoneLockPolicy?: string },
+  s: { graceMinutes: number; halfDayHours: number; missingCheckoutPolicy: string; weekOffsPaid: boolean; holidaysPaid: boolean; monthDivisor: string; outsideGeofencePolicy: string; phoneLockPolicy?: string; faceMatchPolicy?: string },
   lang: 'en' | 'hi',
   shift?: { start: string; end: string },
 ): { key: string; text: string }[] {
@@ -132,5 +132,9 @@ export function describeRules(
       ['phone_lock', { off: 'पंच-इन पर फ़ोन लॉक नहीं पूछा जाएगा।', recommended: 'पंच-इन पर स्टाफ़ अपना फ़ोन लॉक (फ़िंगरप्रिंट, चेहरा, PIN या पैटर्न) खोलेगा। न खुले तो भी हाज़िरी लगेगी, आपको टैग दिखेगा।', required: 'पंच-इन पर स्टाफ़ अपना फ़ोन लॉक खोलेगा। न खुले तो हाज़िरी आपकी मंज़ूरी के बाद लगेगी।' }[s.phoneLockPolicy ?? 'recommended']!],
     ],
   };
+  if (s.faceMatchPolicy === 'review') {
+    rules.en.push(['face', 'Each check-in selfie is compared with the staff member\'s approved face photo. If it does not clearly match, the check-in waits for your approval.']);
+    rules.hi.push(['face', 'हर पंच की सेल्फ़ी स्टाफ़ की मंज़ूर चेहरे की फ़ोटो से मिलाई जाती है। साफ़ मेल न खाए तो हाज़िरी आपकी मंज़ूरी के बाद लगेगी।']);
+  }
   return rules[lang].map(([key, text]) => ({ key, text }));
 }

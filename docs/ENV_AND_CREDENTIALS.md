@@ -76,6 +76,22 @@ Set `PUSH_PROVIDER=fcm`.
 | `mobile/android/app/google-services.json` | **Currently a placeholder.** Replace with the real file (`flutterfire configure` or download from Firebase) |
 | `mobile/ios/Runner/GoogleService-Info.plist` | Needed when iOS ships, plus an APNs key uploaded to Firebase |
 
+### Face check (AWS Rekognition) (⚪ optional; off per company by default)
+Set `FACE_PROVIDER=rekognition`. Until then the mock provider is used in development, and in production it refuses to decide, so face check simply reports "check failed" and never blocks anyone.
+
+| Variable | Notes |
+|---|---|
+| `AWS_REGION` | Default `ap-south-1` (Mumbai), so photos are processed in India |
+| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | IAM user with only `rekognition:CompareFaces` |
+| AWS AI-services opt-out | Set an AWS Organizations AI services opt-out policy so AWS does not use the photos to train its models |
+| `FACE_MATCH_THRESHOLD`, `FACE_UNSURE_THRESHOLD` | Default 90 / 75. Tune after the pilot |
+
+Cost is about $0.001 per comparison (about ₹0.08 per check-in). The feature is in the Growth and Pro plans (`face_match`). For an existing database, add `face_match` to those plans with `PUT /api/v1/admin/plans/:code`.
+
+**Before turning it on for customers:** have a lawyer review `docs/legal/FACE_CHECK_PRIVACY.md` and the in-app consent text.
+
+**iOS (when it ships):** ML Kit needs iOS 15.5+ (already set in the Xcode project) and the Podfile `platform :ios, '15.5'` plus excluding `armv7`, as the google_mlkit_face_detection README describes. Run `pod install` on a Mac.
+
 ### Mint AI (Google Gemini) (🟡)
 Set `LLM_PROVIDER=gemini` and `SPEECH_PROVIDER=gemini` (voice notes).
 

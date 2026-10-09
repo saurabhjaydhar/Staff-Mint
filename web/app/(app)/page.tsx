@@ -16,6 +16,11 @@ const FLAG_LABELS: Record<string, string> = {
   outside_geofence: "Outside shop area",
   phone_lock_failed: "Phone lock didn't open",
   no_phone_lock: "No phone lock",
+  face_mismatch: "Face does not match",
+  face_unsure: "Face not clear",
+  face_no_face: "No face in selfie",
+  face_many_faces: "More than one face",
+  face_check_failed: "Face check failed",
 };
 
 export default function DashboardPage() {

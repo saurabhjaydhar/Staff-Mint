@@ -52,6 +52,7 @@ const settingsSchema = z
     dailyPaysOffDays: z.boolean(),
     outsideGeofencePolicy: z.enum(['block', 'request_approval']),
     phoneLockPolicy: z.enum(['off', 'recommended', 'required']),
+    faceMatchPolicy: z.enum(['off', 'review']),
     language: z.enum(['en', 'hi']),
     digestTime: zTime,
     roundToRupee: z.boolean(),

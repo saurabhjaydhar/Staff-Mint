@@ -337,6 +337,20 @@ class S {
         return _t('Outside shop area', 'दुकान के दायरे से बाहर');
       case 'missing_checkout':
         return _t('No check-out', 'चेक-आउट नहीं किया');
+      case 'phone_lock_failed':
+        return _t('Phone lock didn\'t open', 'फ़ोन लॉक नहीं खुला');
+      case 'no_phone_lock':
+        return _t('No phone lock', 'फ़ोन पर लॉक नहीं');
+      case 'face_mismatch':
+        return _t('Face does not match', 'चेहरा मेल नहीं खाता');
+      case 'face_unsure':
+        return _t('Face not clear', 'चेहरा साफ़ नहीं');
+      case 'face_no_face':
+        return _t('No face in selfie', 'सेल्फ़ी में चेहरा नहीं');
+      case 'face_many_faces':
+        return _t('More than one face', 'एक से ज़्यादा चेहरे');
+      case 'face_check_failed':
+        return _t('Face check failed', 'चेहरा जाँच नहीं हो पाई');
       default:
         return f.replaceAll('_', ' ');
     }
@@ -690,12 +704,82 @@ class S {
         );
   String get continueWithoutLock => _t('Check in without it', 'बिना लॉक के लगाएँ');
   String get phoneLockLabel => _t('Phone lock', 'फ़ोन लॉक');
+
+  // ---- Face check (live selfie, enrolment, owner review) ----
+  Bi livenessHint(String hint) => switch (hint) {
+    'noFace' => _b('Face the camera', 'कैमरे की ओर देखें'),
+    'manyFaces' => _b('Only you in the photo', 'फ़ोटो में सिर्फ़ आप'),
+    'moveCloser' => _b('Come a little closer', 'थोड़ा पास आएँ'),
+    'centerFace' => _b('Keep your face in the circle', 'चेहरा गोले के अंदर रखें'),
+    'blink' => _b('Now blink once', 'अब एक बार पलक झपकाएँ'),
+    'holdStill' => _b('Hold still…', 'स्थिर रहें…'),
+    _ => _b('Done!', 'हो गया!'),
+  };
+  String get takePhotoNow => _t('Take photo now', 'अभी फ़ोटो लें');
+  String get cameraUnavailable => _t('Camera not available', 'कैमरा उपलब्ध नहीं');
+  Bi get faceCheckBi => _b('Face check', 'चेहरा पहचान');
+  String get faceSetupTitle => _t('Set up face check', 'चेहरा पहचान सेट करें');
+  String get faceSetupIntro => _t(
+    'Your owner uses face check so nobody else can mark attendance for you. Take one clear photo of your face now.',
+    'आपके मालिक चेहरा पहचान इस्तेमाल करते हैं ताकि आपकी जगह कोई और हाज़िरी न लगा सके। अभी अपने चेहरे की एक साफ़ फ़ोटो लें।',
+  );
+  String get faceConsentText => _t(
+    'I agree that StaffMint keeps one photo of my face and compares it with my check-in selfies, only to confirm my attendance. '
+        'The comparison runs on a secure cloud service in India. My photo is deleted when I leave this job or when I remove it here. '
+        'If I say no, I can still check in with a selfie and GPS.',
+    'मैं सहमत हूँ कि StaffMint मेरे चेहरे की एक फ़ोटो रखे और उसे मेरी हाज़िरी की सेल्फ़ी से मिलाए — सिर्फ़ मेरी हाज़िरी पक्की करने के लिए। '
+        'यह मिलान भारत में एक सुरक्षित क्लाउड सेवा पर होता है। नौकरी छोड़ने पर या यहाँ से हटाने पर मेरी फ़ोटो मिटा दी जाएगी। '
+        'मना करने पर भी मैं सेल्फ़ी और GPS से हाज़िरी लगा सकता/सकती हूँ।',
+  );
+  String get faceAgreeAndTake => _t('Agree & take photo', 'सहमत हूँ, फ़ोटो लें');
+  String get faceNotNow => _t('Not now', 'अभी नहीं');
+  Bi get facePendingBi => _b('Waiting for owner approval', 'मालिक की मंज़ूरी बाक़ी');
+  Bi get faceApprovedBi => _b('Face check is on', 'चेहरा पहचान चालू है');
+  String get faceRetake => _t('Take a new photo', 'नई फ़ोटो लें');
+  String get faceRemove => _t('Remove my face photo', 'मेरी चेहरे की फ़ोटो हटाएँ');
+  String get faceRemoveConfirm => _t(
+    'Your photo will be deleted and face check will stop for you. You can set it up again any time.',
+    'आपकी फ़ोटो मिटा दी जाएगी और आपके लिए चेहरा पहचान बंद हो जाएगी। आप कभी भी फिर से सेट कर सकते हैं।',
+  );
+  String get faceRemoved => _t('Face photo removed', 'चेहरे की फ़ोटो हटा दी गई');
+  String get faceSent => _t('Photo sent to your owner for approval', 'फ़ोटो मंज़ूरी के लिए मालिक को भेजी गई');
+  String get faceSetupBanner => _t('Set up face check — takes 10 seconds', 'चेहरा पहचान सेट करें — 10 सेकंड लगेंगे');
+  String faceStatusLabel(String status) => switch (status) {
+    'pending' => _t('Waiting for approval', 'मंज़ूरी बाक़ी'),
+    'approved' => _t('On', 'चालू'),
+    _ => _t('Not set up', 'सेट नहीं'),
+  };
+  String faceResultLabel(String? r) => switch (r) {
+    'match' => _t('Face matches', 'चेहरा मेल खाता है'),
+    'unsure' => _t('Face not clear', 'चेहरा साफ़ नहीं'),
+    'mismatch' => _t('Face does not match', 'चेहरा मेल नहीं खाता'),
+    'no_face' => _t('No face in selfie', 'सेल्फ़ी में चेहरा नहीं'),
+    'many_faces' => _t('More than one face', 'एक से ज़्यादा चेहरे'),
+    'error' => _t('Face check failed', 'चेहरा जाँच नहीं हो पाई'),
+    _ => _t('Not checked', 'जाँच नहीं हुई'),
+  };
+  String get facePunchApproval => _t('Check the face', 'चेहरा जाँचें');
+  String get approvedPhoto => _t('Approved photo', 'मंज़ूर फ़ोटो');
+  String get todaysSelfie => _t('Today\'s selfie', 'आज की सेल्फ़ी');
+  String get facePhotoToApprove => _t('Face photo to approve', 'चेहरे की फ़ोटो मंज़ूर करें');
+  String get faceAskRetake => _t('Ask for a new photo', 'नई फ़ोटो माँगें');
+  String get faceMatchPolicy => _t('Face check at check-in', 'पंच पर चेहरा पहचान');
+  String get faceMatchPolicyHelp => _t(
+    'Each check-in selfie is compared with the staff member\'s approved photo. If it doesn\'t clearly match, the check-in waits for you. Staff must agree before their photo is used. Growth plan and above.',
+    'हर पंच की सेल्फ़ी स्टाफ़ की मंज़ूर फ़ोटो से मिलाई जाती है। साफ़ मेल न खाए तो हाज़िरी आपकी मंज़ूरी के बाद लगेगी। स्टाफ़ की सहमति के बिना फ़ोटो इस्तेमाल नहीं होती। Growth प्लान और ऊपर।',
+  );
+  String get faceMatchOff => _t('Off', 'बंद');
+  String get faceMatchReview => _t('On — I approve unclear matches', 'चालू — साफ़ मेल न हो तो मेरी मंज़ूरी');
   String lockCheckLabel(String? v) => switch (v) {
     'passed' => _t('Unlocked', 'खुला'),
     'failed' => _t('Did not open', 'नहीं खुला'),
     'unavailable' => _t('No lock on phone', 'फ़ोन पर लॉक नहीं'),
     _ => _t('Not asked', 'नहीं पूछा'),
   };
+  String get facePendingNote => _t(
+    'Face not clearly matched — sent to owner for approval',
+    'चेहरा साफ़ मेल नहीं खाया — मंज़ूरी के लिए मालिक को भेजा गया',
+  );
   String get lockPendingNote =>
       _t('Phone lock not opened — sent to owner for approval', 'फ़ोन लॉक नहीं खुला — मंज़ूरी के लिए मालिक को भेजा गया');
   String get submitting => _t('Saving…', 'सेव हो रहा है…');
@@ -760,6 +844,7 @@ class S {
   String needsYouLeave(String name) => _t('$name’s leave', '$name की छुट्टी');
   String needsYouPunch(String name) => _t('$name’s punch', '$name का पंच');
   String needsYouFlag(String name) => _t('$name: check', '$name: जाँचें');
+  String needsYouFace(String name) => _t('$name’s face photo', '$name की फ़ोटो');
   String get view => _t('View', 'देखें');
   String get hide => _t('Hide', 'छुपाएँ');
   String get swipeHint => _t('Swipe right to approve, left to reject', 'दाएँ खिसकाएँ = मंज़ूर, बाएँ = नामंज़ूर');

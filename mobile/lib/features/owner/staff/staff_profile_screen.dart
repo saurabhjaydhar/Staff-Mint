@@ -195,6 +195,7 @@ class StaffProfileScreen extends ConsumerWidget {
                       ),
                       title: Text(e.locationConsent ? s.consentGiven : s.consentPending),
                     ),
+                    if (e.faceStatus != 'none') _FaceTile(employee: e, onChanged: invalidate),
                   ],
                 ),
               ),
@@ -407,6 +408,66 @@ class _EditStaffSheetState extends ConsumerState<_EditStaffSheet> {
           ],
         ),
       ),
+    );
+  }
+}
+
+final employeeFaceProvider = FutureProvider.autoDispose.family<FaceInfo, String>(
+  (ref, id) => ref.watch(employeesApiProvider).face(id),
+);
+
+/// Face check photo: approve a new one, ask for another, or reset.
+class _FaceTile extends ConsumerWidget {
+  const _FaceTile({required this.employee, required this.onChanged});
+  final Employee employee;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = context.s;
+    final face = ref.watch(employeeFaceProvider(employee.id)).value;
+    final api = ref.read(employeesApiProvider);
+    Future<void> act(Future<void> Function() call, String done) async {
+      if (await runGuarded(context, call, success: done)) {
+        ref.invalidate(employeeFaceProvider(employee.id));
+        onChanged();
+      }
+    }
+
+    final url = face?.photoUrl;
+    return ListTile(
+      key: const Key('staffFaceTile'),
+      leading: CircleAvatar(
+        backgroundColor: AppColors.mintLight,
+        backgroundImage: url == null ? null : NetworkImage(url),
+        child: url == null ? const Icon(Icons.face_retouching_natural_rounded, color: AppColors.mint) : null,
+      ),
+      title: Text(s.faceCheckBi.text),
+      subtitle: Text(s.faceStatusLabel(employee.faceStatus)),
+      trailing: employee.faceStatus == 'pending'
+          ? Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  tooltip: s.faceAskRetake,
+                  icon: const Icon(Icons.close_rounded, color: AppColors.red),
+                  onPressed: () => act(() => api.resetFace(employee.id), s.rejected),
+                ),
+                IconButton(
+                  key: const Key('approveFace'),
+                  tooltip: s.approve,
+                  icon: const Icon(Icons.check_rounded, color: AppColors.mint),
+                  onPressed: () => act(() => api.approveFace(employee.id), s.approved),
+                ),
+              ],
+            )
+          : TextButton(
+              onPressed: () async {
+                if (!await confirmDialog(context, title: s.faceAskRetake, destructive: true)) return;
+                if (context.mounted) await act(() => api.resetFace(employee.id), s.faceRemoved);
+              },
+              child: Text(s.faceAskRetake),
+            ),
     );
   }
 }

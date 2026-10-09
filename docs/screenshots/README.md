@@ -29,6 +29,13 @@ The redesign follows [docs/design](../design/README.md): a warm paper ledger, Hi
 |---|---|---|
 | <img src="mobile/40-employee-checkout-phone-lock.jpg" width="240"><br>Check-in result shows the phone-lock outcome (web build has no screen lock, so "No lock on phone") | <img src="mobile/41-owner-today-lock-tag.jpg" width="240"><br>Owner ledger tags a check-in made without the phone lock ("बिना लॉक") | <img src="mobile/43-owner-settings-phone-lock.jpg" width="240"><br>Setting: don't ask / tag me / I approve |
 
+### Face check (optional, off by default)
+
+| | | |
+|---|---|---|
+| <img src="mobile/50-employee-face-banner.jpg" width="240"><br>Staff home asks to set up face check once the owner turns it on | <img src="mobile/51-employee-face-consent.jpg" width="240"><br>Explicit consent (unticked by default) before any photo is taken | <img src="mobile/52-employee-face-pending.jpg" width="240"><br>Photo waits for the owner; retake or remove any time |
+| <img src="mobile/53-owner-face-approve.jpg" width="240"><br>Owner approves the photo or asks for a new one | <img src="mobile/56-owner-face-compare.jpg" width="240"><br>A selfie that doesn't match waits for the owner, shown next to the approved photo (mismatch simulated: the dev face engine is a mock) | <img src="mobile/57-owner-settings-face.jpg" width="240"><br>Setting: off / on (Growth plan and above) |
+
 ## Web dashboard
 
 ### Login

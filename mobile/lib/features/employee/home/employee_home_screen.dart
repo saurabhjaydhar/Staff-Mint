@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/api/api_exception.dart';
 import '../../../core/i18n/strings.dart';
 import '../../../core/models/models.dart';
+import '../../../core/router/routes.dart';
 import '../../../core/storage/providers.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/dates.dart';
@@ -89,6 +91,8 @@ class _EmployeeHomeScreenState extends ConsumerState<EmployeeHomeScreen> {
     final settings = ref.read(authControllerProvider).company?.settings;
     final selfieRequired = settings?.selfieRequired ?? true;
     final lockPolicy = settings?.phoneLockPolicy ?? 'recommended';
+    final liveSelfie =
+        settings?.faceMatchPolicy == 'review' && ref.read(authControllerProvider).employee?.faceStatus == 'approved';
 
     _setBusy(s.gettingLocation);
     // GPS (usually ready already) runs while the camera is open.
@@ -103,7 +107,7 @@ class _EmployeeHomeScreenState extends ConsumerState<EmployeeHomeScreen> {
       String? selfie;
       if (selfieRequired) {
         _setBusy(s.takingSelfie);
-        selfie = await capture.selfie();
+        selfie = await capture.selfie(context, live: liveSelfie);
         if (selfie == null) {
           if (mounted) showSnack(context, s.selfieNeeded, error: true);
           return;
@@ -157,7 +161,11 @@ class _EmployeeHomeScreenState extends ConsumerState<EmployeeHomeScreen> {
             rows: rows,
             note: [
               if (response.punch.isPendingApproval)
-                response.punch.insideGeofence == false || loc.isMocked ? s.pendingApprovalNote : s.lockPendingNote,
+                response.punch.insideGeofence == false || loc.isMocked
+                    ? s.pendingApprovalNote
+                    : response.punch.faceFlagged
+                    ? s.facePendingNote
+                    : s.lockPendingNote,
               if (loc.isMocked) s.mockLocationWarning,
             ].join('\n').ifEmptyNull,
           );
@@ -281,6 +289,18 @@ class _EmployeeHomeScreenState extends ConsumerState<EmployeeHomeScreen> {
           padding: const EdgeInsets.only(bottom: 24),
           children: [
             ScreenHeader(subtitle: subtitle, title: s.hello(session.employee?.name ?? session.user?.name ?? '')),
+            if (session.company?.settings.faceMatchPolicy == 'review' && session.employee?.faceStatus == 'none')
+              Card(
+                key: const Key('faceSetupBanner'),
+                margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                color: AppColors.mintFaint,
+                child: ListTile(
+                  leading: const Icon(Icons.face_retouching_natural_rounded, color: AppColors.mint),
+                  title: Text(s.faceSetupBanner, style: const TextStyle(fontWeight: FontWeight.w700)),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => context.push(Routes.employeeFace),
+                ),
+              ),
             if (sync.pending > 0)
               Container(
                 key: const Key('pendingSyncBanner'),

@@ -50,7 +50,7 @@ class _FakeCapture implements PunchCapture {
   @override
   Future<CapturedLocation> location() async => const CapturedLocation(lat: 28.6, lng: 77.2, accuracyM: 12);
   @override
-  Future<String?> selfie() async {
+  Future<String?> selfie(BuildContext context, {bool live = false}) async {
     selfies++;
     return 'c2VsZmll';
   }
@@ -72,6 +72,9 @@ class _FakePunchApi implements PunchApi {
   final List<Json> bodies = [];
   ApiException? error;
 
+  /// Punch returned by the server; a plain one when null.
+  Punch? reply;
+
   @override
   Future<PunchResponse> checkIn(Json body) => _go(body, 'in');
   @override
@@ -83,7 +86,7 @@ class _FakePunchApi implements PunchApi {
     onPunch(body, type);
     return PunchResponse(
       record: Attendance(id: 'a1', employeeId: 'e1', date: Dates.toApiDate(DateTime.now())),
-      punch: Punch(id: 'p1', type: type, clientTime: DateTime.now()),
+      punch: reply ?? Punch(id: 'p1', type: type, clientTime: DateTime.now()),
     );
   }
 }
@@ -282,6 +285,27 @@ void main() {
     expect(find.text('Phone lock did not open'), findsNothing);
     expect(api.bodies.single['lockCheck'], 'unavailable');
     expect(find.text('No lock on phone'), findsOneWidget);
+  });
+
+  testWidgets('a check-in held by the face check says so', (tester) async {
+    // Phone-sized screen so the note under the receipt is built.
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.6;
+    addTearDown(tester.view.reset);
+    final api = await pumpHome(tester);
+    api.reply = Punch(
+      id: 'p9',
+      type: 'in',
+      clientTime: DateTime.now(),
+      insideGeofence: true,
+      approval: 'pending',
+      faceResult: 'mismatch',
+      lockCheck: 'passed',
+    );
+    await tester.tap(find.byKey(const Key('checkInButton')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Face not clearly matched'), findsOneWidget);
+    expect(find.textContaining('Phone lock not opened'), findsNothing);
   });
 
   testWidgets('policy off: the phone lock is not asked and not sent', (tester) async {

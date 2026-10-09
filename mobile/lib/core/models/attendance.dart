@@ -24,6 +24,8 @@ class Punch {
     this.selfieUrl,
     this.mockLocation = false,
     this.lockCheck,
+    this.faceResult,
+    this.faceSimilarity,
     this.deviceId,
     this.source = 'app',
     this.flags = const [],
@@ -42,7 +44,14 @@ class Punch {
 
   /// passed | failed | unavailable — the phone screen-lock result, null when not asked.
   final String? lockCheck;
+
+  /// match | unsure | mismatch | no_face | many_faces | error — null when face check did not run.
+  final String? faceResult;
+  final num? faceSimilarity;
   final String? deviceId;
+
+  /// Face check ran and did not clearly match (the owner should compare photos).
+  bool get faceFlagged => faceResult != null && faceResult != 'match' && faceResult != 'error';
   final String source;
   final List<String> flags;
   final String approval;
@@ -61,6 +70,8 @@ class Punch {
     selfieUrl: asStringOrNull(j['selfieUrl']),
     mockLocation: asBool(j['mockLocation']),
     lockCheck: asStringOrNull(j['lockCheck']),
+    faceResult: asStringOrNull(asMap(j['face'])['result']),
+    faceSimilarity: asMap(j['face'])['similarity'] == null ? null : asNum(asMap(j['face'])['similarity']),
     deviceId: asStringOrNull(j['deviceId']),
     source: asString(j['source'], 'app'),
     flags: asStringList(j['flags']),
@@ -223,15 +234,24 @@ class MonthGrid {
 }
 
 class PunchApprovalItem {
-  const PunchApprovalItem({required this.attendanceId, required this.employeeName, required this.punch});
+  const PunchApprovalItem({
+    required this.attendanceId,
+    required this.employeeName,
+    required this.punch,
+    this.facePhotoUrl,
+  });
   final String attendanceId;
   final String employeeName;
   final Punch punch;
+
+  /// Approved face photo, sent when the face check flagged this punch.
+  final String? facePhotoUrl;
 
   factory PunchApprovalItem.fromJson(Json j) => PunchApprovalItem(
     attendanceId: asString(j['attendanceId']),
     employeeName: asString(j['employeeName']),
     punch: Punch.fromJson(asMap(j['punch'])),
+    facePhotoUrl: asStringOrNull(j['facePhotoUrl']),
   );
 }
 

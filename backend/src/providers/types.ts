@@ -133,3 +133,17 @@ export interface AnalyticsProvider {
   readonly name: string;
   capture(distinctId: string, event: string, properties?: Record<string, unknown>): void;
 }
+
+// ---------- Face match ----------
+export interface FaceCompareResult {
+  /** 0–100 similarity of the best face in the probe to the reference; null when the probe has no face. */
+  similarity: number | null;
+  /** Faces found in the probe image. */
+  faces: number;
+}
+
+export interface FaceProvider {
+  readonly name: string;
+  /** Compares a check-in selfie (probe) with the employee's enrolled reference photo. */
+  compare(reference: Buffer, probe: Buffer): Promise<FaceCompareResult>;
+}

@@ -35,6 +35,15 @@ class MeApi {
     return Employee.fromJson(asMap(d));
   }
 
+  Future<FaceInfo> myFace() async => FaceInfo.fromJson(asMap(await _c.get('/me/face')));
+
+  /// Explicit consent is sent with every enrolment.
+  Future<FaceInfo> enrollFace(String photoBase64) async =>
+      FaceInfo.fromJson(asMap(await _c.post('/me/face', body: {'consent': true, 'photoBase64': photoBase64})));
+
+  /// Withdraws consent; the server deletes the photo.
+  Future<FaceInfo> withdrawFace() async => FaceInfo.fromJson(asMap(await _c.delete('/me/face')));
+
   Future<void> registerPushToken(String token, String platform) async {
     await _c.post('/me/push-token', body: {'token': token, 'platform': platform});
   }

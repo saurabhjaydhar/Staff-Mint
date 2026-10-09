@@ -58,6 +58,7 @@ export interface CompanySettings {
   sickLeavePaid: boolean;
   outsideGeofencePolicy: "block" | "request_approval";
   phoneLockPolicy: "off" | "recommended" | "required";
+  faceMatchPolicy: "off" | "review";
   language: Lang;
   digestTime: string;
   roundToRupee: boolean;
@@ -141,7 +142,12 @@ export type PunchFlag =
   | "low_accuracy"
   | "outside_geofence"
   | "phone_lock_failed"
-  | "no_phone_lock";
+  | "no_phone_lock"
+  | "face_mismatch"
+  | "face_unsure"
+  | "face_no_face"
+  | "face_many_faces"
+  | "face_check_failed";
 
 export interface Punch {
   id: string;
@@ -155,6 +161,8 @@ export interface Punch {
   mockLocation: boolean;
   /** Phone screen-lock result; null when the company does not ask for it. */
   lockCheck: "passed" | "failed" | "unavailable" | null;
+  /** Selfie vs approved face photo; null when face check did not run. */
+  face: { result: "match" | "unsure" | "mismatch" | "no_face" | "many_faces" | "error"; similarity: number | null } | null;
   deviceId: string;
   source: "app" | "offline_sync" | "owner" | "assistant" | "import";
   flags: (PunchFlag | string)[];

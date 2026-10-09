@@ -208,6 +208,14 @@ function SettingsForm({ settings, onSaved }: { settings: CompanySettings; onSave
               </Select>
             )}
           </Field>
+          <Field label="Face check at check-in (Growth plan and above; staff must agree first)">
+            {(id) => (
+              <Select id={id} value={d.faceMatchPolicy ?? "off"} onChange={(e) => set("faceMatchPolicy", e.target.value as Draft["faceMatchPolicy"])}>
+                <option value="off">Off</option>
+                <option value="review">On — I approve unclear matches in the app</option>
+              </Select>
+            )}
+          </Field>
           <Field label="Daily summary time">
             {(id) => <Input id={id} type="time" value={d.digestTime} onChange={(e) => set("digestTime", e.target.value)} />}
           </Field>

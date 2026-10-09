@@ -1,7 +1,8 @@
-import { env } from '../config/env.js';
+import { env, isProd } from '../config/env.js';
 import type {
   AnalyticsProvider,
   EmailProvider,
+  FaceProvider,
   GeoProvider,
   LlmProvider,
   MessagingProvider,
@@ -31,6 +32,7 @@ import { MockGeoProvider } from './geo/mock.js';
 import { GoogleGeoProvider } from './geo/google.js';
 import { MockAnalyticsProvider } from './analytics/mock.js';
 import { PostHogAnalyticsProvider } from './analytics/posthog.js';
+import { MockFaceProvider } from './face/mock.js';
 
 export interface Providers {
   otp: OtpProvider;
@@ -46,6 +48,7 @@ export interface Providers {
   email: EmailProvider;
   geo: GeoProvider;
   analytics: AnalyticsProvider;
+  face: FaceProvider;
 }
 
 type Factories = { [K in keyof Providers]: Record<string, () => Providers[K] | Promise<Providers[K]>> };
@@ -107,6 +110,11 @@ const factories: Factories = {
     mock: () => new MockAnalyticsProvider(),
     posthog: () => new PostHogAnalyticsProvider({ apiKey: env.POSTHOG_API_KEY, host: env.POSTHOG_HOST }),
   },
+  face: {
+    mock: () => new MockFaceProvider(isProd),
+    rekognition: async () =>
+      new (await import('./face/rekognition.js')).RekognitionFaceProvider({ region: env.AWS_REGION, accessKeyId: env.AWS_ACCESS_KEY_ID, secretAccessKey: env.AWS_SECRET_ACCESS_KEY }),
+  },
 };
 
 const selected: { [K in keyof Providers]: string } = {
@@ -122,6 +130,7 @@ const selected: { [K in keyof Providers]: string } = {
   email: env.EMAIL_PROVIDER,
   geo: env.GEO_PROVIDER,
   analytics: env.ANALYTICS_PROVIDER,
+  face: env.FACE_PROVIDER,
 };
 
 const cache = new Map<string, unknown>();

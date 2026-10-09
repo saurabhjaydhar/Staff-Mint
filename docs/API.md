@@ -20,7 +20,7 @@ Plan      { code, name, priceMonthlyPaise, priceYearlyPaise, currency, staffLimi
           // features: attendance, leave, digest, payroll, advances, payslips, assistant, branches, reports, whatsapp_payslips, ca_access, priority_support
 Company   { id, name, businessType, country, currency, timezone, location:{lat,lng,address?},
             settings: { graceMinutes, halfDayHours, monthDivisor:'days_in_month'|'30'|'26', missingCheckoutPolicy:'half_day'|'present'|'flag',
-                        weekOffsPaid, holidaysPaid, sickLeavePaid, outsideGeofencePolicy:'block'|'request_approval', phoneLockPolicy:'off'|'recommended'|'required', language, digestTime:'09:30',
+                        weekOffsPaid, holidaysPaid, sickLeavePaid, outsideGeofencePolicy:'block'|'request_approval', phoneLockPolicy:'off'|'recommended'|'required', faceMatchPolicy:'off'|'review', language, digestTime:'09:30',
                         roundToRupee, selfieRequired, maxDeviceTimeDriftMin, selfieRetentionDays, whatsappAlerts },
             plan: Plan, subscription: { status:'trialing'|'active'|'past_due'|'cancelled'|'free', planCode, currentPeriodEnd|null } }
 Branch    { id, name, location:{lat,lng,address?}, radiusM, shiftId }
@@ -28,8 +28,8 @@ Shift     { id, name, start:'09:00', end:'19:00', graceMinutes:number|null, week
 Employee  { id, name, phone, branchId, shiftId, wageType:'monthly'|'daily', ratePaise, designation?, joiningDate?, status:'active'|'inactive',
             consent:{ location:boolean, at?:string }, hasDevice:boolean, language }
 Punch     { id, type:'in'|'out', clientTime /* effective time: server time online, device time for offline sync */, deviceTime, serverTime, geo:{lat,lng,accuracyM}|null, distanceM|null, insideGeofence|null, selfieUrl|null,
-            mockLocation, lockCheck:'passed'|'failed'|'unavailable'|null, deviceId, source:'app'|'offline_sync'|'owner'|'assistant'|'import', flags:string[], approval:'not_required'|'pending'|'approved'|'rejected' }
-            // flags: late_sync, device_time_drift, mock_location, low_accuracy, outside_geofence, phone_lock_failed, no_phone_lock
+            mockLocation, lockCheck:'passed'|'failed'|'unavailable'|null, face:{result:'match'|'unsure'|'mismatch'|'no_face'|'many_faces'|'error', similarity}|null, deviceId, source:'app'|'offline_sync'|'owner'|'assistant'|'import', flags:string[], approval:'not_required'|'pending'|'approved'|'rejected' }
+            // flags: late_sync, device_time_drift, mock_location, low_accuracy, outside_geofence, phone_lock_failed, no_phone_lock, face_mismatch, face_unsure, face_no_face, face_many_faces, face_check_failed
 Attendance { id, employeeId, date, status:'present'|'absent'|'half_day'|'leave'|'holiday'|'week_off'|null, leaveType?:'paid'|'sick'|'unpaid',
              punches: Punch[], lateMinutes, earlyOutMinutes, workedMinutes, overridden, overrideReason?, flags:string[] }
 DayRow    { employee: {id,name,phone,designation}, record: Attendance|null,
@@ -67,6 +67,9 @@ Phone: E.164 (`+919876543210`) or 10-digit Indian (`9876543210`, normalised serv
 | GET | /me | — | `{user, company:Company\|null, employee:Employee\|null}` |
 | PATCH | /me | `{name?, language?}` | `User` |
 | POST | /me/consent | `{location:true}` | `Employee` |
+| GET | /me/face | — | `FaceInfo {status:'none'\|'pending'\|'approved', photoUrl, enrolledAt, approvedAt}` |
+| POST | /me/face | `{consent:true, photoBase64}` (explicit consent on every enrolment) | 201 `FaceInfo` (status `pending`); 422 `FACE_NOT_CLEAR` `{reason:'no_face'\|'many_faces'}` |
+| DELETE | /me/face | — (withdraw consent; photo deleted) | `FaceInfo` |
 | POST | /me/push-token | `{token, platform:'android'\|'ios'\|'web'}` | `{ok:true}` |
 | GET | /me/salary | `?month` | `{estimate: Payslip-like (status 'draft', not persisted), advanceBalancePaise, payslips: Payslip[]}` (employee) |
 | GET | /me/notifications | — | `{id,title,body,data,readAt,createdAt}[]` |
@@ -88,7 +91,7 @@ Phone: E.164 (`+919876543210`) or 10-digit Indian (`9876543210`, normalised serv
 | DELETE | /holidays/:id | | |
 
 ### Dashboard (owner/manager)
-| GET | /dashboard/today | — | `{date, counts:{total,present,late,absent,onLeave,notMarked,checkedIn}, needsAction:{leaveRequests:Leave[], punchApprovals:{attendanceId,employeeName,punch}[], flags:{employeeName,date,flags}[]}, plan:{staffCount, staffLimit}}` |
+| GET | /dashboard/today | — | `{date, counts:{total,present,late,absent,onLeave,notMarked,checkedIn}, needsAction:{leaveRequests:Leave[], punchApprovals:{attendanceId,employeeName,punch,facePhotoUrl}[], faceEnrollments:{employeeId,employeeName,status,photoUrl,enrolledAt}[], flags:{employeeName,date,flags}[]}, plan:{staffCount, staffLimit}}` |
 
 ### Employees (owner/manager)
 | GET | /employees | `?search&status=active\|inactive\|all&branchId` | `Employee[]` |
@@ -98,6 +101,9 @@ Phone: E.164 (`+919876543210`) or 10-digit Indian (`9876543210`, normalised serv
 | PATCH | /employees/:id | partial + `effectiveFrom?` (for rate change → new salary structure version) | `Employee` |
 | POST | /employees/:id/deactivate | `{reason?}` | `Employee` |
 | POST | /employees/:id/reset-device | — | `Employee` |
+| GET | /employees/:id/face | — | `FaceInfo` |
+| POST | /employees/:id/face/approve | — | `FaceInfo`; 409 if nothing is pending |
+| DELETE | /employees/:id/face | — (reject / reset; photo deleted, staff asked to enrol again) | `FaceInfo` |
 | POST | /employees/:id/reactivate | — | `Employee` |
 | POST | /employees/:id/role | `{role:'employee'\|'manager'}` (owner) | `Employee` |
 
@@ -182,3 +188,10 @@ Fields: `name, phone, ratePaise, wageType, designation, joiningDate, branch, adv
 - `deviceId` values starting with `web-` never bind or block an employee's phone binding.
 - Days with no attendance record are classified as holiday, week off or approved leave when that applies, otherwise `not_marked`. Payroll treats `not_marked` days as unpaid and flags them as an anomaly.
 - Draft payslip IDs change on every recompute; approved payslips are stable and become immutable once sent.
+
+### Face check
+- Off by default (`faceMatchPolicy:'off'`). Turning it on needs a plan with the `face_match` feature (Growth, Pro); otherwise 402 `FEATURE_NOT_IN_PLAN`.
+- Only selfies of staff whose photo the owner **approved** are compared. Results: `match` (≥ `FACE_MATCH_THRESHOLD`, default 90), `unsure` (≥ `FACE_UNSURE_THRESHOLD`, default 75), `mismatch`, `no_face`, `many_faces`. Anything but `match` makes the punch `pending` for owner approval; the dashboard then sends `facePhotoUrl` so both photos can be compared.
+- `error` (engine down, photo missing) only adds the `face_check_failed` flag. It never blocks or holds a check-in.
+- The reference photo is deleted when the staff member withdraws consent, when the owner resets it, and when the staff member is deactivated.
+- `FACE_PROVIDER=mock` refuses to decide in production, so a missing key cannot approve anyone.

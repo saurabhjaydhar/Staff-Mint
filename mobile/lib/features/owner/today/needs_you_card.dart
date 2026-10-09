@@ -40,6 +40,14 @@ class _NeedsYouCardState extends ConsumerState<NeedsYouCard> {
   Future<bool> _decideLeave(Leave l, bool approve) =>
       _run(l.id, approve, () => ref.read(leaveApiProvider).decide(l.id, approve: approve));
 
+  Future<bool> _decideFace(FaceEnrollment f, bool approve) => _run(
+    'face_${f.employeeId}',
+    approve,
+    () => approve
+        ? ref.read(employeesApiProvider).approveFace(f.employeeId)
+        : ref.read(employeesApiProvider).resetFace(f.employeeId),
+  );
+
   Future<bool> _decidePunch(PunchApprovalItem p, bool approve) =>
       _run(p.punch.id, approve, () => ref.read(attendanceApiProvider).decidePunch(p.attendanceId, p.punch.id, approve));
 
@@ -49,11 +57,13 @@ class _NeedsYouCardState extends ConsumerState<NeedsYouCard> {
     final d = widget.dashboard;
     final leaves = d.leaveRequests.where((l) => !_handled.contains(l.id)).toList();
     final punches = d.punchApprovals.where((p) => !_handled.contains(p.punch.id)).toList();
-    final count = leaves.length + punches.length + d.flags.length;
+    final faces = d.faceEnrollments.where((f) => !_handled.contains('face_${f.employeeId}')).toList();
+    final count = leaves.length + punches.length + faces.length + d.flags.length;
     if (count == 0) return const SizedBox.shrink();
     final names = [
       for (final l in leaves) s.needsYouLeave(l.employeeName),
       for (final p in punches) s.needsYouPunch(p.employeeName),
+      for (final f in faces) s.needsYouFace(f.employeeName),
       for (final f in d.flags) s.needsYouFlag(f.employeeName),
     ];
     return Column(
@@ -147,6 +157,14 @@ class _NeedsYouCardState extends ConsumerState<NeedsYouCard> {
                           if (await _decidePunch(p, a) && mounted) setState(() => _handled.add(p.punch.id));
                         },
                       ),
+                    for (final f in faces)
+                      _FaceEnrollmentCard(
+                        item: f,
+                        busy: _busy.contains('face_${f.employeeId}'),
+                        onDecide: (a) async {
+                          if (await _decideFace(f, a) && mounted) setState(() => _handled.add('face_${f.employeeId}'));
+                        },
+                      ),
                     for (final f in d.flags)
                       Card(
                         child: ListTile(
@@ -216,20 +234,122 @@ class _PunchApprovalCard extends StatelessWidget {
                     children: [
                       Text(item.employeeName, style: Theme.of(context).textTheme.titleMedium),
                       Text(
-                        '${outside ? s.outsidePunchApproval : s.lockPunchApproval} · ${p.isIn ? s.checkInLabel : s.checkOutLabel} ${Dates.time(p.clientTime, s.languageCode)}',
+                        '${outside
+                            ? s.outsidePunchApproval
+                            : p.faceFlagged
+                            ? s.faceResultLabel(p.faceResult)
+                            : s.lockPunchApproval} · ${p.isIn ? s.checkInLabel : s.checkOutLabel} ${Dates.time(p.clientTime, s.languageCode)}',
                       ),
-                      if (p.distanceM != null)
+                      // Distance only matters when the punch was outside the shop area.
+                      if (p.distanceM != null && p.insideGeofence == false)
                         Text(s.distanceAway(p.distanceM!), style: const TextStyle(color: AppColors.red)),
                     ],
                   ),
                 ),
               ],
             ),
+            if (p.faceFlagged && item.facePhotoUrl != null) ...[
+              const SizedBox(height: 10),
+              PhotoPair(
+                key: Key('photoPair_${p.id}'),
+                left: (s.approvedPhoto, item.facePhotoUrl),
+                right: (s.todaysSelfie, p.selfieUrl),
+              ),
+            ],
             const SizedBox(height: 10),
             DecisionButtons(busy: busy, onDecide: onDecide),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// A face photo a staff member just set up: approve, or ask for a new one.
+class _FaceEnrollmentCard extends StatelessWidget {
+  const _FaceEnrollmentCard({required this.item, required this.busy, required this.onDecide});
+  final FaceEnrollment item;
+  final bool busy;
+  final ValueChanged<bool> onDecide;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.s;
+    return Card(
+      key: Key('faceEnrollment_${item.employeeId}'),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                _Photo(url: item.face.photoUrl, size: 72),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(item.employeeName, style: Theme.of(context).textTheme.titleMedium),
+                      Text(s.facePhotoToApprove, style: const TextStyle(color: AppColors.muted)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            DecisionButtons(busy: busy, onDecide: onDecide, rejectLabel: s.faceAskRetake),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Approved face photo next to today's selfie, so the owner can compare by eye.
+class PhotoPair extends StatelessWidget {
+  const PhotoPair({super.key, required this.left, required this.right});
+  final (String, String?) left;
+  final (String, String?) right;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      for (final (label, url) in [left, right])
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Column(
+              children: [
+                AspectRatio(aspectRatio: 1, child: _Photo(url: url)),
+                const SizedBox(height: 4),
+                Text(label, style: const TextStyle(color: AppColors.muted, fontSize: 12.5)),
+              ],
+            ),
+          ),
+        ),
+    ],
+  );
+}
+
+class _Photo extends StatelessWidget {
+  const _Photo({required this.url, this.size});
+  final String? url;
+  final double? size;
+
+  @override
+  Widget build(BuildContext context) {
+    final fallback = Container(
+      width: size,
+      height: size,
+      color: AppColors.mutedLight,
+      child: const Icon(Icons.person, color: AppColors.muted),
+    );
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: url == null
+          ? fallback
+          : Image.network(url!, width: size, height: size, fit: BoxFit.cover, errorBuilder: (_, _, _) => fallback),
     );
   }
 }

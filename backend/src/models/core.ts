@@ -13,6 +13,8 @@ const settingsSchema = new Schema(
     outsideGeofencePolicy: { type: String, enum: ['block', 'request_approval'], default: 'block' },
     /** Ask the phone's own screen lock (fingerprint, face, PIN or pattern) at check-in. Nothing biometric reaches the server. */
     phoneLockPolicy: { type: String, enum: ['off', 'recommended', 'required'], default: 'recommended' },
+    /** Compare check-in selfies with each person's approved face photo. Off until the owner turns it on. */
+    faceMatchPolicy: { type: String, enum: ['off', 'review'], default: 'off' },
     language: { type: String, enum: ['en', 'hi'], default: 'hi' },
     digestTime: { type: String, default: '09:30' },
     roundToRupee: { type: Boolean, default: true },

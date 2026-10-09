@@ -27,6 +27,7 @@ export const employeeView = (e: any, extra: Record<string, unknown> = {}) => ({
   status: e.status,
   appRole: e.appRole ?? 'employee',
   consent: { location: !!e.consent?.location, at: e.consent?.at ?? null },
+  face: { status: e.face?.status ?? 'none', enrolledAt: e.face?.enrolledAt ?? null, approvedAt: e.face?.approvedAt ?? null },
   hasDevice: !!extra.hasDevice,
   language: e.language ?? 'hi',
   ...Object.fromEntries(Object.entries(extra).filter(([k]) => k !== 'hasDevice')),

@@ -178,6 +178,8 @@ export async function deactivateEmployee(ctx: Ctx, id: string, reason?: string) 
   e.status = 'inactive';
   e.exitDate = todayIn(company!.timezone);
   await e.save();
+  // Face photo is personal data with no use after exit: delete it now.
+  if (e.face?.refKey) await (await import('../face/service.js')).clearFace(e);
   if (e.userId) await revokeAllForUser(e.userId);
   await audit(ctx, { action: 'employee.deactivate', entity: 'employee', entityId: e._id, before, after: { ...e.toObject(), reason } });
   return e;
