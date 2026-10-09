@@ -45,7 +45,7 @@ Payslip   { id, runId, employeeId, employeeName, month, revision, wageType, rate
             lines: PayslipLine[], grossPaise, deductionsPaise, netPaise, status:'draft'|'final'|'sent', pdfUrl:string|null, sentAt? }
 PayrollRun { id, month, revision, status:'draft'|'approved'|'paid'|'superseded', engineVersion,
              totals:{ grossPaise, deductionsPaise, netPaise, employees }, anomalies:{ employeeId, employeeName, code, message }[],
-             approvedAt?, paidAt?, payslips?: Payslip[] }
+             approvedAt?, paidAt?, payslips?: Payslip[] }   // anomaly `message` is in the caller's Accept-Language (en | hi)
 AssistantReply { sessionId, kind:'answer'|'confirm'|'choose'|'done'|'cancelled'|'error', text,
                  options?: {id,label}[], pendingActionId?, preview?: {title, rows:{label,value}[]}, data?: any, attachment?: {url, filename} }
 AuditLog  { id, actorId, actorName, channel:'app'|'web'|'assistant'|'whatsapp'|'system'|'import', action, entity, entityId, before, after, at }

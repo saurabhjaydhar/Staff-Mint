@@ -123,4 +123,15 @@ describe('payroll lifecycle', () => {
     expect(r.body.error.code).toBe('PLAN_LIMIT');
     void Types;
   });
+  it('anomaly flags follow the reader\'s language, not the language used to compute', async () => {
+    const owner = await createOwner({ plan: 'growth' });
+    const emp = await addEmployee(owner, { phone: nextPhone(), name: 'Suresh Yadav', ratePaise: 1400000, joiningDate: '2026-01-01' });
+    // Only the first 20 days are marked, so the rest of September (bar weekly offs) is unmarked.
+    for (const d of monthDays('2026-09').slice(0, 20)) await Attendance.create({ companyId: owner.companyId, employeeId: emp.id, date: d, status: 'present' });
+    const hi = await api().post(`${V}/payroll/runs`).set(auth(owner.token)).set('Accept-Language', 'hi').send({ month: '2026-09' }).expect(200);
+    const flag = (r: any) => r.body.data.anomalies.find((a: any) => a.code === 'unmarked_days')?.message;
+    expect(flag(hi)).toMatch(/^\d+ दिन की हाज़िरी नहीं लगी$/);
+    const en = await api().get(`${V}/payroll/runs/${hi.body.data.id}`).set(auth(owner.token)).set('Accept-Language', 'en').expect(200);
+    expect(flag(en)).toMatch(/^\d+ day\(s\) have no attendance$/);
+  });
 });

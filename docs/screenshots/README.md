@@ -3,26 +3,25 @@
 Captured from the real apps running against the demo backend (`npm run seed:demo`, plus sample data for today).
 The mobile screens are the Flutter app compiled for the browser at a phone-sized viewport (390×844); there is no Android emulator in the build environment, but it is the same code and widgets.
 
-## Mobile app (Owner + Employee)
+## Mobile app (Owner + Employee): Direction E "Bahi-Khata Modern"
+
+The redesign follows [docs/design](../design/README.md): a warm paper ledger, Hindi first with English hints, four tabs plus a centre mic for Mint, slide-to-confirm for money actions, and a success screen after each one.
 
 | | | |
 |---|---|---|
-| <img src="mobile/01-login.jpg" width="240"><br>Login (phone number) | <img src="mobile/02-login-hindi.jpg" width="240"><br>Login in Hindi | <img src="mobile/03-otp.jpg" width="240"><br>OTP entry (test code shown in dev mode) |
-| <img src="mobile/04-owner-home.jpg" width="240"><br>Owner Home: today at a glance + quick actions | <img src="mobile/04b-owner-home-needs-action.jpg" width="240"><br>Home: needs action (leave request, outside-geofence punch) | <img src="mobile/05-owner-staff.jpg" width="240"><br>Staff list |
-| <img src="mobile/06-owner-staff-profile.jpg" width="240"><br>Staff profile | <img src="mobile/06b-owner-staff-profile-more.jpg" width="240"><br>Staff profile (advances, leave balance, device, consent) | <img src="mobile/07-owner-add-staff.jpg" width="240"><br>Add staff |
-| <img src="mobile/08-owner-attendance-day.jpg" width="240"><br>Attendance day view | <img src="mobile/09-owner-punch-detail.jpg" width="240"><br>Punch detail: approve/reject + change status with reason | <img src="mobile/10-owner-attendance-month.jpg" width="240"><br>Attendance month grid |
-| <img src="mobile/11b-owner-salary-payroll-list.jpg" width="240"><br>Salary: approved run + payslips | <img src="mobile/12-owner-payslip-detail.jpg" width="240"><br>Payslip lines with plain-language explanation | <img src="mobile/13-owner-advances.jpg" width="240"><br>Advances (udhaar) |
-| <img src="mobile/14-owner-bonus-deduction.jpg" width="240"><br>Bonus / deduction | <img src="mobile/15-owner-more.jpg" width="240"><br>More menu | <img src="mobile/16-owner-leave-requests.jpg" width="240"><br>Leave requests |
-| <img src="mobile/17-owner-reports.jpg" width="240"><br>Reports (PDF / Excel) | <img src="mobile/18-owner-settings.jpg" width="240"><br>Settings: business & rules | <img src="mobile/19-owner-settings-more.jpg" width="240"><br>Settings: salary divisor, missing checkout, geofence policy |
-| <img src="mobile/20-owner-billing.jpg" width="240"><br>Plan & billing | <img src="mobile/21-owner-audit-log.jpg" width="240"><br>Audit log | <img src="mobile/22-owner-help.jpg" width="240"><br>Help & support |
-| <img src="mobile/23-mint-chat.jpg" width="240"><br>Mint assistant with suggestions | <img src="mobile/24-mint-answer.jpg" width="240"><br>Mint read answer: "Kaun late aaya?" | <img src="mobile/25-mint-confirm-before-save.jpg" width="240"><br>Mint confirm-before-save: "Suresh aaj nahi aaya" |
-| <img src="mobile/25b-mint-advance-confirm.jpg" width="240"><br>Mint advance confirmation | <img src="mobile/26-mint-which-ramesh.jpg" width="240"><br>Mint asks "Which Ramesh?" with buttons | <img src="mobile/27-mint-salary-preview.jpg" width="240"><br>Mint salary preview |
-| <img src="mobile/28-hindi-more.jpg" width="240"><br>More menu in Hindi | <img src="mobile/29-hindi-home.jpg" width="240"><br>Home in Hindi | <img src="mobile/30-hindi-salary.jpg" width="240"><br>Salary in Hindi |
-| <img src="mobile/31-setup-1-business.jpg" width="240"><br>Setup 1/5: business | <img src="mobile/31b-setup-1-filled.jpg" width="240"><br>Setup 1/5 filled | <img src="mobile/32-setup-2-location.jpg" width="240"><br>Setup 2/5: shop location (map tiles blocked in the screenshot sandbox) |
-| <img src="mobile/32b-setup-2-pin-placed.jpg" width="240"><br>Setup 2/5: pin placed | <img src="mobile/33-setup-3-timings.jpg" width="240"><br>Setup 3/5: timings | <img src="mobile/34-setup-4-weekly-off.jpg" width="240"><br>Setup 4/5: weekly off |
-| <img src="mobile/35-setup-5-add-staff.jpg" width="240"><br>Setup 5/5: add staff | <img src="mobile/36-employee-consent.jpg" width="240"><br>Employee first login: location consent (DPDP) | <img src="mobile/37-employee-home.jpg" width="240"><br>Employee Home: checked in → Check out |
-| <img src="mobile/37b-employee-home-before-checkin.jpg" width="240"><br>Employee Home: big Check in button | <img src="mobile/38-employee-attendance.jpg" width="240"><br>Employee attendance calendar | <img src="mobile/39-employee-leave.jpg" width="240"><br>Employee leave |
-| <img src="mobile/39b-employee-apply-leave.jpg" width="240"><br>Apply for leave | <img src="mobile/40-employee-salary.jpg" width="240"><br>Employee salary: running estimate + payslips | <img src="mobile/41-employee-profile.jpg" width="240"><br>Employee profile |
+| <img src="mobile/01-login.jpg" width="240"><br>Login: Hindi first, English one tap away | <img src="mobile/02-otp.jpg" width="240"><br>OTP (test code shown in dev mode) | <img src="mobile/03-owner-today.jpg" width="240"><br>Owner Today: the day as a ledger page |
+| <img src="mobile/04-owner-needs-you.jpg" width="240"><br>"Needs you" expands into approve / reject cards | <img src="mobile/05-owner-quick-status-sheet.jpg" width="240"><br>Tap any row → 2-tap status sheet with reason chips | <img src="mobile/05b-owner-saved-with-undo.jpg" width="240"><br>Saved at once, with Undo |
+| <img src="mobile/06-owner-month-grid.jpg" width="240"><br>Month grid (हा / ले / ग़ / आ codes) | <img src="mobile/07-owner-staff.jpg" width="240"><br>Staff list | <img src="mobile/08-owner-staff-profile.jpg" width="240"><br>Staff profile |
+| <img src="mobile/09-owner-salary-day.jpg" width="240"><br>Salary day, step 1 "Check": cash needed + only the flags | <img src="mobile/09c-owner-salary-flag-ok.jpg" width="240"><br>Flag resolved: all staff look fine | <img src="mobile/10-owner-payslip-receipt.jpg" width="240"><br>Payslip as a receipt with the "why" |
+| <img src="mobile/11-owner-salary-approved-success.jpg" width="240"><br>Slide to approve → success screen | <img src="mobile/11b-owner-salary-mark-paid.jpg" width="240"><br>Step 3: slide to mark as paid | <img src="mobile/12-owner-more.jpg" width="240"><br>More |
+| <img src="mobile/13-mint-sheet.jpg" width="240"><br>Mint: WhatsApp-style chat behind the centre mic | <img src="mobile/13b-mint-answer.jpg" width="240"><br>Mint answers in Devanagari; write actions show a receipt | <img src="mobile/14-mint-confirm-receipt.jpg" width="240"><br>Nothing is saved until "हाँ, कर दो" |
+| <img src="mobile/15-mint-which-ramesh.jpg" width="240"><br>"कौन सा Ramesh?" with one-tap choices | <img src="mobile/16-owner-today-english.jpg" width="240"><br>English mode | <img src="mobile/16b-owner-salary-english.jpg" width="240"><br>Salary day in English |
+| <img src="mobile/20-employee-home.jpg" width="240"><br>Staff home: one big check-in button | <img src="mobile/21-employee-checkin-success.jpg" width="240"><br>Check-in success (time, selfie, location) | <img src="mobile/22-employee-home-checked-in.jpg" width="240"><br>Checked in → Check out |
+| <img src="mobile/23-employee-attendance.jpg" width="240"><br>My attendance calendar + totals | <img src="mobile/24-employee-leave.jpg" width="240"><br>Leave balance | <img src="mobile/24b-employee-apply-leave.jpg" width="240"><br>Apply for leave sheet |
+| <img src="mobile/25-employee-salary.jpg" width="240"><br>My salary: running estimate with the maths | <img src="mobile/26-employee-payslip-receipt.jpg" width="240"><br>Payslip receipt with PAID stamp, WhatsApp / PDF | <img src="mobile/27-employee-profile.jpg" width="240"><br>Profile and language |
+| <img src="mobile/30-setup-1-business.jpg" width="240"><br>Setup 1/5: business type tiles | <img src="mobile/30b-setup-1-filled.jpg" width="240"><br>Setup 1/5 filled | <img src="mobile/31-setup-2-location.jpg" width="240"><br>Setup 2/5: shop location (map tiles blocked in the screenshot sandbox) |
+| <img src="mobile/31b-setup-2-pin.jpg" width="240"><br>Setup 2/5: pin and geofence | <img src="mobile/32-setup-3.jpg" width="240"><br>Setup 3/5: shop hours, prefilled per business type | <img src="mobile/33-setup-4.jpg" width="240"><br>Setup 4/5: weekly off |
+| <img src="mobile/34-setup-5-add-staff.jpg" width="240"><br>Setup 5/5: add staff from contacts or by hand |  |  |
 
 ## Web dashboard
 

@@ -10,7 +10,7 @@ const payrollRunSchema = new Schema(
     engineVersion: { type: String, required: true },
     settingsSnapshot: { type: Schema.Types.Mixed },
     totals: { grossPaise: Number, deductionsPaise: Number, netPaise: Number, employees: Number },
-    anomalies: { type: [{ employeeId: Schema.Types.ObjectId, employeeName: String, code: String, message: String }], default: [] },
+    anomalies: { type: [{ employeeId: Schema.Types.ObjectId, employeeName: String, code: String, message: String, messageHi: String }], default: [] },
     approvedAt: Date,
     approvedBy: { type: Schema.Types.ObjectId, ref: 'User' },
     paidAt: Date,

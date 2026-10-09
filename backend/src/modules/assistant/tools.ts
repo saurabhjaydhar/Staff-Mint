@@ -126,7 +126,7 @@ const whoIs: ToolDef<{ query: 'late' | 'absent' | 'present' | 'on_leave' | 'not_
     const label = { late: ['late', 'लेट आए'], absent: ['absent', 'ग़ैरहाज़िर थे'], present: ['present', 'हाज़िर थे'], on_leave: ['on leave', 'छुट्टी पर थे'], not_marked: ['not marked yet', 'की हाज़िरी अभी नहीं लगी'] }[a.query];
     const d = nice(a.date!, ctx.language);
     if (!match.length) return { text: L(ctx.language, `Nobody was ${label[0]} on ${d}.`, `${d} को कोई ${label[1].replace(/ थे$/, '')} नहीं।`), data: [] };
-    const list = match.map((r) => (a.query === 'late' && r.record ? `${r.employee.name} (${r.record.lateMinutes} min)` : r.employee.name)).join(', ');
+    const list = match.map((r) => (a.query === 'late' && r.record ? `${r.employee.name} (${r.record.lateMinutes} ${L(ctx.language, 'min', 'मिनट')})` : r.employee.name)).join(', ');
     return { text: L(ctx.language, `${match.length} ${label[0]} on ${d}: ${list}`, `${d} को ${match.length} लोग ${label[1]}: ${list}`), data: match.map((r) => r.employee) };
   },
 };
