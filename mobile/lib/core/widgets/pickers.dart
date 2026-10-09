@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../i18n/strings.dart';
+import '../theme/app_theme.dart';
 import '../utils/dates.dart';
 import '../utils/money.dart';
 
@@ -16,24 +17,15 @@ class MonthSwitcher extends StatelessWidget {
   Widget build(BuildContext context) {
     final now = DateTime.now();
     final isCurrent = month.year == now.year && month.month == now.month;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        IconButton(
-          icon: const Icon(Icons.chevron_left_rounded, size: 32),
-          onPressed: () => onChanged(Dates.addMonths(month, -1)),
-        ),
-        Text(Dates.monthTitle(month, context.s.languageCode), style: Theme.of(context).textTheme.titleMedium),
-        IconButton(
-          icon: const Icon(Icons.chevron_right_rounded, size: 32),
-          onPressed: (!allowFuture && isCurrent) ? null : () => onChanged(Dates.addMonths(month, 1)),
-        ),
-      ],
+    return _Switcher(
+      label: Dates.monthTitle(month, context.s.languageCode),
+      onPrev: () => onChanged(Dates.addMonths(month, -1)),
+      onNext: (!allowFuture && isCurrent) ? null : () => onChanged(Dates.addMonths(month, 1)),
     );
   }
 }
 
-/// `‹ Wed, 14 Oct ›` day switcher with a calendar picker in the middle.
+/// `‹ आज · शुक्र, 9 अक्टू ›` day switcher with a calendar picker in the middle.
 class DateSwitcher extends StatelessWidget {
   const DateSwitcher({super.key, required this.date, required this.onChanged});
   final DateTime date;
@@ -45,36 +37,88 @@ class DateSwitcher extends StatelessWidget {
     final today = Dates.today();
     final isToday = Dates.isSameDay(date, today);
     final isYesterday = Dates.isSameDay(date, today.subtract(const Duration(days: 1)));
+    final day = Dates.weekdayShort(date, s.languageCode);
     final label = isToday
-        ? '${s.today} · ${Dates.weekdayShort(date, s.languageCode)}'
+        ? '${s.today} · $day'
         : isYesterday
-        ? '${s.yesterday} · ${Dates.weekdayShort(date, s.languageCode)}'
-        : Dates.weekdayShort(date, s.languageCode);
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        IconButton(
-          icon: const Icon(Icons.chevron_left_rounded, size: 32),
-          onPressed: () => onChanged(date.subtract(const Duration(days: 1))),
-        ),
-        TextButton.icon(
-          icon: const Icon(Icons.calendar_month_rounded),
-          label: Text(label),
-          onPressed: () async {
-            final picked = await showDatePicker(
-              context: context,
-              initialDate: date,
-              firstDate: DateTime(today.year - 2),
-              lastDate: today,
-            );
-            if (picked != null) onChanged(picked);
-          },
-        ),
-        IconButton(
-          icon: const Icon(Icons.chevron_right_rounded, size: 32),
-          onPressed: isToday ? null : () => onChanged(date.add(const Duration(days: 1))),
-        ),
-      ],
+        ? '${s.yesterday} · $day'
+        : day;
+    return _Switcher(
+      label: label,
+      icon: Icons.calendar_month_rounded,
+      onPrev: () => onChanged(date.subtract(const Duration(days: 1))),
+      onNext: isToday ? null : () => onChanged(date.add(const Duration(days: 1))),
+      onLabel: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: date,
+          firstDate: DateTime(today.year - 2),
+          lastDate: today,
+        );
+        if (picked != null) onChanged(picked);
+      },
+    );
+  }
+}
+
+class _Switcher extends StatelessWidget {
+  const _Switcher({required this.label, required this.onPrev, required this.onNext, this.onLabel, this.icon});
+  final String label;
+  final VoidCallback onPrev;
+  final VoidCallback? onNext;
+  final VoidCallback? onLabel;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = MaterialLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+      child: Row(
+        children: [
+          IconButton(
+            tooltip: loc.previousPageTooltip,
+            icon: const Icon(Icons.chevron_left_rounded, size: 30),
+            onPressed: onPrev,
+          ),
+          Expanded(
+            child: Center(
+              child: Material(
+                color: Colors.white,
+                shape: const StadiumBorder(side: BorderSide(color: AppColors.line, width: 1.5)),
+                child: InkWell(
+                  customBorder: const StadiumBorder(),
+                  onTap: onLabel,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (icon != null) ...[
+                          Icon(icon, size: 18, color: AppColors.mintDark),
+                          const SizedBox(width: 6),
+                        ],
+                        Flexible(
+                          child: Text(
+                            label,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15.5),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          IconButton(
+            tooltip: loc.nextPageTooltip,
+            icon: const Icon(Icons.chevron_right_rounded, size: 30),
+            onPressed: onNext,
+          ),
+        ],
+      ),
     );
   }
 }

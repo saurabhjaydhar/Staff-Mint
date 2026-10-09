@@ -118,6 +118,28 @@ describe('attendance — check-in/out', () => {
   });
 });
 
+describe('attendance — undo override', () => {
+  it('clear-override restores the punch-derived status, or unmarked without punches', async () => {
+    const { owner, emp, e } = await setup();
+    await api().post(`${V}/attendance/check-in`).set(auth(e.token)).send(punchBody(e.deviceId)).expect(201);
+    const today = (await api().get(`${V}/attendance/today`).set(auth(e.token))).body.data.date;
+    await api().post(`${V}/attendance/override`).set(auth(owner.token)).send({ employeeId: emp.id, date: today, status: 'absent', reason: 'Owner confirmed' }).expect(200);
+    const undo = await api().post(`${V}/attendance/clear-override`).set(auth(owner.token)).send({ employeeId: emp.id, date: today, reason: 'Undo' });
+    expect(undo.status).toBe(200);
+    expect(undo.body.data).toMatchObject({ status: 'present', overridden: false });
+    // No punches: back to unmarked
+    await api().post(`${V}/attendance/override`).set(auth(owner.token)).send({ employeeId: emp.id, date: '2026-09-01', status: 'half_day', reason: 'Owner confirmed' }).expect(200);
+    const undo2 = await api().post(`${V}/attendance/clear-override`).set(auth(owner.token)).send({ employeeId: emp.id, date: '2026-09-01', reason: 'Undo' });
+    expect(undo2.body.data).toMatchObject({ status: null, overridden: false });
+    expect(await AuditLog.countDocuments({ companyId: owner.companyId, action: 'attendance.override.clear' })).toBe(2);
+    // Nothing recorded → null
+    const none = await api().post(`${V}/attendance/clear-override`).set(auth(owner.token)).send({ employeeId: emp.id, date: '2026-08-01', reason: 'Undo' });
+    expect(none.body.data).toBeNull();
+    // Employees cannot call it
+    expect((await api().post(`${V}/attendance/clear-override`).set(auth(e.token)).send({ employeeId: emp.id, date: today, reason: 'Undo' })).status).toBe(403);
+  });
+});
+
 describe('attendance — nightly close (auto-absent)', () => {
   it('marks absent / holiday / week off / leave and applies missing-checkout policy', async () => {
     const owner = await createOwner();

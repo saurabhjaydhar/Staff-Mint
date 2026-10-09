@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/providers.dart';
 import '../../../core/i18n/strings.dart';
 import '../../../core/models/models.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/dates.dart';
 import '../../../core/widgets/common.dart';
 
@@ -77,7 +78,12 @@ class _AuditScreenState extends ConsumerState<AuditScreen> {
                 for (final a in _items)
                   Card(
                     child: ExpansionTile(
-                      leading: Icon(_channelIcon(a.channel)),
+                      leading: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(color: AppColors.mutedLight, borderRadius: BorderRadius.circular(12)),
+                        child: Icon(_channelIcon(a.channel), color: AppColors.ink, size: 20),
+                      ),
                       title: Text('${a.action} · ${a.entity}'),
                       subtitle: Text(
                         [
@@ -105,7 +111,9 @@ class _AuditScreenState extends ConsumerState<AuditScreen> {
                     padding: const EdgeInsets.all(16),
                     child: OutlinedButton(
                       onPressed: _loading ? null : _load,
-                      child: _loading ? const CircularProgressIndicator() : Text(s.loadMore),
+                      child: _loading
+                          ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5))
+                          : Text(s.loadMore),
                     ),
                   ),
               ],

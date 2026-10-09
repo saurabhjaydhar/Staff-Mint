@@ -111,8 +111,10 @@ export const adjustmentView = (a: any) => ({
   note: a.note ?? null,
 });
 
+/** A month is locked when its latest revision is approved/paid; a correction draft (revise) reopens it. */
 async function assertMonthOpen(companyId: Types.ObjectId, month: string) {
-  const locked = await PayrollRun.exists({ companyId, month, status: { $in: ['approved', 'paid'] } });
+  const latest = await PayrollRun.findOne({ companyId, month, deletedAt: null }).sort({ revision: -1 }).select('status').lean();
+  const locked = latest && ['approved', 'paid'].includes(latest.status);
   if (locked) throw new AppError('CONFLICT', `Salary for ${month} is already approved. Revise the payroll run to change it.`);
 }
 

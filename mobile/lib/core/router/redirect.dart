@@ -33,6 +33,6 @@ String? computeRedirect(SessionState session, String location) {
   // right after the company is created, so it stays reachable (and /setup
   // forwards there once the company exists).
   if (at(Routes.setup)) return Routes.setupStaff;
-  final allowed = location.startsWith('/owner/') || at(Routes.assistant) || at(Routes.setupStaff);
+  final allowed = location.startsWith('/owner/') || at(Routes.setupStaff);
   return allowed ? null : Routes.ownerHome;
 }

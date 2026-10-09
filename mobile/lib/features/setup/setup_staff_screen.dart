@@ -7,10 +7,13 @@ import '../../core/i18n/strings.dart';
 import '../../core/models/models.dart';
 import '../../core/router/routes.dart';
 import '../../core/utils/money.dart';
+import '../../core/theme/app_theme.dart';
 import '../../core/utils/phone.dart';
+import '../../core/widgets/bilingual.dart';
 import '../../core/widgets/common.dart';
 import '../owner/staff/contacts_picker_screen.dart';
 import '../owner/staff/quick_staff_dialog.dart';
+import 'setup_screen.dart' show SetupProgress;
 
 /// Step 5 of setup: add staff manually / from contacts, or skip.
 class SetupStaffScreen extends ConsumerStatefulWidget {
@@ -77,7 +80,8 @@ class _SetupStaffScreenState extends ConsumerState<SetupStaffScreen> {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: Text(s.setupStep(5, 5)),
-        bottom: const PreferredSize(preferredSize: Size.fromHeight(4), child: LinearProgressIndicator(value: 1)),
+        actions: const [LangPill(), SizedBox(width: 8)],
+        bottom: const PreferredSize(preferredSize: Size.fromHeight(14), child: SetupProgress(step: 4, total: 5)),
       ),
       body: SafeArea(
         child: Column(
@@ -86,31 +90,24 @@ class _SetupStaffScreenState extends ConsumerState<SetupStaffScreen> {
               child: ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
-                  Text(
-                    s.setupStaffTitle,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
-                  ),
+                  Text(s.setupStaffTitle, style: Theme.of(context).textTheme.headlineSmall),
                   const SizedBox(height: 8),
-                  Text(s.setupStaffHint, style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.black54)),
+                  Text(
+                    s.setupStaffHint,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: AppColors.muted),
+                  ),
                   const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: _manual,
-                          icon: const Icon(Icons.person_add_alt_1_rounded),
-                          label: Text(s.addManually),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: _contacts,
-                          icon: const Icon(Icons.contacts_rounded),
-                          label: Text(s.pickFromContacts),
-                        ),
-                      ),
-                    ],
+                  // Picking many contacts at once is the fast path; manual entry is the fallback.
+                  FilledButton.icon(
+                    onPressed: _contacts,
+                    icon: const Icon(Icons.contacts_rounded),
+                    label: Text(s.pickFromContacts),
+                  ),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    onPressed: _manual,
+                    icon: const Icon(Icons.person_add_alt_1_rounded),
+                    label: Text(s.addManually),
                   ),
                   const SizedBox(height: 16),
                   for (final d in _drafts)

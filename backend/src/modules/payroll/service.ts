@@ -46,7 +46,7 @@ export async function runView(run: any, withPayslips = true, lang: 'en' | 'hi' =
     status: run.status,
     engineVersion: run.engineVersion,
     totals: run.totals,
-    anomalies: (run.anomalies ?? []).map((a: any) => ({ employeeId: String(a.employeeId), employeeName: a.employeeName, code: a.code, message: a.message })),
+    anomalies: (run.anomalies ?? []).map((a: any) => ({ employeeId: String(a.employeeId), employeeName: a.employeeName, code: a.code, message: lang === 'hi' ? (a.messageHi ?? a.message) : a.message })),
     approvedAt: run.approvedAt ?? null,
     paidAt: run.paidAt ?? null,
     createdAt: run.createdAt,
@@ -54,7 +54,7 @@ export async function runView(run: any, withPayslips = true, lang: 'en' | 'hi' =
   };
 }
 
-async function computeInto(ctx: Ctx, run: any, lang: 'en' | 'hi') {
+async function computeInto(ctx: Ctx, run: any) {
   const inputs = await buildEngineInputs(ctx.companyId, run.month);
   const emps = await Employee.find({ companyId: ctx.companyId, _id: { $in: inputs.map((i) => i.employee.employeeId) } }).lean();
   const byId = new Map(emps.map((e) => [String(e._id), e]));
@@ -68,7 +68,7 @@ async function computeInto(ctx: Ctx, run: any, lang: 'en' | 'hi') {
     const r = computePayslip(input);
     const emp = byId.get(input.employee.employeeId)!;
     docs.push(toPayslipDoc(ctx.companyId, run._id, run.revision, run.month, r, input, emp));
-    for (const a of r.anomalies) anomalies.push({ employeeId: emp._id, employeeName: emp.name, code: a.code, message: a.message[lang] });
+    for (const a of r.anomalies) anomalies.push({ employeeId: emp._id, employeeName: emp.name, code: a.code, message: a.message.en, messageHi: a.message.hi });
     gross += r.grossPaise;
     ded += r.deductionsPaise;
     net += r.netPaise;
@@ -87,7 +87,7 @@ export async function listRuns(ctx: Ctx, month?: string) {
   const f: any = { companyId: ctx.companyId, deletedAt: null };
   if (month) f.month = month;
   const runs = await PayrollRun.find(f).sort({ month: -1, revision: -1 }).limit(48).lean();
-  return Promise.all(runs.map((r) => runView(r, false)));
+  return Promise.all(runs.map((r) => runView(r, false, ctx.language)));
 }
 
 export async function getRun(ctx: Ctx, id: string) {
@@ -103,7 +103,7 @@ export async function createOrRecomputeDraft(ctx: Ctx, month: string) {
   const latest = await PayrollRun.findOne({ companyId: ctx.companyId, month, deletedAt: null }).sort({ revision: -1 });
   if (latest && LOCKED.includes(latest.status)) throw new AppError('CONFLICT', `Salary for ${month} is already ${latest.status}. Use "revise" to make corrections.`, { runId: String(latest._id) });
   const run = latest ?? new PayrollRun({ companyId: ctx.companyId, month, revision: 1, engineVersion: ENGINE_VERSION });
-  await computeInto(ctx, run, ctx.language);
+  await computeInto(ctx, run);
   await audit(ctx, { action: latest ? 'payroll.recompute' : 'payroll.draft', entity: 'payroll_run', entityId: run._id, after: { month, totals: run.totals } });
   return run;
 }
@@ -111,7 +111,7 @@ export async function createOrRecomputeDraft(ctx: Ctx, month: string) {
 export async function recompute(ctx: Ctx, id: string) {
   const run = await getRun(ctx, id);
   if (run.status !== 'draft') throw new AppError('CONFLICT', 'Only draft runs can be recomputed');
-  await computeInto(ctx, run, ctx.language);
+  await computeInto(ctx, run);
   await audit(ctx, { action: 'payroll.recompute', entity: 'payroll_run', entityId: run._id, after: { totals: run.totals } });
   return run;
 }
@@ -120,7 +120,7 @@ export async function approve(ctx: Ctx, id: string) {
   const run = await getRun(ctx, id);
   if (run.status !== 'draft') throw new AppError('CONFLICT', `Run is ${run.status}`);
   // Recompute right before approval so the snapshot reflects the latest attendance.
-  await computeInto(ctx, run, ctx.language);
+  await computeInto(ctx, run);
   const slips = await Payslip.find({ companyId: ctx.companyId, runId: run._id }).lean();
   const deductions = slips.flatMap((s: any) => s.inputs?.advanceDeductions ?? []);
   await recordRepayments(ctx.companyId, run._id, run.month, deductions);
@@ -151,7 +151,7 @@ export async function revise(ctx: Ctx, id: string) {
   const newer = await PayrollRun.findOne({ companyId: ctx.companyId, month: run.month, revision: { $gt: run.revision } });
   if (newer) throw new AppError('CONFLICT', 'A newer revision already exists', { runId: String(newer._id) });
   const draft = new PayrollRun({ companyId: ctx.companyId, month: run.month, revision: run.revision + 1, previousRunId: run._id, engineVersion: ENGINE_VERSION });
-  await computeInto(ctx, draft, ctx.language);
+  await computeInto(ctx, draft);
   await audit(ctx, { action: 'payroll.revise', entity: 'payroll_run', entityId: draft._id, after: { month: run.month, revision: draft.revision } });
   return draft;
 }

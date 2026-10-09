@@ -51,6 +51,18 @@ class Dates {
   /// Local time of an instant: `9:05 AM`.
   static String time(DateTime instant, [String locale = 'en']) => _fmt('h:mm a', locale).format(instant.toLocal());
 
+  /// Compact clock for ledger margins: `8:56` (12-hour, no AM/PM).
+  static String clock(DateTime instant) => DateFormat('h:mm', 'en_US').format(instant.toLocal());
+
+  /// Minutes since midnight for `HH:mm`, or null.
+  static int? hhmmToMinutes(String hhmm) {
+    final parts = hhmm.split(':');
+    if (parts.length != 2) return null;
+    final h = int.tryParse(parts[0]);
+    final m = int.tryParse(parts[1]);
+    return h == null || m == null ? null : h * 60 + m;
+  }
+
   /// `09:00` → `9:00 AM`.
   static String hhmmToDisplay(String hhmm, [String locale = 'en']) {
     final parts = hhmm.split(':');

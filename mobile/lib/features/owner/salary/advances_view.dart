@@ -74,10 +74,16 @@ class _AdvanceTile extends ConsumerWidget {
                     : s.modeFullNext,
                 a.isActive ? s.activeLabel : s.closedLabel,
               ].join(' · '),
-              style: const TextStyle(color: Colors.black54),
+              style: const TextStyle(color: AppColors.muted),
             ),
             const SizedBox(height: 8),
-            LinearProgressIndicator(value: progress, minHeight: 6, borderRadius: BorderRadius.circular(3)),
+            LinearProgressIndicator(
+              value: progress,
+              minHeight: 6,
+              color: AppColors.mint,
+              backgroundColor: AppColors.mintLight,
+              borderRadius: BorderRadius.circular(3),
+            ),
             const SizedBox(height: 6),
             Row(
               children: [
@@ -86,7 +92,7 @@ class _AdvanceTile extends ConsumerWidget {
                   '${s.balance}: ${Money.format(a.balancePaise)}',
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
-                    color: a.balancePaise > 0 ? AppColors.halfDay : AppColors.mint,
+                    color: a.balancePaise > 0 ? AppColors.red : AppColors.mint,
                   ),
                 ),
               ],
@@ -95,7 +101,7 @@ class _AdvanceTile extends ConsumerWidget {
               const SizedBox(height: 4),
               Text(
                 a.note!,
-                style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.black54),
+                style: const TextStyle(fontStyle: FontStyle.italic, color: AppColors.muted),
               ),
             ],
             if (a.isActive)

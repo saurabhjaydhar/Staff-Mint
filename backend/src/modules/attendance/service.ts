@@ -373,6 +373,27 @@ export async function overrideDay(ctx: Ctx, input: { employeeId: string; date: s
   return r;
 }
 
+/** Undo an owner override: status goes back to what punches / leave / holiday imply (may be unmarked). */
+export async function clearOverride(ctx: Ctx, input: { employeeId: string; date: string; reason: string }) {
+  const emp = await assertEmployeeInScope(ctx, input.employeeId);
+  const r = await Attendance.findOne({ companyId: ctx.companyId, employeeId: emp._id, date: input.date });
+  if (!r) return null;
+  const before = r.toObject();
+  r.overridden = false;
+  r.overrideReason = undefined;
+  r.overriddenBy = undefined;
+  r.status = null;
+  r.leaveType = null;
+  r.lateMinutes = 0;
+  if (r.punches.length) {
+    const { company, shift } = await loadEmployeeSetup(ctx.companyId, emp._id);
+    applyRules(r, company, shift, input.date < todayIn(company.timezone));
+  }
+  await r.save();
+  await audit(ctx, { action: 'attendance.override.clear', entity: 'attendance', entityId: r._id, before, after: { ...r.toObject(), reason: input.reason } });
+  return r;
+}
+
 export async function decidePunch(ctx: Ctx, attendanceId: string, punchId: string, approve: boolean) {
   const r = await Attendance.findOne({ _id: attendanceId, companyId: ctx.companyId });
   if (!r) throw notFound('Attendance');

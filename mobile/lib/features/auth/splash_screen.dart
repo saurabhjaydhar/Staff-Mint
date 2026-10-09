@@ -65,6 +65,6 @@ class BrandMark extends StatelessWidget {
       color: inverted ? Colors.white : AppColors.mint,
       borderRadius: BorderRadius.circular(size * 0.28),
     ),
-    child: Icon(Icons.eco_rounded, size: size * 0.6, color: inverted ? AppColors.mint : Colors.white),
+    child: Icon(Icons.menu_book_rounded, size: size * 0.56, color: inverted ? AppColors.mint : Colors.white),
   );
 }

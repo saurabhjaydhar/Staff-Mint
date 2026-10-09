@@ -57,10 +57,15 @@ describe('payroll lifecycle', () => {
     await expect(Payslip.updateOne({ companyId: owner.companyId, _id: approved.body.data.payslips[0].id }, { $set: { netPaise: 1 } })).rejects.toThrow(/immutable/);
 
     // Revision: correction creates rev 2; approving it supersedes rev 1 and replaces (not doubles) advance recovery
-    await api().post(`${V}/attendance/override`).set(auth(owner.token)).send({ employeeId: emp.id, date: '2026-09-09', status: 'present', reason: 'Correction' }).expect(200);
+    const corr = await api().post(`${V}/attendance/override`).set(auth(owner.token)).send({ employeeId: emp.id, date: '2026-09-09', status: 'present', reason: 'Correction' }).expect(200);
     const rev = await api().post(`${V}/payroll/runs/${draft.body.data.id}/revise`).set(auth(owner.token));
     expect(rev.body.data).toMatchObject({ revision: 2, status: 'draft' });
     expect(rev.body.data.totals.netPaise).toBe(2600000);
+    void corr;
+    // The correction draft reopens the month for bonus/deduction
+    const adj = await api().post(`${V}/adjustments`).set(auth(owner.token)).send({ employeeId: emp.id, month: '2026-09', type: 'deduction', amountPaise: 10000, note: 'Correction' });
+    expect(adj.status).toBe(201);
+    await api().delete(`${V}/adjustments/${adj.body.data.id}`).set(auth(owner.token)).expect(200);
     await api().post(`${V}/payroll/runs/${rev.body.data.id}/approve`).set(auth(owner.token)).expect(200);
     const runs = await api().get(`${V}/payroll/runs?month=2026-09`).set(auth(owner.token));
     expect(runs.body.data.map((r: any) => [r.revision, r.status])).toEqual([
@@ -117,5 +122,16 @@ describe('payroll lifecycle', () => {
     expect(r.status).toBe(402);
     expect(r.body.error.code).toBe('PLAN_LIMIT');
     void Types;
+  });
+  it('anomaly flags follow the reader\'s language, not the language used to compute', async () => {
+    const owner = await createOwner({ plan: 'growth' });
+    const emp = await addEmployee(owner, { phone: nextPhone(), name: 'Suresh Yadav', ratePaise: 1400000, joiningDate: '2026-01-01' });
+    // Only the first 20 days are marked, so the rest of September (bar weekly offs) is unmarked.
+    for (const d of monthDays('2026-09').slice(0, 20)) await Attendance.create({ companyId: owner.companyId, employeeId: emp.id, date: d, status: 'present' });
+    const hi = await api().post(`${V}/payroll/runs`).set(auth(owner.token)).set('Accept-Language', 'hi').send({ month: '2026-09' }).expect(200);
+    const flag = (r: any) => r.body.data.anomalies.find((a: any) => a.code === 'unmarked_days')?.message;
+    expect(flag(hi)).toMatch(/^\d+ दिन की हाज़िरी नहीं लगी$/);
+    const en = await api().get(`${V}/payroll/runs/${hi.body.data.id}`).set(auth(owner.token)).set('Accept-Language', 'en').expect(200);
+    expect(flag(en)).toMatch(/^\d+ day\(s\) have no attendance$/);
   });
 });

@@ -20,7 +20,7 @@ describe('Mint assistant', () => {
     const { owner, suresh } = await shop();
     const r = await say(owner.token, 'Suresh aaj nahi aaya');
     expect(r.body.data).toMatchObject({ kind: 'confirm', intent: 'mark_attendance' });
-    expect(r.body.data.preview.rows.find((x: any) => x.label === 'Staff').value).toBe('Suresh Yadav');
+    expect(r.body.data.preview.rows.find((x: any) => ['Staff', 'स्टाफ़'].includes(x.label)).value).toBe('Suresh Yadav');
     expect(await Attendance.countDocuments({ companyId: owner.companyId })).toBe(0);
     const done = await act(owner.token, r.body.data.pendingActionId, 'confirm');
     expect(done.body.data.kind).toBe('done');

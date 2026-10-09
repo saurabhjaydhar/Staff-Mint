@@ -131,6 +131,37 @@ class DayRow {
   final Attendance? record;
   final String displayStatus;
 
+  /// Row rebuilt from a fresh record (e.g. the response of an override).
+  /// Holiday / week-off / leave rows without a record keep [fallback].
+  DayRow withRecord(Attendance? r, {String? fallback}) => DayRow(
+    employee: employee,
+    record: r,
+    displayStatus: displayStatusFor(r, fallback: fallback),
+  );
+
+  /// Mirrors the server's `displayStatus` for a single record.
+  static String displayStatusFor(Attendance? r, {String? fallback}) {
+    final st = r?.status;
+    if (r == null || st == null) {
+      if (r != null && r.firstIn != null && r.lastOut == null) return 'checked_in';
+      return fallback ?? 'not_marked';
+    }
+    if (st == 'present' && r.lateMinutes > 0) return 'late';
+    return st;
+  }
+
+  /// A punch is waiting for the owner's approve / reject.
+  bool get needsCheck => record?.punches.any((p) => p.isPendingApproval) ?? false;
+
+  /// Farthest distance of a punch made outside the shop area, if any.
+  num? get awayM {
+    num? max;
+    for (final p in record?.punches ?? const <Punch>[]) {
+      if (p.insideGeofence == false && p.distanceM != null && (max == null || p.distanceM! > max)) max = p.distanceM;
+    }
+    return max;
+  }
+
   factory DayRow.fromJson(Json j) => DayRow(
     employee: EmployeeRef.fromJson(asMap(j['employee'])),
     record: j['record'] is Map ? Attendance.fromJson(asMap(j['record'])) : null,

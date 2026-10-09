@@ -47,7 +47,7 @@ async function handleInbound(m: MessagingProvider, ev: Extract<MessagingEvent, {
     if (ev.buttonId?.startsWith('leave:') && !isEmployee) {
       const [, decision, leaveId] = ev.buttonId.split(':');
       const leave = await decideLeave(ctx, leaveId, decision === 'approve' ? 'approved' : 'rejected');
-      await m.sendText(ev.from, L(ctx.language, `Leave ${leave.status}.`, `Chutti ${leave.status === 'approved' ? 'manzoor' : 'na-manzoor'} kar di.`));
+      await m.sendText(ev.from, L(ctx.language, `Leave ${leave.status}.`, `छुट्टी ${leave.status === 'approved' ? 'मंज़ूर' : 'नामंज़ूर'} कर दी।`));
       return;
     }
     if (ev.buttonId?.startsWith('mint:')) {
@@ -57,7 +57,7 @@ async function handleInbound(m: MessagingProvider, ev: Extract<MessagingEvent, {
       return;
     }
     if (!allowed) {
-      await m.sendText(ev.from, L(ctx.language, 'Please use the StaffMint app for this. WhatsApp commands are available on the Growth plan.', 'Kripya StaffMint app use karein. WhatsApp commands Growth plan mein milte hain.'));
+      await m.sendText(ev.from, L(ctx.language, 'Please use the StaffMint app for this. WhatsApp commands are available on the Growth plan.', 'कृपया StaffMint ऐप इस्तेमाल करें। WhatsApp कमांड Growth प्लान में मिलते हैं।'));
       return;
     }
     let audio: { data: Buffer; mime: string } | undefined;

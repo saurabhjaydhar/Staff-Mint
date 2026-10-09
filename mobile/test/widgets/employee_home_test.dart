@@ -11,6 +11,7 @@ import 'package:staffmint/core/utils/dates.dart';
 import 'package:staffmint/core/utils/json.dart';
 import 'package:staffmint/features/auth/auth_controller.dart';
 import 'package:staffmint/features/auth/session_state.dart';
+import 'package:staffmint/features/employee/employee_providers.dart';
 import 'package:staffmint/features/employee/home/check_in_button.dart';
 import 'package:staffmint/features/employee/home/employee_home_screen.dart';
 import 'package:staffmint/features/employee/punch/punch_capture.dart';
@@ -107,7 +108,27 @@ void main() {
                 date: today,
                 record: serverRecord,
                 shift: const Shift(id: 's1', name: 'Day', start: '09:00', end: '19:00'),
+                // ~11 m north of the fake GPS fix.
+                branch: const Branch(id: 'b1', name: 'Sharma Medical', location: GeoPoint(lat: 28.6001, lng: 77.2)),
               ),
+            ),
+          ),
+          myMonthProvider.overrideWith(
+            (ref, month) async => MonthGrid(
+              month: month,
+              days: const [],
+              rows: [
+                MonthRow(
+                  employee: const EmployeeRef(id: 'e1', name: 'Ramesh'),
+                  days: {Dates.toApiDate(DateTime.now()): 'not_marked'},
+                  totals: const {},
+                ),
+              ],
+            ),
+          ),
+          mySalaryProvider.overrideWith(
+            (ref) async => const SalaryOverview(
+              estimate: Payslip(id: '', employeeId: 'e1', employeeName: 'Ramesh', month: '2026-10', netPaise: 361300),
             ),
           ),
           punchQueueProvider.overrideWithValue(queue),
@@ -127,8 +148,17 @@ void main() {
     expect(find.byKey(const Key('checkInButton')), findsOneWidget);
     expect(find.text('Check in'), findsOneWidget);
     expect(find.text('You have not checked in yet'), findsOneWidget);
-    expect(find.textContaining('Shift: 9:00 AM – 7:00 PM'), findsOneWidget);
+    expect(find.textContaining('Shift 9:00 AM – 7:00 PM'), findsOneWidget);
     expect(find.byKey(const Key('pendingSyncBanner')), findsNothing);
+  });
+
+  testWidgets('GPS is ready before the tap: "At shop" chip and month strip', (tester) async {
+    await pumpHome(tester);
+    final chip = find.byKey(const Key('locationChip'));
+    expect(chip, findsOneWidget);
+    expect(find.descendant(of: chip, matching: find.text('At shop')), findsOneWidget);
+    expect(find.descendant(of: chip, matching: find.textContaining('11 m')), findsOneWidget);
+    expect(find.text('₹3,613 so far'), findsOneWidget);
   });
 
   testWidgets('online check-in sends selfie + GPS and flips to Check out', (tester) async {
@@ -143,7 +173,12 @@ void main() {
     expect(body['mockLocation'], false);
     expect(body['deviceId'], isNotEmpty);
     expect(body['clientPunchId'], isNotEmpty);
-    expect(find.text('Checked in. Have a good day!'), findsOneWidget);
+    // Full-screen success like a UPI payment, then back to the button.
+    expect(find.byKey(const Key('successOnline')), findsOneWidget);
+    expect(find.text('Checked in!'), findsOneWidget);
+    expect(find.text('Sharma Medical · 11 m'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('successDone')));
+    await tester.pumpAndSettle();
     expect(find.text('Check out'), findsOneWidget);
     expect(queue.length, 0);
   });
@@ -157,7 +192,11 @@ void main() {
 
     expect(queue.length, 1);
     expect(queue.pending.single.type, 'in');
-    expect(find.text('Saved offline — will sync when internet is back'), findsOneWidget);
+    expect(find.byKey(const Key('successOffline')), findsOneWidget);
+    expect(find.text('Saved offline'), findsOneWidget);
+    expect(find.textContaining('Will sync when internet is back'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('successDone')));
+    await tester.pumpAndSettle();
     expect(find.text('Check out'), findsOneWidget);
     expect(find.byKey(const Key('pendingSyncBanner')), findsOneWidget);
     expect(find.text('1 punch(es) waiting to sync'), findsOneWidget);
@@ -227,7 +266,8 @@ void main() {
           ),
         ),
       );
-      expect(find.text('चेक-इन करें'), findsOneWidget);
+      expect(find.text('हाज़िरी लगाएँ'), findsOneWidget);
+      expect(find.text('Check in · 1 tap'), findsOneWidget);
     });
   });
 }

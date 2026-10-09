@@ -7,16 +7,16 @@ import '../../../core/models/models.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/dates.dart';
 import '../../../core/widgets/common.dart';
+import '../../../core/widgets/status_pill.dart';
 import '../providers/owner_providers.dart';
-
-const overrideStatuses = ['present', 'absent', 'half_day', 'leave', 'holiday', 'week_off'];
+import '../today/leave_cards.dart' show DecisionButtons;
+import '../today/status_quick_sheet.dart' show overrideStatuses;
 
 Future<void> showAttendanceDetail(BuildContext context, {required DayRow row, required String date}) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    showDragHandle: true,
     builder: (ctx) => Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
       child: DraggableScrollableSheet(
@@ -117,11 +117,14 @@ class _AttendanceDetailSheetState extends ConsumerState<AttendanceDetailSheet> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(widget.row.employee.name, style: Theme.of(context).textTheme.titleLarge),
-                  Text(Dates.prettyApiDate(widget.date, s.languageCode)),
+                  Text(
+                    Dates.prettyApiDate(widget.date, s.languageCode),
+                    style: const TextStyle(color: AppColors.muted),
+                  ),
                 ],
               ),
             ),
-            StatusChip(status: widget.row.displayStatus),
+            StatusPill(status: widget.row.needsCheck ? 'needs_check' : widget.row.displayStatus, large: true),
           ],
         ),
         if (rec != null) ...[
@@ -130,7 +133,11 @@ class _AttendanceDetailSheetState extends ConsumerState<AttendanceDetailSheet> {
             spacing: 12,
             runSpacing: 4,
             children: [
-              if (rec.lateMinutes > 0) Text(s.lateBy(rec.lateMinutes), style: const TextStyle(color: AppColors.late)),
+              if (rec.lateMinutes > 0)
+                Text(
+                  s.lateBy(rec.lateMinutes),
+                  style: const TextStyle(color: AppColors.amberDark, fontWeight: FontWeight.w700),
+                ),
               if (rec.earlyOutMinutes > 0) Text(s.earlyOutBy(rec.earlyOutMinutes)),
               if (rec.workedMinutes > 0) Text(s.worked(Dates.durationHm(rec.workedMinutes))),
             ],
@@ -150,7 +157,7 @@ class _AttendanceDetailSheetState extends ConsumerState<AttendanceDetailSheet> {
         Text(s.punches, style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
         if (rec == null || rec.punches.isEmpty)
-          Text(s.noPunches, style: const TextStyle(color: Colors.black54))
+          Text(s.noPunches, style: const TextStyle(color: AppColors.muted))
         else
           for (final p in rec.punches) _PunchCard(punch: p, onDecide: (a) => _decide(p, a)),
         const Divider(height: 32),
@@ -162,9 +169,12 @@ class _AttendanceDetailSheetState extends ConsumerState<AttendanceDetailSheet> {
           children: [
             for (final st in overrideStatuses)
               ChoiceChip(
+                avatar: Icon(StatusStyle.of(st).icon, size: 18, color: StatusStyle.of(st).fg),
                 label: Text(s.statusLabel(st)),
                 selected: _status == st,
-                selectedColor: AppColors.forStatus(st).withValues(alpha: 0.25),
+                showCheckmark: false,
+                selectedColor: StatusStyle.of(st).bg,
+                side: BorderSide(color: _status == st ? AppColors.ink : AppColors.line, width: 1.5),
                 onSelected: (_) => setState(() => _status = st),
               ),
           ],
@@ -210,6 +220,7 @@ class _PunchCard extends StatelessWidget {
     final p = punch;
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6),
+      color: p.isPendingApproval ? AppColors.amberLight : null,
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -231,8 +242,8 @@ class _PunchCard extends StatelessWidget {
                         ? Container(
                             width: 72,
                             height: 72,
-                            color: Colors.grey.shade200,
-                            child: const Icon(Icons.no_photography_outlined),
+                            color: AppColors.mutedLight,
+                            child: const Icon(Icons.no_photography_outlined, color: AppColors.muted),
                           )
                         : Image.network(
                             p.selfieUrl!,
@@ -242,8 +253,8 @@ class _PunchCard extends StatelessWidget {
                             errorBuilder: (_, _, _) => Container(
                               width: 72,
                               height: 72,
-                              color: Colors.grey.shade200,
-                              child: const Icon(Icons.broken_image_outlined),
+                              color: AppColors.mutedLight,
+                              child: const Icon(Icons.broken_image_outlined, color: AppColors.muted),
                             ),
                           ),
                   ),
@@ -265,7 +276,10 @@ class _PunchCard extends StatelessWidget {
                             if (p.distanceM != null) s.distanceAway(p.distanceM!),
                             if (p.geo!.accuracyM != null) s.accuracy(p.geo!.accuracyM!),
                           ].join(' · '),
-                          style: TextStyle(color: p.insideGeofence == false ? AppColors.absent : Colors.black54),
+                          style: TextStyle(
+                            color: p.insideGeofence == false ? AppColors.red : AppColors.muted,
+                            fontWeight: p.insideGeofence == false ? FontWeight.w700 : FontWeight.w400,
+                          ),
                         ),
                         TextButton.icon(
                           style: TextButton.styleFrom(padding: EdgeInsets.zero, visualDensity: VisualDensity.compact),
@@ -281,7 +295,7 @@ class _PunchCard extends StatelessWidget {
                         Text(
                           s.approvalLabel(p.approval),
                           style: TextStyle(
-                            color: p.isPendingApproval ? AppColors.late : Colors.black54,
+                            color: p.isPendingApproval ? AppColors.amberDark : AppColors.muted,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -291,24 +305,7 @@ class _PunchCard extends StatelessWidget {
               ],
             ),
             if (p.flags.isNotEmpty) ...[const SizedBox(height: 8), FlagChips(flags: p.flags)],
-            if (p.isPendingApproval) ...[
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(foregroundColor: AppColors.absent),
-                      onPressed: () => onDecide(false),
-                      child: Text(s.reject),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: FilledButton(onPressed: () => onDecide(true), child: Text(s.approve)),
-                  ),
-                ],
-              ),
-            ],
+            if (p.isPendingApproval) ...[const SizedBox(height: 8), DecisionButtons(busy: false, onDecide: onDecide)],
           ],
         ),
       ),

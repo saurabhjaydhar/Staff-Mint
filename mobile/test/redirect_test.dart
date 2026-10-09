@@ -51,7 +51,7 @@ void main() {
         expect(computeRedirect(s, Routes.employeeHome), Routes.ownerHome, reason: role);
         expect(computeRedirect(s, Routes.ownerSalary), isNull, reason: role);
         expect(computeRedirect(s, '/owner/staff/abc'), isNull, reason: role);
-        expect(computeRedirect(s, Routes.assistant), isNull, reason: role);
+        expect(computeRedirect(s, Routes.ownerLeaves), isNull, reason: role);
       }
     });
 
@@ -68,7 +68,7 @@ void main() {
       expect(computeRedirect(s, Routes.employeeConsent), Routes.employeeHome);
       expect(computeRedirect(s, Routes.ownerHome), Routes.employeeHome);
       expect(computeRedirect(s, Routes.setup), Routes.employeeHome);
-      expect(computeRedirect(s, Routes.assistant), Routes.employeeHome);
+      expect(computeRedirect(s, Routes.ownerSalary), Routes.employeeHome);
       expect(computeRedirect(s, Routes.employeeSalary), isNull);
     });
 

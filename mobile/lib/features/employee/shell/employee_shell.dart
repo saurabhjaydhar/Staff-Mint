@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/i18n/strings.dart';
+import '../../../core/widgets/app_bottom_bar.dart';
 import '../../../core/widgets/common.dart';
 import '../punch/punch_providers.dart';
 
@@ -24,35 +25,19 @@ class EmployeeShell extends ConsumerWidget {
     });
     return Scaffold(
       body: navigationShell,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: navigationShell.currentIndex,
-        onDestinationSelected: (i) => navigationShell.goBranch(i, initialLocation: i == navigationShell.currentIndex),
-        destinations: [
-          NavigationDestination(
-            icon: const Icon(Icons.touch_app_outlined),
-            selectedIcon: const Icon(Icons.touch_app_rounded),
-            label: s.navHome,
+      bottomNavigationBar: AppBottomBar(
+        currentIndex: navigationShell.currentIndex,
+        onTap: (i) => navigationShell.goBranch(i, initialLocation: i == navigationShell.currentIndex),
+        items: [
+          NavItem(icon: Icons.touch_app_outlined, activeIcon: Icons.touch_app_rounded, label: s.navHomeBi),
+          NavItem(
+            icon: Icons.calendar_month_outlined,
+            activeIcon: Icons.calendar_month_rounded,
+            label: s.navAttendanceBi,
           ),
-          NavigationDestination(
-            icon: const Icon(Icons.calendar_month_outlined),
-            selectedIcon: const Icon(Icons.calendar_month_rounded),
-            label: s.navAttendance,
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.beach_access_outlined),
-            selectedIcon: const Icon(Icons.beach_access_rounded),
-            label: s.navLeave,
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.currency_rupee_rounded),
-            selectedIcon: const Icon(Icons.currency_rupee_rounded),
-            label: s.navSalary,
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.person_outline),
-            selectedIcon: const Icon(Icons.person_rounded),
-            label: s.navProfile,
-          ),
+          NavItem(icon: Icons.beach_access_outlined, activeIcon: Icons.beach_access_rounded, label: s.navLeaveBi),
+          NavItem(icon: Icons.currency_rupee_rounded, activeIcon: Icons.currency_rupee_rounded, label: s.navSalaryBi),
+          NavItem(icon: Icons.person_outline, activeIcon: Icons.person_rounded, label: s.navProfileBi),
         ],
       ),
     );

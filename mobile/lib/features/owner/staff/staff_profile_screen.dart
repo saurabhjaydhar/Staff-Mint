@@ -9,6 +9,8 @@ import '../../../core/utils/dates.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/utils/phone.dart';
 import '../../../core/widgets/common.dart';
+import '../../../core/widgets/month_dots.dart';
+import '../../../core/widgets/skeleton.dart';
 import '../../../core/widgets/pickers.dart';
 import '../providers/owner_providers.dart';
 import '../salary/money_dialogs.dart';
@@ -43,7 +45,6 @@ class StaffProfileScreen extends ConsumerWidget {
                   context: context,
                   isScrollControlled: true,
                   useSafeArea: true,
-                  showDragHandle: true,
                   builder: (_) => _EditStaffSheet(employee: emp.requireValue),
                 );
                 if (changed == true) invalidate();
@@ -73,12 +74,17 @@ class StaffProfileScreen extends ConsumerWidget {
                     ].join('\n'),
                   ),
                   isThreeLine: true,
-                  trailing: IconButton.filledTonal(
+                  trailing: IconButton.filled(
                     tooltip: s.callStaff,
                     icon: const Icon(Icons.call_rounded),
                     onPressed: () => openUrl(context, 'tel:${e.phone}'),
                   ),
                 ),
+              ),
+              SectionHeader(s.thisMonth),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _ThisMonth(employeeId: e.id),
               ),
               SectionHeader(s.salary),
               Card(
@@ -126,7 +132,11 @@ class StaffProfileScreen extends ConsumerWidget {
                   leading: const Icon(Icons.account_balance_wallet_rounded),
                   title: Text(
                     Money.format(e.advanceBalancePaise ?? 0),
-                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 20),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 20,
+                      color: (e.advanceBalancePaise ?? 0) > 0 ? AppColors.red : AppColors.ink,
+                    ),
                   ),
                   subtitle: Text(s.advanceBalance),
                 ),
@@ -181,7 +191,7 @@ class StaffProfileScreen extends ConsumerWidget {
                     ListTile(
                       leading: Icon(
                         e.locationConsent ? Icons.verified_user_rounded : Icons.privacy_tip_outlined,
-                        color: e.locationConsent ? AppColors.mint : Colors.grey,
+                        color: e.locationConsent ? AppColors.mint : AppColors.muted,
                       ),
                       title: Text(e.locationConsent ? s.consentGiven : s.consentPending),
                     ),
@@ -192,7 +202,10 @@ class StaffProfileScreen extends ConsumerWidget {
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(foregroundColor: AppColors.absent),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.red,
+                      side: const BorderSide(color: AppColors.red, width: 1.5),
+                    ),
                     icon: const Icon(Icons.person_off_rounded),
                     label: Text(s.deactivate),
                     onPressed: () async {
@@ -261,6 +274,26 @@ class StaffProfileScreen extends ConsumerWidget {
           .read(leaveApiProvider)
           .setBalance(e.id, year: year, paid: num.tryParse(paid.text) ?? 0, sick: num.tryParse(sick.text) ?? 0),
       success: s.saved,
+    );
+  }
+}
+
+class _ThisMonth extends ConsumerWidget {
+  const _ThisMonth({required this.employeeId});
+  final String employeeId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = context.s;
+    final month = Dates.firstOfMonth(DateTime.now());
+    final grid = ref.watch(employeeMonthProvider((month: Dates.toApiMonth(month), employeeId: employeeId)));
+    final row = grid.value?.rows.where((r) => r.employee.id == employeeId).firstOrNull ?? grid.value?.rows.firstOrNull;
+    if (row == null) return grid.isLoading ? const SkeletonBox(height: 72, radius: 16) : const SizedBox.shrink();
+    final present = row.days.values.where((d) => d == 'present' || d == 'late' || d == 'checked_in').length;
+    return MonthDots(
+      month: month,
+      days: row.days,
+      title: s.monthDaysPresent(Dates.monthTitle(month, s.languageCode).split(' ').first, present),
     );
   }
 }

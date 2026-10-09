@@ -56,10 +56,10 @@ const rupeesToPaise = (r: number) => Math.round(r * 100);
 const nice = (d: string, lang: Lang) => DateTime.fromISO(d).setLocale(lang === 'hi' ? 'hi-IN' : 'en-IN').toFormat('d LLL');
 
 const STATUS_LABEL: Record<string, { en: string; hi: string }> = {
-  present: { en: 'Present', hi: 'Present (hajir)' },
-  absent: { en: 'Absent', hi: 'Absent (gairhajir)' },
-  half_day: { en: 'Half Day', hi: 'Half Day' },
-  leave: { en: 'Leave', hi: 'Chutti' },
+  present: { en: 'Present', hi: 'हाज़िर' },
+  absent: { en: 'Absent', hi: 'ग़ैरहाज़िर' },
+  half_day: { en: 'Half Day', hi: 'आधा दिन' },
+  leave: { en: 'Leave', hi: 'छुट्टी' },
 };
 
 async function companyOf(ctx: Ctx) {
@@ -85,16 +85,16 @@ const markAttendance: ToolDef<{ employeeName: string; date?: string; status: 'pr
   schema: z.object({ employeeName: z.string().min(1), date: dateS.optional(), status: z.enum(['present', 'absent', 'half_day', 'leave']), leaveType: z.enum(['paid', 'sick', 'unpaid']).optional() }),
   normalize: (a, _c, today) => ({ ...a, date: a.date ?? today }),
   preview: async (ctx, a) => ({
-    title: L(ctx.language, 'Mark attendance?', 'Hajiri laga doon?'),
+    title: L(ctx.language, 'Mark attendance?', 'हाज़िरी लगाऊँ?'),
     rows: [
-      { label: L(ctx.language, 'Staff', 'Staff'), value: a.employeeLabel! },
-      { label: L(ctx.language, 'Date', 'Tarikh'), value: nice(a.date!, ctx.language) },
-      { label: L(ctx.language, 'Status', 'Status'), value: STATUS_LABEL[a.status][ctx.language] + (a.status === 'leave' ? ` (${a.leaveType ?? 'paid'})` : '') },
+      { label: L(ctx.language, 'Staff', 'स्टाफ़'), value: a.employeeLabel! },
+      { label: L(ctx.language, 'Date', 'तारीख़'), value: nice(a.date!, ctx.language) },
+      { label: L(ctx.language, 'Status', 'स्थिति'), value: STATUS_LABEL[a.status][ctx.language] + (a.status === 'leave' ? ` (${a.leaveType ?? 'paid'})` : '') },
     ],
   }),
   execute: async (ctx, a, meta) => {
     await overrideDay(ctx, { employeeId: a.employeeId!, date: a.date!, status: a.status, leaveType: a.leaveType, reason: `Mint: "${meta.text.slice(0, 120)}"` });
-    return { text: L(ctx.language, `Done. ${a.employeeLabel} marked ${STATUS_LABEL[a.status].en} for ${nice(a.date!, 'en')}.`, `Ho gaya. ${a.employeeLabel} ka ${nice(a.date!, 'hi')} ko ${STATUS_LABEL[a.status].hi} laga diya.`) };
+    return { text: L(ctx.language, `Done. ${a.employeeLabel} marked ${STATUS_LABEL[a.status].en} for ${nice(a.date!, 'en')}.`, `हो गया। ${a.employeeLabel} की ${nice(a.date!, 'hi')} की हाज़िरी: ${STATUS_LABEL[a.status].hi}।`) };
   },
 };
 
@@ -123,11 +123,11 @@ const whoIs: ToolDef<{ query: 'late' | 'absent' | 'present' | 'on_leave' | 'not_
           return r.displayStatus === 'not_marked';
       }
     });
-    const label = { late: ['late', 'late aaye'], absent: ['absent', 'absent the'], present: ['present', 'present the'], on_leave: ['on leave', 'chutti par the'], not_marked: ['not marked yet', 'ki hajiri abhi nahi lagi'] }[a.query];
+    const label = { late: ['late', 'लेट आए'], absent: ['absent', 'ग़ैरहाज़िर थे'], present: ['present', 'हाज़िर थे'], on_leave: ['on leave', 'छुट्टी पर थे'], not_marked: ['not marked yet', 'की हाज़िरी अभी नहीं लगी'] }[a.query];
     const d = nice(a.date!, ctx.language);
-    if (!match.length) return { text: L(ctx.language, `Nobody was ${label[0]} on ${d}.`, `${d} ko koi ${label[1].replace(/ the$/, '')} nahi.`), data: [] };
-    const list = match.map((r) => (a.query === 'late' && r.record ? `${r.employee.name} (${r.record.lateMinutes} min)` : r.employee.name)).join(', ');
-    return { text: L(ctx.language, `${match.length} ${label[0]} on ${d}: ${list}`, `${d} ko ${match.length} log ${label[1]}: ${list}`), data: match.map((r) => r.employee) };
+    if (!match.length) return { text: L(ctx.language, `Nobody was ${label[0]} on ${d}.`, `${d} को कोई ${label[1].replace(/ थे$/, '')} नहीं।`), data: [] };
+    const list = match.map((r) => (a.query === 'late' && r.record ? `${r.employee.name} (${r.record.lateMinutes} ${L(ctx.language, 'min', 'मिनट')})` : r.employee.name)).join(', ');
+    return { text: L(ctx.language, `${match.length} ${label[0]} on ${d}: ${list}`, `${d} को ${match.length} लोग ${label[1]}: ${list}`), data: match.map((r) => r.employee) };
   },
 };
 
@@ -146,18 +146,18 @@ const recordAdvance: ToolDef<{ employeeName: string; amount: number; date?: stri
   schema: z.object({ employeeName: z.string().min(1), amount: z.coerce.number().positive().max(10_000_000), date: dateS.optional(), installments: z.coerce.number().int().min(1).max(36).optional() }),
   normalize: (a, _c, today) => ({ ...a, date: a.date ?? today }),
   preview: async (ctx, a) => ({
-    title: L(ctx.language, 'Record advance?', 'Advance likh doon?'),
+    title: L(ctx.language, 'Record advance?', 'एडवांस लिख दूँ?'),
     rows: [
-      { label: 'Staff', value: a.employeeLabel! },
-      { label: L(ctx.language, 'Amount', 'Rakam'), value: formatMoney(rupeesToPaise(a.amount)) },
-      { label: L(ctx.language, 'Date', 'Tarikh'), value: nice(a.date!, ctx.language) },
-      { label: L(ctx.language, 'Recovery', 'Wapasi'), value: a.installments && a.installments > 1 ? L(ctx.language, `${a.installments} monthly installments`, `${a.installments} kisht mein`) : L(ctx.language, 'Full, from next salary', 'Agli salary se poora') },
+      { label: L(ctx.language, 'Staff', 'स्टाफ़'), value: a.employeeLabel! },
+      { label: L(ctx.language, 'Amount', 'रक़म'), value: formatMoney(rupeesToPaise(a.amount)) },
+      { label: L(ctx.language, 'Date', 'तारीख़'), value: nice(a.date!, ctx.language) },
+      { label: L(ctx.language, 'Recovery', 'वापसी'), value: a.installments && a.installments > 1 ? L(ctx.language, `${a.installments} monthly installments`, `${a.installments} किश्तों में`) : L(ctx.language, 'Full, from next salary', 'अगली सैलरी से पूरा') },
     ],
   }),
   execute: async (ctx, a) => {
     await createAdvance(ctx, { employeeId: a.employeeId!, amountPaise: rupeesToPaise(a.amount), date: a.date!, mode: a.installments && a.installments > 1 ? 'installments' : 'full_next', installments: a.installments, note: 'Via Mint' });
     const bal = await advanceBalanceFor(ctx.companyId, (await Employee.findOne({ _id: a.employeeId, companyId: ctx.companyId }).lean())!._id);
-    return { text: L(ctx.language, `Recorded ${formatMoney(rupeesToPaise(a.amount))} advance for ${a.employeeLabel}. Total pending: ${formatMoney(bal)}.`, `${a.employeeLabel} ka ${formatMoney(rupeesToPaise(a.amount))} advance likh diya. Kul baaki: ${formatMoney(bal)}.`) };
+    return { text: L(ctx.language, `Recorded ${formatMoney(rupeesToPaise(a.amount))} advance for ${a.employeeLabel}. Total pending: ${formatMoney(bal)}.`, `${a.employeeLabel} का ${formatMoney(rupeesToPaise(a.amount))} एडवांस लिख दिया। कुल बाकी: ${formatMoney(bal)}।`) };
   },
 };
 
@@ -176,11 +176,11 @@ const addAdjustment: ToolDef<{ employeeName: string; type: 'bonus' | 'deduction'
   schema: z.object({ employeeName: z.string().min(1), type: z.enum(['bonus', 'deduction']), amount: z.coerce.number().positive().max(10_000_000), month: monthS.optional(), note: z.string().max(200).optional() }),
   normalize: (a, _c, today) => ({ ...a, month: a.month ?? monthOf(today) }),
   preview: async (ctx, a) => ({
-    title: a.type === 'bonus' ? L(ctx.language, 'Add bonus?', 'Bonus jod doon?') : L(ctx.language, 'Add deduction?', 'Katauti laga doon?'),
+    title: a.type === 'bonus' ? L(ctx.language, 'Add bonus?', 'बोनस जोड़ दूँ?') : L(ctx.language, 'Add deduction?', 'कटौती लगा दूँ?'),
     rows: [
-      { label: 'Staff', value: a.employeeLabel! },
-      { label: L(ctx.language, 'Amount', 'Rakam'), value: formatMoney(rupeesToPaise(a.amount)) },
-      { label: L(ctx.language, 'Salary month', 'Salary mahina'), value: monthLabel(a.month!, ctx.language) },
+      { label: L(ctx.language, 'Staff', 'स्टाफ़'), value: a.employeeLabel! },
+      { label: L(ctx.language, 'Amount', 'रक़म'), value: formatMoney(rupeesToPaise(a.amount)) },
+      { label: L(ctx.language, 'Salary month', 'सैलरी का महीना'), value: monthLabel(a.month!, ctx.language) },
     ],
   }),
   execute: async (ctx, a) => {
@@ -189,7 +189,7 @@ const addAdjustment: ToolDef<{ employeeName: string; type: 'bonus' | 'deduction'
       text: L(
         ctx.language,
         `${a.type === 'bonus' ? 'Bonus' : 'Deduction'} of ${formatMoney(rupeesToPaise(a.amount))} added for ${a.employeeLabel} (${monthLabel(a.month!, 'en')}).`,
-        `${a.employeeLabel} ki ${monthLabel(a.month!, 'hi')} salary mein ${formatMoney(rupeesToPaise(a.amount))} ${a.type === 'bonus' ? 'bonus jod diya' : 'katauti laga di'}.`,
+        `${a.employeeLabel} की ${monthLabel(a.month!, 'hi')} की सैलरी में ${formatMoney(rupeesToPaise(a.amount))} ${a.type === 'bonus' ? 'बोनस जोड़ दिया' : 'कटौती लगा दी'}।`,
       ),
     };
   },
@@ -203,16 +203,16 @@ const addEmployeeTool: ToolDef<{ name: string; phone: string; salary?: number; w
   roles: ['owner', 'manager'],
   schema: z.object({ name: z.string().trim().min(2).max(80), phone: z.string().min(8), salary: z.coerce.number().min(0).max(10_000_000).optional(), wageType: z.enum(['monthly', 'daily']).optional() }),
   preview: async (ctx, a) => ({
-    title: L(ctx.language, 'Add new staff?', 'Naya staff jod doon?'),
+    title: L(ctx.language, 'Add new staff?', 'नया स्टाफ़ जोड़ दूँ?'),
     rows: [
-      { label: L(ctx.language, 'Name', 'Naam'), value: a.name },
-      { label: 'Phone', value: a.phone },
-      { label: L(ctx.language, 'Salary', 'Salary'), value: a.salary ? `${formatMoney(rupeesToPaise(a.salary))} / ${a.wageType === 'daily' ? L(ctx.language, 'day', 'din') : L(ctx.language, 'month', 'mahina')}` : '-' },
+      { label: L(ctx.language, 'Name', 'नाम'), value: a.name },
+      { label: L(ctx.language, 'Phone', 'फ़ोन'), value: a.phone },
+      { label: L(ctx.language, 'Salary', 'सैलरी'), value: a.salary ? `${formatMoney(rupeesToPaise(a.salary))} / ${a.wageType === 'daily' ? L(ctx.language, 'day', 'दिन') : L(ctx.language, 'month', 'महीना')}` : '-' },
     ],
   }),
   execute: async (ctx, a) => {
     const e = await createEmployee(ctx, { name: a.name, phone: a.phone, ratePaise: a.salary ? rupeesToPaise(a.salary) : 0, wageType: a.wageType ?? 'monthly' });
-    return { text: L(ctx.language, `${e.name} added. They can now log in to the StaffMint app with ${e.phone}.`, `${e.name} jud gaye. Woh ${e.phone} se StaffMint app mein login kar sakte hain.`), data: { employeeId: String(e._id) } };
+    return { text: L(ctx.language, `${e.name} added. They can now log in to the StaffMint app with ${e.phone}.`, `${e.name} जुड़ गए। वे ${e.phone} से StaffMint ऐप में लॉगिन कर सकते हैं।`), data: { employeeId: String(e._id) } };
   },
 };
 
@@ -223,10 +223,10 @@ const declareHoliday: ToolDef<{ date: string; name?: string }> = {
   kind: 'write',
   roles: ['owner'],
   schema: z.object({ date: dateS, name: z.string().max(80).optional() }),
-  preview: async (ctx, a) => ({ title: L(ctx.language, 'Declare holiday for everyone?', 'Sabki chutti declare kar doon?'), rows: [{ label: L(ctx.language, 'Date', 'Tarikh'), value: nice(a.date, ctx.language) }, { label: L(ctx.language, 'Name', 'Naam'), value: a.name ?? 'Holiday' }] }),
+  preview: async (ctx, a) => ({ title: L(ctx.language, 'Declare holiday for everyone?', 'सबकी छुट्टी घोषित कर दूँ?'), rows: [{ label: L(ctx.language, 'Date', 'तारीख़'), value: nice(a.date, ctx.language) }, { label: L(ctx.language, 'Name', 'नाम'), value: a.name ?? 'Holiday' }] }),
   execute: async (ctx, a) => {
     await addHoliday(ctx, a.date, a.name ?? 'Holiday');
-    return { text: L(ctx.language, `Holiday added for ${nice(a.date, 'en')}. Nobody will be marked absent that day.`, `${nice(a.date, 'hi')} ki chutti laga di. Us din kisi ko absent nahi lagega.`) };
+    return { text: L(ctx.language, `Holiday added for ${nice(a.date, 'en')}. Nobody will be marked absent that day.`, `${nice(a.date, 'hi')} की छुट्टी लगा दी। उस दिन किसी को ग़ैरहाज़िर नहीं लगेगा।`) };
   },
 };
 
@@ -247,14 +247,14 @@ const salaryPreview: ToolDef<{ month?: string; employeeName?: string }> = {
     const inputs = await buildEngineInputs(ctx.companyId, a.month!, { asOfDate: asOf, employeeIds: a.employeeId ? [new (await import('mongoose')).Types.ObjectId(a.employeeId)] : undefined });
     const results = inputs.map((i) => ({ name: i.employee.name, r: computePayslip(i) }));
     const total = results.reduce((s, x) => s + x.r.netPaise, 0);
-    const asOfText = asOf ? L(ctx.language, ` (till ${nice(asOf, 'en')})`, ` (${nice(asOf, 'hi')} tak)`) : '';
+    const asOfText = asOf ? L(ctx.language, ` (till ${nice(asOf, 'en')})`, ` (${nice(asOf, 'hi')} तक)`) : '';
     if (a.employeeId && results[0]) {
       const r = results[0].r;
-      return { text: L(ctx.language, `${results[0].name}: ${formatMoney(r.netPaise)} for ${monthLabel(a.month!, 'en')}${asOfText}. ${r.lines[0].explanation.en}`, `${results[0].name}: ${monthLabel(a.month!, 'hi')} ki ${formatMoney(r.netPaise)}${asOfText}. ${r.lines[0].explanation.hi}`) };
+      return { text: L(ctx.language, `${results[0].name}: ${formatMoney(r.netPaise)} for ${monthLabel(a.month!, 'en')}${asOfText}. ${r.lines[0].explanation.en}`, `${results[0].name}: ${monthLabel(a.month!, 'hi')} की ${formatMoney(r.netPaise)}${asOfText}। ${r.lines[0].explanation.hi}`) };
     }
     const top = results.sort((x, y) => y.r.netPaise - x.r.netPaise).slice(0, 5).map((x) => `${x.name} ${formatMoney(x.r.netPaise)}`).join(', ');
     return {
-      text: L(ctx.language, `${monthLabel(a.month!, 'en')} salary for ${results.length} staff: ${formatMoney(total)}${asOfText}. ${top}`, `${monthLabel(a.month!, 'hi')} mein ${results.length} staff ki salary: ${formatMoney(total)}${asOfText}. ${top}`),
+      text: L(ctx.language, `${monthLabel(a.month!, 'en')} salary for ${results.length} staff: ${formatMoney(total)}${asOfText}. ${top}`, `${monthLabel(a.month!, 'hi')} में ${results.length} स्टाफ़ की सैलरी: ${formatMoney(total)}${asOfText}। ${top}`),
       data: { totalPaise: total, employees: results.length },
     };
   },
@@ -275,7 +275,7 @@ const report: ToolDef<{ kind: ReportKind; month?: string; format?: 'pdf' | 'xlsx
     const key = `reports/${ctx.companyId}/${Date.now()}-${file.filename}`;
     await storage.put(key, file.data, file.contentType);
     const url = await storage.signedUrl(key, env.SIGNED_URL_TTL_SEC * 6, { filename: file.filename });
-    return { text: L(ctx.language, `Here is the ${a.kind} report for ${monthLabel(a.month!, 'en')}.`, `${monthLabel(a.month!, 'hi')} ki ${a.kind} report yeh rahi.`), attachment: { url, filename: file.filename } };
+    return { text: L(ctx.language, `Here is the ${a.kind} report for ${monthLabel(a.month!, 'en')}.`, `${monthLabel(a.month!, 'hi')} की ${a.kind} रिपोर्ट यह रही।`), attachment: { url, filename: file.filename } };
   },
 };
 
@@ -300,14 +300,14 @@ const sendPayslipsTool: ToolDef<{ month?: string }> = {
   schema: z.object({ month: monthS.optional() }),
   preview: async (ctx, a) => {
     const run = await runForPayslips(ctx, a.month);
-    if (!run) throw new AppError('CONFLICT', L(ctx.language, 'No approved salary to send. Open Salary and approve it first.', 'Koi approved salary nahi hai. Pehle Salary screen mein approve karein.'));
+    if (!run) throw new AppError('CONFLICT', L(ctx.language, 'No approved salary to send. Open Salary and approve it first.', 'कोई मंज़ूर सैलरी नहीं है। पहले सैलरी स्क्रीन में मंज़ूर करें।'));
     const count = await Payslip.countDocuments({ companyId: ctx.companyId, runId: run._id });
     return {
-      title: L(ctx.language, 'Send payslips?', 'Payslip bhej doon?'),
+      title: L(ctx.language, 'Send payslips?', 'पेस्लिप भेज दूँ?'),
       rows: [
-        { label: L(ctx.language, 'Month', 'Mahina'), value: monthLabel(run.month, ctx.language) },
-        { label: 'Staff', value: String(count) },
-        { label: L(ctx.language, 'Total net pay', 'Kul salary'), value: formatMoney(run.totals?.netPaise ?? 0) },
+        { label: L(ctx.language, 'Month', 'महीना'), value: monthLabel(run.month, ctx.language) },
+        { label: L(ctx.language, 'Staff', 'स्टाफ़'), value: String(count) },
+        { label: L(ctx.language, 'Total net pay', 'कुल सैलरी'), value: formatMoney(run.totals?.netPaise ?? 0) },
       ],
     };
   },
@@ -315,7 +315,7 @@ const sendPayslipsTool: ToolDef<{ month?: string }> = {
     const run = await runForPayslips(ctx, a.month);
     if (!run) throw new AppError('CONFLICT', 'No approved salary to send');
     const r = await sendPayslips(ctx, String(run._id));
-    return { text: L(ctx.language, `Sent ${r.queued} payslips for ${monthLabel(run.month, 'en')}${r.viaWhatsApp ? ' (app + WhatsApp)' : ' (app)'}.`, `${monthLabel(run.month, 'hi')} ki ${r.queued} payslip bhej di${r.viaWhatsApp ? ' (app + WhatsApp)' : ' (app par)'}.`) };
+    return { text: L(ctx.language, `Sent ${r.queued} payslips for ${monthLabel(run.month, 'en')}${r.viaWhatsApp ? ' (app + WhatsApp)' : ' (app)'}.`, `${monthLabel(run.month, 'hi')} की ${r.queued} पेस्लिप भेज दी${r.viaWhatsApp ? ' (ऐप + WhatsApp)' : ' (ऐप पर)'}।`) };
   },
 };
 
@@ -329,13 +329,13 @@ const decideLeaveTool: ToolDef<{ employeeName: string; decision: 'approved' | 'r
   schema: z.object({ employeeName: z.string().min(1), decision: z.enum(['approved', 'rejected']) }),
   preview: async (ctx, a) => {
     const leave = await Leave.findOne({ companyId: ctx.companyId, employeeId: a.employeeId, status: 'pending', deletedAt: null }).sort({ createdAt: -1 }).lean();
-    if (!leave) throw new AppError('NOT_FOUND', L(ctx.language, `${a.employeeLabel} has no pending leave request.`, `${a.employeeLabel} ki koi pending chutti nahi hai.`));
+    if (!leave) throw new AppError('NOT_FOUND', L(ctx.language, `${a.employeeLabel} has no pending leave request.`, `${a.employeeLabel} की कोई बाकी छुट्टी की अर्ज़ी नहीं है।`));
     return {
-      title: a.decision === 'approved' ? L(ctx.language, 'Approve leave?', 'Chutti manzoor karoon?') : L(ctx.language, 'Reject leave?', 'Chutti mana karoon?'),
+      title: a.decision === 'approved' ? L(ctx.language, 'Approve leave?', 'छुट्टी मंज़ूर करूँ?') : L(ctx.language, 'Reject leave?', 'छुट्टी नामंज़ूर करूँ?'),
       rows: [
-        { label: 'Staff', value: a.employeeLabel! },
-        { label: L(ctx.language, 'Dates', 'Tarikh'), value: leave.from === leave.to ? nice(leave.from, ctx.language) : `${nice(leave.from, ctx.language)} – ${nice(leave.to, ctx.language)}` },
-        { label: L(ctx.language, 'Type', 'Type'), value: `${leave.type} (${leave.days})` },
+        { label: L(ctx.language, 'Staff', 'स्टाफ़'), value: a.employeeLabel! },
+        { label: L(ctx.language, 'Dates', 'तारीख़'), value: leave.from === leave.to ? nice(leave.from, ctx.language) : `${nice(leave.from, ctx.language)} – ${nice(leave.to, ctx.language)}` },
+        { label: L(ctx.language, 'Type', 'प्रकार'), value: `${leave.type} (${leave.days})` },
       ],
     };
   },
@@ -343,7 +343,7 @@ const decideLeaveTool: ToolDef<{ employeeName: string; decision: 'approved' | 'r
     const leave = await Leave.findOne({ companyId: ctx.companyId, employeeId: a.employeeId, status: 'pending', deletedAt: null }).sort({ createdAt: -1 }).lean();
     if (!leave) throw new AppError('NOT_FOUND', 'No pending leave');
     await decideLeave(ctx, String(leave._id), a.decision);
-    return { text: L(ctx.language, `Leave ${a.decision} for ${a.employeeLabel}.`, `${a.employeeLabel} ki chutti ${a.decision === 'approved' ? 'manzoor' : 'na-manzoor'} kar di.`) };
+    return { text: L(ctx.language, `Leave ${a.decision} for ${a.employeeLabel}.`, `${a.employeeLabel} की छुट्टी ${a.decision === 'approved' ? 'मंज़ूर' : 'नामंज़ूर'} कर दी।`) };
   },
 };
 
@@ -357,13 +357,13 @@ const help: ToolDef<Record<string, never>> = {
   execute: async (ctx) => {
     if (ctx.role === 'employee')
       return {
-        text: L(ctx.language, 'You can ask: "My salary?", "Why is my salary less?", "I need leave tomorrow".', 'Aap pooch sakte hain: "Meri salary kitni bani?", "Meri salary kam kyun?", "Kal chutti chahiye".'),
+        text: L(ctx.language, 'You can ask: "My salary?", "Why is my salary less?", "I need leave tomorrow".', 'आप पूछ सकते हैं: "Meri salary kitni bani?", "Meri salary kam kyun?", "Kal chutti chahiye"।'),
       };
     return {
       text: L(
         ctx.language,
         'Try: "Ramesh half day today", "Who came late?", "Amit 5000 advance", "Raju 500 bonus", "New staff Pooja 9876543210 12000", "Holiday tomorrow", "Salary this month?", "October salary report", "Send all payslips". I always ask before saving anything.',
-        'Aise boliye: "Ramesh ko aaj half day laga do", "Kaun late aaya?", "Amit ko 5000 advance diya", "Raju ko 500 bonus", "Naya banda Pooja 9876543210 12000", "Kal sabki chutti hai", "Is month salary kitni banegi?", "October ka salary report bhejo", "Sab ki payslip bhej do". Kuch bhi save karne se pehle main poochunga.',
+        'ऐसे बोलिए: "Ramesh ko aaj half day laga do", "Kaun late aaya?", "Amit ko 5000 advance diya", "Raju ko 500 bonus", "Naya banda Pooja 9876543210 12000", "Kal sabki chutti hai", "Is month salary kitni banegi?", "October ka salary report bhejo", "Sab ki payslip bhej do". कुछ भी सेव करने से पहले मैं पूछूँगा।',
       ),
     };
   },
@@ -379,10 +379,10 @@ const mySalary: ToolDef<{ month?: string }> = {
   schema: z.object({ month: monthS.optional() }),
   execute: async (ctx, a) => {
     const est = await estimateFor(ctx.companyId, ctx.employeeId!, a.month);
-    if (!est) return { text: L(ctx.language, 'No salary data yet.', 'Abhi salary ka data nahi hai.') };
+    if (!est) return { text: L(ctx.language, 'No salary data yet.', 'अभी सैलरी का डेटा नहीं है।') };
     const bal = await advanceBalanceFor(ctx.companyId, ctx.employeeId!);
     const r = est.result;
-    const till = est.asOfDate ? L(ctx.language, ` till ${nice(est.asOfDate, 'en')}`, ` ${nice(est.asOfDate, 'hi')} tak`) : '';
+    const till = est.asOfDate ? L(ctx.language, ` till ${nice(est.asOfDate, 'en')}`, ` ${nice(est.asOfDate, 'hi')} तक`) : '';
     return {
       text: L(
         ctx.language,
@@ -409,7 +409,7 @@ const whySalaryLow: ToolDef<{ month?: string }> = {
       return { text: `${e.text}\n${e.lines.join('\n')}` };
     }
     const est = await estimateFor(ctx.companyId, ctx.employeeId!, a.month);
-    if (!est) return { text: L(ctx.language, 'No salary data yet.', 'Abhi salary ka data nahi hai.') };
+    if (!est) return { text: L(ctx.language, 'No salary data yet.', 'अभी सैलरी का डेटा नहीं है।') };
     const e = explain({ ...est.result, employeeName: est.input.employee.name, month: est.month }, ctx.language);
     return { text: `${e.text}\n${e.lines.join('\n')}` };
   },
@@ -424,15 +424,15 @@ const applyLeaveTool: ToolDef<{ from: string; to?: string; type?: 'paid' | 'sick
   schema: z.object({ from: dateS, to: dateS.optional(), type: z.enum(['paid', 'sick', 'unpaid']).optional(), reason: z.string().max(300).optional() }),
   normalize: (a) => ({ ...a, to: a.to ?? a.from, type: a.type ?? 'paid' }),
   preview: async (ctx, a) => ({
-    title: L(ctx.language, 'Apply for leave?', 'Chutti ki arzi bhej doon?'),
+    title: L(ctx.language, 'Apply for leave?', 'छुट्टी की अर्ज़ी भेज दूँ?'),
     rows: [
-      { label: L(ctx.language, 'Dates', 'Tarikh'), value: a.from === a.to ? nice(a.from, ctx.language) : `${nice(a.from, ctx.language)} – ${nice(a.to!, ctx.language)}` },
-      { label: L(ctx.language, 'Type', 'Type'), value: a.type! },
+      { label: L(ctx.language, 'Dates', 'तारीख़'), value: a.from === a.to ? nice(a.from, ctx.language) : `${nice(a.from, ctx.language)} – ${nice(a.to!, ctx.language)}` },
+      { label: L(ctx.language, 'Type', 'प्रकार'), value: a.type! },
     ],
   }),
   execute: async (ctx, a) => {
     await applyLeave(ctx, { type: a.type!, from: a.from, to: a.to!, reason: a.reason });
-    return { text: L(ctx.language, 'Leave request sent to your employer.', 'Chutti ki arzi maalik ko bhej di.') };
+    return { text: L(ctx.language, 'Leave request sent to your employer.', 'छुट्टी की अर्ज़ी मालिक को भेज दी।') };
   },
 };
 
