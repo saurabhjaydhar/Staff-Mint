@@ -3,15 +3,27 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../core/api/services/company_api.dart';
-import '../../core/i18n/locale_provider.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/models/models.dart';
+import '../../core/theme/app_theme.dart';
+import '../../core/widgets/bilingual.dart';
 import '../../core/widgets/common.dart';
 import '../../core/widgets/location_picker.dart';
 import '../../core/widgets/pickers.dart';
 import '../auth/auth_controller.dart';
 
 const businessTypes = ['pharmacy', 'clinic', 'salon', 'restaurant', 'shop', 'office', 'other'];
+
+/// Usual opening hours per business type, pre-filled in the timings step.
+const businessHours = <String, (String, String)>{
+  'pharmacy': ('09:00', '21:00'),
+  'clinic': ('10:00', '20:00'),
+  'salon': ('10:00', '21:00'),
+  'restaurant': ('11:00', '23:00'),
+  'shop': ('09:00', '21:00'),
+  'office': ('09:30', '18:30'),
+  'other': ('09:00', '19:00'),
+};
 
 const _businessIcons = <String, IconData>{
   'pharmacy': Icons.local_pharmacy_rounded,
@@ -40,9 +52,19 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   final _address = TextEditingController();
   String _type = 'shop';
   LatLng? _pin;
-  String _open = '09:00';
-  String _close = '19:00';
+  String _open = businessHours['shop']!.$1;
+  String _close = businessHours['shop']!.$2;
+  bool _timesTouched = false;
   List<int> _weeklyOff = [0];
+
+  void _setType(String t) => setState(() {
+    _type = t;
+    if (!_timesTouched) {
+      final (open, close) = businessHours[t] ?? businessHours['other']!;
+      _open = open;
+      _close = close;
+    }
+  });
 
   @override
   void dispose() {
@@ -97,7 +119,6 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   @override
   Widget build(BuildContext context) {
     final s = context.s;
-    final lang = ref.watch(localeProvider);
     return PopScope(
       canPop: _step == 0,
       onPopInvokedWithResult: (didPop, _) {
@@ -109,18 +130,10 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               ? IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => setState(() => _step--))
               : null,
           title: Text(s.setupStep(_step + 1, totalSteps)),
-          actions: [
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: TextButton(
-                onPressed: () => ref.read(localeProvider.notifier).toggle(),
-                child: Text(lang == 'hi' ? s.english : s.hindi),
-              ),
-            ),
-          ],
+          actions: const [LangPill(), SizedBox(width: 8)],
           bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(4),
-            child: LinearProgressIndicator(value: (_step + 1) / totalSteps),
+            preferredSize: const Size.fromHeight(14),
+            child: SetupProgress(step: _step, total: totalSteps),
           ),
         ),
         body: SafeArea(
@@ -155,10 +168,10 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   Widget _title(String t, [String? sub]) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text(t, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+      Text(t, style: Theme.of(context).textTheme.headlineSmall),
       if (sub != null) ...[
         const SizedBox(height: 8),
-        Text(sub, style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.black54)),
+        Text(sub, style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: AppColors.muted)),
       ],
       const SizedBox(height: 20),
     ],
@@ -181,16 +194,20 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             const SizedBox(height: 24),
             Text(s.businessType, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 12),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
+            GridView.count(
+              crossAxisCount: 3,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 8,
+              crossAxisSpacing: 8,
+              childAspectRatio: 1.05,
               children: [
                 for (final t in businessTypes)
-                  ChoiceChip(
-                    avatar: Icon(_businessIcons[t], size: 20),
-                    label: Text(s.businessTypeLabel(t)),
+                  _TypeTile(
+                    icon: _businessIcons[t]!,
+                    label: s.businessTypeLabel(t),
                     selected: _type == t,
-                    onSelected: (_) => setState(() => _type = t),
+                    onTap: () => _setType(t),
                   ),
               ],
             ),
@@ -201,7 +218,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _title(s.setupLocationTitle, s.setupLocationHint),
-            LocationPicker(value: _pin, radiusM: 100, onChanged: (p) => setState(() => _pin = p)),
+            LocationPicker(value: _pin, radiusM: 100, autoLocate: true, onChanged: (p) => setState(() => _pin = p)),
             const SizedBox(height: 16),
             TextField(
               controller: _address,
@@ -214,9 +231,36 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _title(s.setupTimingTitle, s.setupTimingHint),
-            TimeField(label: s.openingTime, value: _open, onChanged: (v) => setState(() => _open = v)),
+            if (!_timesTouched)
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: AppColors.mintLight, borderRadius: AppTheme.radius),
+                child: Row(
+                  children: [
+                    Icon(_businessIcons[_type], color: AppColors.mintDark),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(s.timingsPrefilled(s.businessTypeLabel(_type)))),
+                  ],
+                ),
+              ),
+            TimeField(
+              label: s.openingTime,
+              value: _open,
+              onChanged: (v) => setState(() {
+                _open = v;
+                _timesTouched = true;
+              }),
+            ),
             const SizedBox(height: 16),
-            TimeField(label: s.closingTime, value: _close, onChanged: (v) => setState(() => _close = v)),
+            TimeField(
+              label: s.closingTime,
+              value: _close,
+              onChanged: (v) => setState(() {
+                _close = v;
+                _timesTouched = true;
+              }),
+            ),
           ],
         );
       default:
@@ -236,4 +280,77 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         );
     }
   }
+}
+
+class _TypeTile extends StatelessWidget {
+  const _TypeTile({required this.icon, required this.label, required this.selected, required this.onTap});
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    selected: selected,
+    button: true,
+    child: Material(
+      color: selected ? AppColors.mintLight : Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: AppTheme.radius,
+        side: BorderSide(color: selected ? AppColors.mint : AppColors.line, width: selected ? 2 : 1.5),
+      ),
+      child: InkWell(
+        borderRadius: AppTheme.radius,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(6),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 28, color: selected ? AppColors.mintDark : AppColors.ink),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13.5,
+                  color: selected ? AppColors.mintDark : AppColors.ink,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+/// Five-segment setup progress (shared with the add-staff step).
+class SetupProgress extends StatelessWidget {
+  const SetupProgress({super.key, required this.step, required this.total});
+  final int step;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+    child: Row(
+      children: [
+        for (var i = 0; i < total; i++) ...[
+          if (i > 0) const SizedBox(width: 6),
+          Expanded(
+            child: Container(
+              height: 6,
+              decoration: BoxDecoration(
+                color: i <= step ? AppColors.mint : AppColors.line,
+                borderRadius: BorderRadius.circular(6),
+              ),
+            ),
+          ),
+        ],
+      ],
+    ),
+  );
 }

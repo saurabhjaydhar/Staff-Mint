@@ -5,8 +5,8 @@ import '../../../core/api/providers.dart';
 import '../../../core/i18n/strings.dart';
 import '../../../core/models/models.dart';
 import '../../../core/widgets/common.dart';
-import '../home/owner_home_screen.dart';
 import '../providers/owner_providers.dart';
+import '../today/leave_cards.dart';
 
 class LeavesScreen extends ConsumerStatefulWidget {
   const LeavesScreen({super.key});
@@ -61,7 +61,7 @@ class _LeavesScreenState extends ConsumerState<LeavesScreen> {
                 children: [
                   if (list.isEmpty) EmptyView(message: s.noLeaveRequests, icon: Icons.beach_access_outlined),
                   for (final l in list)
-                    LeaveDecisionCard(leave: l, busy: _busy.contains(l.id), onDecide: (a) => _decide(l, a), s: s),
+                    LeaveDecisionCard(leave: l, busy: _busy.contains(l.id), onDecide: (a) => _decide(l, a)),
                 ],
               ),
             ),

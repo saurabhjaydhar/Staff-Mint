@@ -7,14 +7,12 @@ class Routes {
   static const otp = '/login/otp';
   static const setup = '/setup';
   static const setupStaff = '/setup/staff';
-  static const assistant = '/assistant';
 
-  // Owner / manager shell.
+  // Owner / manager shell. `ownerHome` is the Today tab.
   static const ownerHome = '/owner/home';
   static const ownerStaff = '/owner/staff';
   static const ownerStaffAdd = '/owner/staff/add';
   static String ownerStaffProfile(String id) => '/owner/staff/$id';
-  static const ownerAttendance = '/owner/attendance';
   static const ownerSalary = '/owner/salary';
   static const ownerMore = '/owner/more';
   static const ownerLeaves = '/owner/more/leaves';

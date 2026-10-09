@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/i18n/locale_provider.dart';
 import '../../../core/i18n/strings.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/bilingual.dart';
 import '../../../core/widgets/common.dart';
 import '../../auth/auth_controller.dart';
 
@@ -33,18 +33,9 @@ class _ConsentScreenState extends ConsumerState<ConsentScreen> {
   Widget build(BuildContext context) {
     final s = context.s;
     final session = ref.watch(authControllerProvider);
-    final lang = ref.watch(localeProvider);
     final company = session.company?.name ?? s.yourEmployer;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(s.consentTitle),
-        actions: [
-          TextButton(
-            onPressed: () => ref.read(localeProvider.notifier).toggle(),
-            child: Text(lang == 'hi' ? s.english : s.hindi),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: Text(s.consentTitle), actions: const [LangPill(), SizedBox(width: 8)]),
       body: SafeArea(
         child: Column(
           children: [
@@ -60,7 +51,18 @@ class _ConsentScreenState extends ConsumerState<ConsentScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  Text(s.consentBody(company), style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.5)),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: AppTheme.radius,
+                      border: Border.all(color: AppColors.line, width: 1.5),
+                    ),
+                    child: Text(
+                      s.consentBody(company),
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.5),
+                    ),
+                  ),
                 ],
               ),
             ),

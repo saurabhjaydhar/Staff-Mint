@@ -7,14 +7,15 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/common.dart';
 import '../providers/owner_providers.dart';
 
-/// Staff × days grid with colored status codes.
+/// Staff × days ledger for a month: tinted cells with a status code, so the
+/// colour is never the only signal.
 class MonthGridView extends ConsumerWidget {
   const MonthGridView({super.key, required this.month});
   final String month;
 
-  static const _nameWidth = 120.0;
-  static const _cellWidth = 38.0;
-  static const _rowHeight = 44.0;
+  static const _nameWidth = 116.0;
+  static const _cellWidth = 34.0;
+  static const _rowHeight = 42.0;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -24,69 +25,54 @@ class MonthGridView extends ConsumerWidget {
       value: grid,
       onRetry: () => ref.invalidate(monthGridProvider(month)),
       data: (g) {
-        if (g.rows.isEmpty) return EmptyView(message: s.noAttendanceRows);
+        if (g.rows.isEmpty) return EmptyView(message: s.noAttendanceRows, icon: Icons.event_busy_outlined);
         return RefreshIndicator(
           onRefresh: () => ref.refresh(monthGridProvider(month).future),
           child: ListView(
-            padding: const EdgeInsets.only(bottom: 96),
+            padding: const EdgeInsets.only(bottom: 24),
             children: [
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const SizedBox(width: _nameWidth),
-                        for (final d in g.days)
-                          SizedBox(
-                            width: _cellWidth,
-                            child: Text(
-                              d.length >= 10 ? d.substring(8) : d,
+              Container(
+                margin: const EdgeInsets.fromLTRB(14, 8, 14, 0),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: AppColors.line, width: 1.5),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _line(
+                        header: true,
+                        name: '',
+                        cells: [
+                          for (final d in g.days)
+                            Text(
+                              d.length >= 10 ? '${int.tryParse(d.substring(8)) ?? d}' : d,
                               textAlign: TextAlign.center,
-                              style: const TextStyle(fontWeight: FontWeight.w700),
-                            ),
-                          ),
-                        SizedBox(
-                          width: 120,
-                          child: Text(
-                            s.totals,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(fontWeight: FontWeight.w700),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Divider(),
-                    for (final r in g.rows)
-                      SizedBox(
-                        height: _rowHeight,
-                        child: Row(
-                          children: [
-                            SizedBox(
-                              width: _nameWidth,
-                              child: Text(
-                                r.employee.name,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontWeight: FontWeight.w600),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.muted,
+                                fontSize: 12.5,
                               ),
                             ),
-                            for (final d in g.days) _Cell(status: r.days[d]),
-                            SizedBox(
-                              width: 120,
-                              child: Text(
-                                '${s.statusCode('present')} ${r.totals['present'] ?? 0} · ${s.statusCode('absent')} ${r.totals['absent'] ?? 0}',
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ],
-                        ),
+                        ],
+                        totals: s.totals,
                       ),
-                  ],
+                      for (final r in g.rows)
+                        _line(
+                          name: r.employee.name,
+                          cells: [for (final d in g.days) _Cell(status: r.days[d])],
+                          totals:
+                              '${s.statusCode('present')} ${r.totals['present'] ?? 0} · ${s.statusCode('absent')} ${r.totals['absent'] ?? 0}',
+                        ),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Wrap(
@@ -107,7 +93,8 @@ class MonthGridView extends ConsumerWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           _Cell(status: st),
-                          Text(s.statusLabel(st)),
+                          const SizedBox(width: 2),
+                          Text(s.statusLabel(st), style: const TextStyle(fontSize: 13.5)),
                         ],
                       ),
                   ],
@@ -119,6 +106,46 @@ class MonthGridView extends ConsumerWidget {
       },
     );
   }
+
+  Widget _line({required String name, required List<Widget> cells, required String totals, bool header = false}) =>
+      Container(
+        height: header ? 34 : _rowHeight,
+        decoration: BoxDecoration(
+          color: header ? AppColors.ruled : null,
+          border: const Border(bottom: BorderSide(color: AppColors.lineSoft)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: _nameWidth,
+              padding: const EdgeInsets.only(left: 12, right: 6),
+              decoration: const BoxDecoration(
+                border: Border(right: BorderSide(color: AppColors.margin, width: 1.5)),
+              ),
+              alignment: Alignment.centerLeft,
+              height: double.infinity,
+              child: Text(
+                name,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+            for (final c in cells)
+              SizedBox(
+                width: _cellWidth,
+                child: Center(child: c),
+              ),
+            SizedBox(
+              width: 112,
+              child: Text(
+                totals,
+                textAlign: TextAlign.center,
+                style: TextStyle(fontWeight: header ? FontWeight.w700 : FontWeight.w500, fontSize: 13),
+              ),
+            ),
+          ],
+        ),
+      );
 }
 
 class _Cell extends StatelessWidget {
@@ -127,16 +154,16 @@ class _Cell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = AppColors.forStatus(status);
+    final st = StatusStyle.of(status);
     return Container(
-      width: MonthGridView._cellWidth - 4,
-      height: 32,
+      width: MonthGridView._cellWidth - 6,
+      height: 28,
       margin: const EdgeInsets.all(2),
       alignment: Alignment.center,
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(6)),
+      decoration: BoxDecoration(color: st.bg, borderRadius: BorderRadius.circular(7)),
       child: Text(
         context.s.statusCode(status),
-        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color.lerp(color, Colors.black, 0.4)),
+        style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: st.fg),
       ),
     );
   }

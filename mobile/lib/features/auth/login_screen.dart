@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/i18n/locale_provider.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/router/routes.dart';
+import '../../core/theme/app_theme.dart';
 import '../../core/utils/phone.dart';
 import '../../core/widgets/common.dart';
 import 'auth_controller.dart';
@@ -80,7 +81,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               Text(
                 s.taglineHinglish,
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.black54),
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: AppColors.muted),
               ),
               const SizedBox(height: 40),
               Text(s.loginSubtitle, style: Theme.of(context).textTheme.titleMedium),
@@ -116,7 +117,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     : Text(s.getOtp),
               ),
               const SizedBox(height: 8),
-              TextButton.icon(
+              const SizedBox(height: 4),
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF128C4A),
+                  side: const BorderSide(color: AppColors.whatsapp, width: 1.5),
+                ),
                 onPressed: _busy ? null : () => _submit(channel: 'whatsapp'),
                 icon: const Icon(Icons.chat_rounded),
                 label: Text(s.sendViaWhatsApp),

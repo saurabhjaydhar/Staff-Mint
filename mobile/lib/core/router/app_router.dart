@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../features/assistant/assistant_screen.dart';
 import '../../features/auth/auth_controller.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/auth/otp_screen.dart';
@@ -14,8 +13,6 @@ import '../../features/employee/leave/employee_leave_screen.dart';
 import '../../features/employee/profile/employee_profile_screen.dart';
 import '../../features/employee/salary/employee_salary_screen.dart';
 import '../../features/employee/shell/employee_shell.dart';
-import '../../features/owner/attendance/attendance_screen.dart';
-import '../../features/owner/home/owner_home_screen.dart';
 import '../../features/owner/more/audit_screen.dart';
 import '../../features/owner/more/billing_screen.dart';
 import '../../features/owner/more/branches_screen.dart';
@@ -31,6 +28,7 @@ import '../../features/owner/shell/owner_shell.dart';
 import '../../features/owner/staff/add_staff_screen.dart';
 import '../../features/owner/staff/staff_list_screen.dart';
 import '../../features/owner/staff/staff_profile_screen.dart';
+import '../../features/owner/today/today_screen.dart';
 import '../../features/setup/setup_screen.dart';
 import '../../features/setup/setup_staff_screen.dart';
 import 'redirect.dart';
@@ -77,18 +75,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         (_) => const SetupScreen(),
         routes: [GoRoute(path: 'staff', builder: (_, _) => const SetupStaffScreen())],
       ),
-      GoRoute(
-        path: Routes.assistant,
-        parentNavigatorKey: _rootKey,
-        pageBuilder: (_, _) => const MaterialPage(fullscreenDialog: true, child: AssistantScreen()),
-      ),
       r(Routes.employeeConsent, (_) => const ConsentScreen()),
 
       // ---------------------------------------------------------- Owner
+      // आज · स्टाफ़ · [Mint] · सैलरी · और — attendance lives in Today.
       StatefulShellRoute.indexedStack(
         builder: (_, _, shell) => OwnerShell(navigationShell: shell),
         branches: [
-          StatefulShellBranch(routes: [r(Routes.ownerHome, (_) => const OwnerHomeScreen())]),
+          StatefulShellBranch(routes: [r(Routes.ownerHome, (_) => const TodayScreen())]),
           StatefulShellBranch(
             routes: [
               r(
@@ -104,7 +98,6 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          StatefulShellBranch(routes: [r(Routes.ownerAttendance, (_) => const AttendanceScreen())]),
           StatefulShellBranch(routes: [r(Routes.ownerSalary, (_) => const SalaryScreen())]),
           StatefulShellBranch(
             routes: [

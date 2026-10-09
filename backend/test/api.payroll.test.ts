@@ -57,10 +57,15 @@ describe('payroll lifecycle', () => {
     await expect(Payslip.updateOne({ companyId: owner.companyId, _id: approved.body.data.payslips[0].id }, { $set: { netPaise: 1 } })).rejects.toThrow(/immutable/);
 
     // Revision: correction creates rev 2; approving it supersedes rev 1 and replaces (not doubles) advance recovery
-    await api().post(`${V}/attendance/override`).set(auth(owner.token)).send({ employeeId: emp.id, date: '2026-09-09', status: 'present', reason: 'Correction' }).expect(200);
+    const corr = await api().post(`${V}/attendance/override`).set(auth(owner.token)).send({ employeeId: emp.id, date: '2026-09-09', status: 'present', reason: 'Correction' }).expect(200);
     const rev = await api().post(`${V}/payroll/runs/${draft.body.data.id}/revise`).set(auth(owner.token));
     expect(rev.body.data).toMatchObject({ revision: 2, status: 'draft' });
     expect(rev.body.data.totals.netPaise).toBe(2600000);
+    void corr;
+    // The correction draft reopens the month for bonus/deduction
+    const adj = await api().post(`${V}/adjustments`).set(auth(owner.token)).send({ employeeId: emp.id, month: '2026-09', type: 'deduction', amountPaise: 10000, note: 'Correction' });
+    expect(adj.status).toBe(201);
+    await api().delete(`${V}/adjustments/${adj.body.data.id}`).set(auth(owner.token)).expect(200);
     await api().post(`${V}/payroll/runs/${rev.body.data.id}/approve`).set(auth(owner.token)).expect(200);
     const runs = await api().get(`${V}/payroll/runs?month=2026-09`).set(auth(owner.token));
     expect(runs.body.data.map((r: any) => [r.revision, r.status])).toEqual([

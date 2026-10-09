@@ -113,13 +113,13 @@ async function proceed(ctx: Ctx, session: any, tool: ToolDef, args: any, text: s
     const emps = await Employee.find({ ...employeeScope(ctx), status: 'active' }).select('name phone designation').lean();
     const matches = matchEmployees(String(args[tool.employeeArg]), emps);
     if (matches.length === 0) {
-      return { sessionId: sid, kind: 'error', intent: tool.name, text: L(ctx.language, `I couldn't find staff named "${args[tool.employeeArg]}". Please check the name.`, `"${args[tool.employeeArg]}" naam ka staff nahi mila. Naam check karein.`) };
+      return { sessionId: sid, kind: 'error', intent: tool.name, text: L(ctx.language, `I couldn't find staff named "${args[tool.employeeArg]}". Please check the name.`, `"${args[tool.employeeArg]}" नाम का स्टाफ़ नहीं मिला। नाम जाँच लें।`) };
     }
     if (matches.length > 1) {
       const options = matches.slice(0, 5).map((e) => ({ id: String(e._id), label: `${e.name}${e.designation ? ` (${e.designation})` : ''} ·${e.phone.slice(-4)}` }));
       const pendingActionId = await addPending(session, { intent: tool.name, args, stage: 'choose', chooseField: 'employeeId', options });
       await session.save();
-      return { sessionId: sid, kind: 'choose', intent: tool.name, pendingActionId, options, text: L(ctx.language, `Which ${args[tool.employeeArg]}?`, `Kaun sa ${args[tool.employeeArg]}?`) };
+      return { sessionId: sid, kind: 'choose', intent: tool.name, pendingActionId, options, text: L(ctx.language, `Which ${args[tool.employeeArg]}?`, `कौन सा ${args[tool.employeeArg]}?`) };
     }
     args.employeeId = String(matches[0]._id);
     args.employeeLabel = matches[0].name;
@@ -144,8 +144,8 @@ async function proceed(ctx: Ctx, session: any, tool: ToolDef, args: any, text: s
     pendingActionId,
     preview,
     options: [
-      { id: 'confirm', label: L(ctx.language, 'Yes, save', 'Haan, kar do') },
-      { id: 'cancel', label: L(ctx.language, 'Cancel', 'Nahi') },
+      { id: 'confirm', label: L(ctx.language, 'Yes, save', 'हाँ, कर दो') },
+      { id: 'cancel', label: L(ctx.language, 'Cancel', 'नहीं') },
     ],
     text: `${preview.title}\n${preview.rows.map((r) => `${r.label}: ${r.value}`).join('\n')}`,
   };
@@ -154,7 +154,7 @@ async function proceed(ctx: Ctx, session: any, tool: ToolDef, args: any, text: s
 export async function handleMessage(ctx: Ctx, input: { text?: string; audio?: { data: Buffer; mime: string }; sessionId?: string }): Promise<AssistantReply> {
   const { plan } = await companyPlan({ _id: ctx.companyId });
   if (!plan.features.includes('assistant')) {
-    throw new AppError('FEATURE_NOT_IN_PLAN', L(ctx.language, 'Mint assistant is available on Starter and above.', 'Mint assistant Starter plan aur upar mein milta hai.'), { feature: 'assistant' });
+    throw new AppError('FEATURE_NOT_IN_PLAN', L(ctx.language, 'Mint assistant is available on Starter and above.', 'Mint सहायक Starter प्लान और उससे ऊपर में मिलता है।'), { feature: 'assistant' });
   }
   let text = input.text?.trim() ?? '';
   if (!text && input.audio) text = (await (await provider('speech')).transcribe(input.audio.data, input.audio.mime, { languageHint: 'hi' })).text.trim();
@@ -178,12 +178,12 @@ export async function handleMessage(ctx: Ctx, input: { text?: string; audio?: { 
       intent: null,
       text:
         r.reply ??
-        L(ctx.language, 'Sorry, I did not understand. Try "Ramesh half day today" or ask "what can you do?"', 'Samajh nahi aaya. Aise boliye: "Ramesh ko aaj half day laga do", ya poochiye "Kya kya kar sakte ho?"'),
+        L(ctx.language, 'Sorry, I did not understand. Try "Ramesh half day today" or ask "what can you do?"', 'समझ नहीं आया। ऐसे बोलिए: "Ramesh ko aaj half day laga do", या पूछिए "Kya kya kar sakte ho?"'),
     };
   } else if (!toolAllowed(ctx, tool)) {
-    reply = { sessionId: sid, kind: 'error', intent: tool.name, text: L(ctx.language, 'You cannot do this from your account.', 'Aapke account se yeh nahi ho sakta.') };
+    reply = { sessionId: sid, kind: 'error', intent: tool.name, text: L(ctx.language, 'You cannot do this from your account.', 'आपके अकाउंट से यह नहीं हो सकता।') };
   } else if (tool.feature && !plan.features.includes(tool.feature)) {
-    reply = { sessionId: sid, kind: 'error', intent: tool.name, text: L(ctx.language, `This needs a higher plan (${tool.feature}).`, `Iske liye bada plan chahiye (${tool.feature}).`) };
+    reply = { sessionId: sid, kind: 'error', intent: tool.name, text: L(ctx.language, `This needs a higher plan (${tool.feature}).`, `इसके लिए बड़ा प्लान चाहिए (${tool.feature})।`) };
   } else {
     const company = await Company.findById(ctx.companyId).lean();
     const today = todayIn(company!.timezone);
@@ -207,8 +207,8 @@ export async function handleMessage(ctx: Ctx, input: { text?: string; audio?: { 
 }
 
 function missingText(lang: 'en' | 'hi', intent: string, missing: string[]) {
-  const what = missing.map((m) => ({ employeeName: L(lang, 'staff name', 'staff ka naam'), amount: L(lang, 'amount', 'rakam'), phone: L(lang, 'phone number', 'phone number'), name: L(lang, 'name', 'naam'), from: L(lang, 'date', 'tarikh'), date: L(lang, 'date', 'tarikh') })[m] ?? m);
-  return L(lang, `Please tell me the ${what.join(' and ')}.`, `Kripya ${what.join(' aur ')} bataiye.`) + (intent === 'add_employee' ? L(lang, ' e.g. "New staff Pooja 9876543210 12000"', ' Jaise: "Naya banda Pooja 9876543210 12000"') : '');
+  const what = missing.map((m) => ({ employeeName: L(lang, 'staff name', 'स्टाफ़ का नाम'), amount: L(lang, 'amount', 'रक़म'), phone: L(lang, 'phone number', 'फ़ोन नंबर'), name: L(lang, 'name', 'नाम'), from: L(lang, 'date', 'तारीख़'), date: L(lang, 'date', 'तारीख़') })[m] ?? m);
+  return L(lang, `Please tell me the ${what.join(' and ')}.`, `कृपया ${what.join(' और ')} बताइए।`) + (intent === 'add_employee' ? L(lang, ' e.g. "New staff Pooja 9876543210 12000"', ' जैसे: "Naya banda Pooja 9876543210 12000"') : '');
 }
 
 export async function confirm(ctx: Ctx, input: { pendingActionId: string; action: 'confirm' | 'cancel' | 'choose'; optionId?: string; sessionId?: string }): Promise<AssistantReply> {
@@ -219,14 +219,14 @@ export async function confirm(ctx: Ctx, input: { pendingActionId: string; action
   if (p.status !== 'open' || p.expiresAt < new Date()) {
     if (p.status === 'open') p.status = 'expired';
     await session.save();
-    return { sessionId: sid, kind: 'error', text: L(ctx.language, 'This action has expired. Please say it again.', 'Yeh request purani ho gayi. Dobara boliye.') };
+    return { sessionId: sid, kind: 'error', text: L(ctx.language, 'This action has expired. Please say it again.', 'यह अनुरोध पुराना हो गया। दोबारा बोलिए।') };
   }
   const tool = toolByName.get(p.intent)!;
   if (input.action === 'cancel') {
     p.status = 'cancelled';
     remember(session, 'assistant', 'cancelled');
     await session.save();
-    return { sessionId: sid, kind: 'cancelled', intent: p.intent, text: L(ctx.language, 'Cancelled. Nothing was saved.', 'Theek hai, kuch save nahi kiya.') };
+    return { sessionId: sid, kind: 'cancelled', intent: p.intent, text: L(ctx.language, 'Cancelled. Nothing was saved.', 'ठीक है, कुछ सेव नहीं किया।') };
   }
   if (input.action === 'choose') {
     if (p.stage !== 'choose' || !input.optionId || !p.options.some((o: any) => o.id === input.optionId)) throw new AppError('VALIDATION_ERROR', 'Pick one of the options');

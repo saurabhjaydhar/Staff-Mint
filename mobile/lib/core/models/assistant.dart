@@ -41,6 +41,7 @@ class AssistantReply {
     this.preview,
     this.data,
     this.attachment,
+    this.transcript,
   });
 
   final String? sessionId;
@@ -52,6 +53,9 @@ class AssistantReply {
   final Object? data;
   final AssistantAttachment? attachment;
 
+  /// What Mint heard in a voice note, when the server sends it.
+  final String? transcript;
+
   factory AssistantReply.fromJson(Json j) => AssistantReply(
     sessionId: asStringOrNull(j['sessionId']),
     kind: asString(j['kind'], 'answer'),
@@ -61,5 +65,6 @@ class AssistantReply {
     preview: j['preview'] is Map ? AssistantPreview.fromJson(asMap(j['preview'])) : null,
     data: j['data'],
     attachment: j['attachment'] is Map ? AssistantAttachment.fromJson(asMap(j['attachment'])) : null,
+    transcript: asStringOrNull(j['transcript']),
   );
 }

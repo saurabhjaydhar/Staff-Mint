@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../storage/providers.dart';
 
 /// Current UI language code (`en` or `hi`), persisted in preferences.
+/// A fresh install starts in Hindi (most users prefer it); English is one tap away.
 class LocaleController extends Notifier<String> {
   static const _key = 'sm_language';
 
@@ -10,7 +11,7 @@ class LocaleController extends Notifier<String> {
   String build() {
     final prefs = ref.watch(sharedPreferencesProvider);
     final saved = prefs.getString(_key);
-    return saved == 'hi' ? 'hi' : 'en';
+    return saved == 'en' ? 'en' : 'hi';
   }
 
   Future<void> setLanguage(String code) async {

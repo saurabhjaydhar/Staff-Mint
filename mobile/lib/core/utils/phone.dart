@@ -28,6 +28,13 @@ class Phones {
 
   static bool isValid(String raw) => normalize(raw) != null;
 
+  /// Digits for a `wa.me/<digits>` link: `9876543210` → `919876543210`.
+  static String? waDigits(String phone) {
+    final n = normalize(phone);
+    if (n == null) return null;
+    return n.startsWith('+') ? n.substring(1) : '91$n';
+  }
+
   /// `9876543210` → `+91 98765 43210`.
   static String display(String phone) {
     final n = normalize(phone);

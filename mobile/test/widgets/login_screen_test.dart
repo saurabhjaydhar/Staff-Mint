@@ -34,7 +34,8 @@ void main() {
   late FakeAuthApi authApi;
 
   setUp(() async {
-    SharedPreferences.setMockInitialValues({});
+    // These tests read English copy; a fresh install is Hindi (tested below).
+    SharedPreferences.setMockInitialValues({'sm_language': 'en'});
     prefs = await SharedPreferences.getInstance();
     authApi = FakeAuthApi();
   });
@@ -88,5 +89,18 @@ void main() {
     expect(find.text('StaffMint में आपका स्वागत है'), findsOneWidget);
     expect(find.text('OTP पाएँ'), findsOneWidget);
     expect(prefs.getString('sm_language'), 'hi');
+  });
+
+  testWidgets('a fresh install starts in Hindi and English is one tap away', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
+    await pumpApp(tester);
+    expect(find.text('StaffMint में आपका स्वागत है'), findsOneWidget);
+    expect(prefs.getString('sm_language'), isNull);
+
+    await tester.tap(find.text('English'));
+    await tester.pumpAndSettle();
+    expect(find.text('Welcome to StaffMint'), findsOneWidget);
+    expect(prefs.getString('sm_language'), 'en');
   });
 }

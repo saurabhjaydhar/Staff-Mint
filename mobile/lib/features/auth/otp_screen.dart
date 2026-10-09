@@ -85,7 +85,10 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
         child: ListView(
           padding: const EdgeInsets.all(24),
           children: [
-            Text(s.otpSentTo(Phones.display(widget.phone)), style: Theme.of(context).textTheme.bodyLarge),
+            Text(
+              s.otpSentTo(Phones.display(widget.phone)),
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: AppColors.muted),
+            ),
             if (_devCode != null) ...[
               const SizedBox(height: 16),
               Container(

@@ -53,6 +53,10 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
             error: (e, _) => ErrorView(error: e, onRetry: () => ref.invalidate(billingProvider)),
             data: (b) => Card(
               color: AppColors.mintLight,
+              shape: const RoundedRectangleBorder(
+                borderRadius: AppTheme.radius,
+                side: BorderSide(color: AppColors.mint, width: 1.5),
+              ),
               margin: const EdgeInsets.all(16),
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -130,6 +134,8 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                                   Chip(
                                     visualDensity: VisualDensity.compact,
                                     avatar: const Icon(Icons.check_rounded, size: 16, color: AppColors.mint),
+                                    side: BorderSide.none,
+                                    backgroundColor: AppColors.mintFaint,
                                     label: Text(s.featureLabel(f), style: const TextStyle(fontSize: 13)),
                                   ),
                               ],

@@ -42,6 +42,11 @@ final monthGridProvider = FutureProvider.autoDispose.family<MonthGrid, String>(
   (ref, month) => ref.watch(attendanceApiProvider).month(month),
 );
 
+/// One employee's month (staff profile strip).
+final employeeMonthProvider = FutureProvider.autoDispose.family<MonthGrid, ({String month, String employeeId})>(
+  (ref, q) => ref.watch(attendanceApiProvider).month(q.month, employeeId: q.employeeId),
+);
+
 final payrollRunsProvider = FutureProvider.autoDispose.family<List<PayrollRun>, String>(
   (ref, month) => ref.watch(payrollApiProvider).runs(month: month),
 );
@@ -71,6 +76,7 @@ void invalidateAttendance(WidgetRef ref) {
   ref.invalidate(dashboardProvider);
   ref.invalidate(dayAttendanceProvider);
   ref.invalidate(monthGridProvider);
+  ref.invalidate(employeeMonthProvider);
   ref.invalidate(leavesProvider);
 }
 

@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../api/api_exception.dart';
 import '../i18n/strings.dart';
 import '../theme/app_theme.dart';
+import 'skeleton.dart';
 
 /// Localised, human-friendly text for any error.
 String errorMessage(BuildContext context, Object error) {
@@ -30,7 +31,27 @@ String errorMessage(BuildContext context, Object error) {
 void showSnack(BuildContext context, String message, {bool error = false}) {
   final messenger = ScaffoldMessenger.maybeOf(context);
   messenger?.hideCurrentSnackBar();
-  messenger?.showSnackBar(SnackBar(content: Text(message), backgroundColor: error ? AppColors.absent : null));
+  messenger?.showSnackBar(SnackBar(content: Text(message), backgroundColor: error ? AppColors.red : null));
+}
+
+/// Every save shows a 5-second Undo (flows board: "Trust & safety").
+void showUndoSnackBar(BuildContext context, String message, VoidCallback onUndo) {
+  final messenger = ScaffoldMessenger.maybeOf(context);
+  messenger?.hideCurrentSnackBar();
+  messenger?.showSnackBar(
+    SnackBar(
+      content: Row(
+        children: [
+          const Icon(Icons.check_circle_rounded, color: Color(0xFF7DE0AE), size: 20),
+          const SizedBox(width: 8),
+          Expanded(child: Text(message)),
+        ],
+      ),
+      duration: const Duration(seconds: 5),
+      persist: false,
+      action: SnackBarAction(key: const Key('undoAction'), label: context.s.undo, onPressed: onUndo),
+    ),
+  );
 }
 
 void showError(BuildContext context, Object error) => showSnack(context, errorMessage(context, error), error: true);
@@ -51,7 +72,7 @@ Future<bool> confirmDialog(
       actions: [
         TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(s.cancel)),
         FilledButton(
-          style: destructive ? FilledButton.styleFrom(backgroundColor: AppColors.absent) : null,
+          style: destructive ? FilledButton.styleFrom(backgroundColor: AppColors.red) : null,
           onPressed: () => Navigator.pop(ctx, true),
           child: Text(confirmLabel ?? s.confirm),
         ),
@@ -86,12 +107,12 @@ Future<bool> runGuarded(BuildContext context, Future<void> Function() action, {S
   }
 }
 
+/// Loading placeholder: calm static skeleton rows, never a bare spinner.
 class LoadingView extends StatelessWidget {
-  const LoadingView({super.key});
+  const LoadingView({super.key, this.rows = 4});
+  final int rows;
   @override
-  Widget build(BuildContext context) => const Center(
-    child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator()),
-  );
+  Widget build(BuildContext context) => SkeletonList(count: rows);
 }
 
 class ErrorView extends StatelessWidget {
@@ -108,7 +129,11 @@ class ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(isNetwork ? Icons.wifi_off_rounded : Icons.error_outline_rounded, size: 48, color: Colors.grey),
+            _IconBubble(
+              icon: isNetwork ? Icons.wifi_off_rounded : Icons.error_outline_rounded,
+              color: AppColors.red,
+              bg: AppColors.redLight,
+            ),
             const SizedBox(height: 12),
             Text(
               errorMessage(context, error),
@@ -126,6 +151,7 @@ class ErrorView extends StatelessWidget {
   }
 }
 
+/// Friendly empty state: one icon in a soft circle + one line of text.
 class EmptyView extends StatelessWidget {
   const EmptyView({super.key, required this.message, this.icon = Icons.inbox_outlined, this.action});
   final String message;
@@ -135,21 +161,36 @@ class EmptyView extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Center(
     child: Padding(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 56, color: Colors.grey.shade400),
+          _IconBubble(icon: icon, color: AppColors.mint, bg: AppColors.mintLight),
           const SizedBox(height: 12),
           Text(
             message,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.grey.shade700),
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: AppColors.muted),
           ),
           if (action != null) ...[const SizedBox(height: 16), action!],
         ],
       ),
     ),
+  );
+}
+
+class _IconBubble extends StatelessWidget {
+  const _IconBubble({required this.icon, required this.color, required this.bg});
+  final IconData icon;
+  final Color color;
+  final Color bg;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 72,
+    height: 72,
+    decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
+    child: Icon(icon, size: 34, color: color),
   );
 }
 
@@ -186,29 +227,6 @@ class RefreshableList extends StatelessWidget {
   );
 }
 
-class StatusChip extends StatelessWidget {
-  const StatusChip({super.key, required this.status, this.dense = false});
-  final String? status;
-  final bool dense;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = AppColors.forStatus(status);
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: dense ? 8 : 12, vertical: dense ? 3 : 6),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(20)),
-      child: Text(
-        context.s.statusLabel(status),
-        style: TextStyle(
-          color: Color.lerp(color, Colors.black, 0.35),
-          fontWeight: FontWeight.w700,
-          fontSize: dense ? 12 : 14,
-        ),
-      ),
-    );
-  }
-}
-
 class SectionHeader extends StatelessWidget {
   const SectionHeader(this.title, {super.key, this.trailing});
   final String title;
@@ -216,12 +234,10 @@ class SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(20, 20, 12, 6),
+    padding: const EdgeInsets.fromLTRB(20, 18, 12, 6),
     child: Row(
       children: [
-        Expanded(
-          child: Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.black87)),
-        ),
+        Expanded(child: Text(title, style: Theme.of(context).textTheme.titleMedium)),
         ?trailing,
       ],
     ),
@@ -242,9 +258,9 @@ class FlagChips extends StatelessWidget {
         for (final f in flags)
           Chip(
             visualDensity: VisualDensity.compact,
-            avatar: const Icon(Icons.flag_rounded, size: 16, color: AppColors.late),
-            label: Text(context.s.flagLabel(f), style: const TextStyle(fontSize: 13)),
-            backgroundColor: AppColors.late.withValues(alpha: 0.1),
+            avatar: const Icon(Icons.flag_rounded, size: 16, color: AppColors.amberDark),
+            label: Text(context.s.flagLabel(f), style: const TextStyle(fontSize: 13, color: AppColors.amberDark)),
+            backgroundColor: AppColors.amberLight,
             side: BorderSide.none,
           ),
       ],
@@ -277,7 +293,7 @@ class InitialsAvatar extends StatelessWidget {
   }
 }
 
-/// Language toggle (English / हिन्दी) as a segmented button.
+/// Language toggle (हिन्दी / English) as a segmented button.
 class LanguageToggle extends StatelessWidget {
   const LanguageToggle({super.key, required this.value, required this.onChanged});
   final String value;
@@ -286,8 +302,8 @@ class LanguageToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SegmentedButton<String>(
     segments: [
-      ButtonSegment(value: 'en', label: Text(context.s.english)),
       ButtonSegment(value: 'hi', label: Text(context.s.hindi)),
+      ButtonSegment(value: 'en', label: Text(context.s.english)),
     ],
     selected: {value},
     showSelectedIcon: false,

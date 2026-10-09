@@ -100,6 +100,15 @@ class AttendanceApi implements PunchSyncApi, PunchApi {
     ),
   );
 
+  /// Removes an owner override; the day is recomputed from punches, leave and
+  /// holidays (the returned record may have `status: null`).
+  Future<Attendance> clearOverride({required String employeeId, required String date, required String reason}) async =>
+      Attendance.fromJson(
+        asMap(
+          await _c.post('/attendance/clear-override', body: {'employeeId': employeeId, 'date': date, 'reason': reason}),
+        ),
+      );
+
   Future<Attendance> decidePunch(String attendanceId, String punchId, bool approve) async => Attendance.fromJson(
     asMap(await _c.post('/attendance/$attendanceId/punches/$punchId/decision', body: {'approve': approve})),
   );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/i18n/strings.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/common.dart';
 import '../providers/owner_providers.dart';
 
@@ -23,6 +24,7 @@ class HelpScreen extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.all(16),
               child: FilledButton.icon(
+                style: FilledButton.styleFrom(backgroundColor: AppColors.whatsapp),
                 icon: const Icon(Icons.chat_rounded),
                 label: Text(s.chatOnWhatsApp),
                 onPressed: () => openUrl(context, 'https://wa.me/${whatsapp.replaceAll(RegExp(r'[^0-9]'), '')}'),
@@ -36,7 +38,10 @@ class HelpScreen extends ConsumerWidget {
                 children: [Text(a, style: Theme.of(context).textTheme.bodyLarge)],
               ),
             ),
-          ListTile(title: Text(s.appVersion), trailing: const Text('1.0.0')),
+          ListTile(
+            title: Text(s.appVersion),
+            trailing: const Text('1.0.0', style: TextStyle(color: AppColors.muted)),
+          ),
         ],
       ),
     );

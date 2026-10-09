@@ -5,6 +5,7 @@ import '../../../core/api/providers.dart';
 import '../../../core/i18n/strings.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/dates.dart';
+import '../../../core/widgets/bilingual.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/pickers.dart';
 import '../employee_providers.dart';
@@ -18,14 +19,12 @@ class EmployeeLeaveScreen extends ConsumerWidget {
     final leaves = ref.watch(myLeavesProvider);
     final balances = ref.watch(myLeaveBalancesProvider);
     return Scaffold(
-      appBar: AppBar(title: Text(s.navLeave)),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
           final ok = await showModalBottomSheet<bool>(
             context: context,
             isScrollControlled: true,
             useSafeArea: true,
-            showDragHandle: true,
             builder: (_) => const _ApplyLeaveSheet(),
           );
           if (ok == true) {
@@ -36,96 +35,117 @@ class EmployeeLeaveScreen extends ConsumerWidget {
         icon: const Icon(Icons.add),
         label: Text(s.applyLeave),
       ),
-      body: RefreshableList(
-        onRefresh: () async {
-          ref.invalidate(myLeaveBalancesProvider);
-          ref.invalidate(myLeavesProvider);
-          await ref.read(myLeavesProvider.future);
-        },
-        children: [
-          SectionHeader(s.balances),
-          balances.when(
-            loading: () => const LoadingView(),
-            error: (e, _) => ErrorView(error: e),
-            data: (list) {
-              final b = list.firstOrNull;
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Row(
-                  children: [
-                    _BalanceTile(label: s.paidLeft(b?.paidLeft ?? 0), color: AppColors.leave),
-                    _BalanceTile(label: s.sickLeft(b?.sickLeft ?? 0), color: AppColors.holiday),
-                  ],
-                ),
-              );
-            },
-          ),
-          SectionHeader(s.myLeaves),
-          leaves.when(
-            loading: () => const LoadingView(),
-            error: (e, _) => ErrorView(error: e, onRetry: () => ref.invalidate(myLeavesProvider)),
-            data: (list) => list.isEmpty
-                ? EmptyView(message: s.nothingHere, icon: Icons.beach_access_outlined)
-                : Column(
+      body: SafeArea(
+        child: RefreshableList(
+          onRefresh: () async {
+            ref.invalidate(myLeaveBalancesProvider);
+            ref.invalidate(myLeavesProvider);
+            await ref.read(myLeavesProvider.future);
+          },
+          children: [
+            ScreenHeader(subtitle: s.navLeaveBi.joined, title: s.myLeaves),
+            SectionHeader(s.balances),
+            balances.when(
+              loading: () => const LoadingView(),
+              error: (e, _) => ErrorView(error: e),
+              data: (list) {
+                final b = list.firstOrNull;
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Row(
                     children: [
-                      for (final l in list)
-                        Card(
-                          child: ListTile(
-                            leading: const Icon(Icons.beach_access_rounded, color: AppColors.leave),
-                            title: Text(s.leaveTypeLabel(l.type)),
-                            subtitle: Text(
-                              [
-                                '${Dates.prettyApiDate(l.from, s.languageCode)} → ${Dates.prettyApiDate(l.to, s.languageCode)}',
-                                if (l.halfDay) s.halfDayLeave,
-                                if (l.note != null && l.note!.isNotEmpty) l.note!,
-                              ].join(' · '),
-                            ),
-                            trailing: l.isPending
-                                ? TextButton(
-                                    onPressed: () async {
-                                      if (await runGuarded(context, () => ref.read(leaveApiProvider).cancel(l.id))) {
-                                        ref.invalidate(myLeavesProvider);
-                                      }
-                                    },
-                                    child: Text(s.cancelLeave),
-                                  )
-                                : Text(
-                                    s.leaveStatusLabel(l.status),
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      color: l.status == 'approved'
-                                          ? AppColors.mint
-                                          : l.status == 'rejected'
-                                          ? AppColors.absent
-                                          : Colors.black54,
-                                    ),
-                                  ),
-                          ),
-                        ),
+                      _BalanceTile(
+                        label: s.paidLeft(b?.paidLeft ?? 0),
+                        icon: Icons.beach_access_rounded,
+                        fg: AppColors.indigo,
+                        bg: AppColors.indigoLight,
+                      ),
+                      _BalanceTile(
+                        label: s.sickLeft(b?.sickLeft ?? 0),
+                        icon: Icons.medical_services_rounded,
+                        fg: AppColors.orange,
+                        bg: AppColors.orangeLight,
+                      ),
                     ],
                   ),
-          ),
-        ],
+                );
+              },
+            ),
+            SectionHeader(s.myLeaves),
+            leaves.when(
+              loading: () => const LoadingView(),
+              error: (e, _) => ErrorView(error: e, onRetry: () => ref.invalidate(myLeavesProvider)),
+              data: (list) => list.isEmpty
+                  ? EmptyView(message: s.nothingHere, icon: Icons.beach_access_outlined)
+                  : Column(
+                      children: [
+                        for (final l in list)
+                          Card(
+                            child: ListTile(
+                              leading: const Icon(Icons.beach_access_rounded, color: AppColors.indigo),
+                              title: Text(s.leaveTypeLabel(l.type)),
+                              subtitle: Text(
+                                [
+                                  '${Dates.prettyApiDate(l.from, s.languageCode)} – ${Dates.prettyApiDate(l.to, s.languageCode)}',
+                                  if (l.halfDay) s.halfDayLeave,
+                                  if (l.note != null && l.note!.isNotEmpty) l.note!,
+                                ].join(' · '),
+                              ),
+                              trailing: l.isPending
+                                  ? TextButton(
+                                      onPressed: () async {
+                                        if (await runGuarded(context, () => ref.read(leaveApiProvider).cancel(l.id))) {
+                                          ref.invalidate(myLeavesProvider);
+                                        }
+                                      },
+                                      child: Text(s.cancelLeave),
+                                    )
+                                  : Text(
+                                      s.leaveStatusLabel(l.status),
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        color: l.status == 'approved'
+                                            ? AppColors.mint
+                                            : l.status == 'rejected'
+                                            ? AppColors.red
+                                            : AppColors.muted,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                      ],
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
 class _BalanceTile extends StatelessWidget {
-  const _BalanceTile({required this.label, required this.color});
+  const _BalanceTile({required this.label, required this.icon, required this.fg, required this.bg});
   final String label;
-  final Color color;
+  final IconData icon;
+  final Color fg;
+  final Color bg;
 
   @override
   Widget build(BuildContext context) => Expanded(
     child: Container(
       margin: const EdgeInsets.all(4),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(16)),
-      child: Text(
-        label,
-        textAlign: TextAlign.center,
-        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        children: [
+          Icon(icon, color: fg),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: fg),
+          ),
+        ],
       ),
     ),
   );

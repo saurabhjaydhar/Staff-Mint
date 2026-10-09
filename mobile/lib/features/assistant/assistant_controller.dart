@@ -1,42 +1,56 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/api/api_exception.dart';
 import '../../core/api/providers.dart';
 import '../../core/models/models.dart';
 import '../auth/auth_controller.dart';
 
 class ChatMessage {
-  const ChatMessage.user(this.text, {this.isVoice = false})
+  ChatMessage.user(this.text, {this.isVoice = false, this.voiceDuration, this.transcript, DateTime? at})
     : fromUser = true,
       reply = null,
       resolved = false,
-      error = null;
+      error = null,
+      at = at ?? DateTime.now();
 
-  const ChatMessage.assistant(AssistantReply this.reply, {this.resolved = false})
+  ChatMessage.assistant(AssistantReply this.reply, {this.resolved = false, DateTime? at})
     : fromUser = false,
       text = '',
       isVoice = false,
-      error = null;
+      voiceDuration = null,
+      transcript = null,
+      error = null,
+      at = at ?? DateTime.now();
 
-  const ChatMessage.error(Object this.error)
+  ChatMessage.error(Object this.error)
     : fromUser = false,
       text = '',
       isVoice = false,
+      voiceDuration = null,
+      transcript = null,
       reply = null,
-      resolved = true;
+      resolved = true,
+      at = DateTime.now();
 
   final bool fromUser;
   final String text;
   final bool isVoice;
+  final Duration? voiceDuration;
+
+  /// What Mint heard (voice notes), when the server reports it.
+  final String? transcript;
   final AssistantReply? reply;
 
   /// For confirm/choose replies: true once the user acted on it.
   final bool resolved;
   final Object? error;
+  final DateTime at;
 
   bool get needsAction => !resolved && reply != null && (reply!.kind == 'confirm' || reply!.kind == 'choose');
 
-  ChatMessage resolve() => reply == null ? this : ChatMessage.assistant(reply!, resolved: true);
+  ChatMessage resolve() => reply == null ? this : ChatMessage.assistant(reply!, resolved: true, at: at);
+
+  ChatMessage withTranscript(String t) =>
+      ChatMessage.user(text, isVoice: isVoice, voiceDuration: voiceDuration, transcript: t, at: at);
 }
 
 class AssistantState {
@@ -71,9 +85,9 @@ class AssistantController extends Notifier<AssistantState> {
     await _run(() => ref.read(assistantApiProvider).message(text: t, sessionId: state.sessionId));
   }
 
-  Future<void> sendVoice(String audioBase64, String mime, String label) async {
+  Future<void> sendVoice(String audioBase64, String mime, String label, {Duration? duration}) async {
     if (state.sending) return;
-    _push(ChatMessage.user(label, isVoice: true));
+    _push(ChatMessage.user(label, isVoice: true, voiceDuration: duration));
     await _run(
       () =>
           ref.read(assistantApiProvider).message(audioBase64: audioBase64, audioMime: mime, sessionId: state.sessionId),
@@ -99,13 +113,16 @@ class AssistantController extends Notifier<AssistantState> {
     state = state.copyWith(sending: true);
     try {
       final reply = await call();
+      final messages = [...state.messages];
+      final heard = reply.transcript;
+      if (heard != null && heard.isNotEmpty && messages.isNotEmpty && messages.last.isVoice) {
+        messages[messages.length - 1] = messages.last.withTranscript(heard);
+      }
       state = state.copyWith(
-        messages: [...state.messages, ChatMessage.assistant(reply)],
+        messages: [...messages, ChatMessage.assistant(reply)],
         sessionId: reply.sessionId ?? state.sessionId,
         sending: false,
       );
-    } on ApiException catch (e) {
-      state = state.copyWith(messages: [...state.messages, ChatMessage.error(e)], sending: false);
     } catch (e) {
       state = state.copyWith(messages: [...state.messages, ChatMessage.error(e)], sending: false);
     }
