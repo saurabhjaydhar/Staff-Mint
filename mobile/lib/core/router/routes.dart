@@ -32,4 +32,5 @@ class Routes {
   static const employeeLeave = '/employee/leave';
   static const employeeSalary = '/employee/salary';
   static const employeeProfile = '/employee/profile';
+  static const employeeFace = '/employee/profile/face';
 }

@@ -1,5 +1,6 @@
 import '../utils/json.dart';
 import 'attendance.dart';
+import 'employee.dart';
 import 'leave.dart';
 
 class DashboardCounts {
@@ -37,6 +38,7 @@ class Dashboard {
     required this.counts,
     this.leaveRequests = const [],
     this.punchApprovals = const [],
+    this.faceEnrollments = const [],
     this.flags = const [],
     this.staffCount = 0,
     this.staffLimit = 0,
@@ -46,11 +48,12 @@ class Dashboard {
   final DashboardCounts counts;
   final List<Leave> leaveRequests;
   final List<PunchApprovalItem> punchApprovals;
+  final List<FaceEnrollment> faceEnrollments;
   final List<FlagItem> flags;
   final int staffCount;
   final int staffLimit;
 
-  int get needsActionCount => leaveRequests.length + punchApprovals.length + flags.length;
+  int get needsActionCount => leaveRequests.length + punchApprovals.length + faceEnrollments.length + flags.length;
 
   factory Dashboard.fromJson(Json j) {
     final na = asMap(j['needsAction']);
@@ -60,6 +63,7 @@ class Dashboard {
       counts: DashboardCounts.fromJson(asMap(j['counts'])),
       leaveRequests: asList(na['leaveRequests'], Leave.fromJson),
       punchApprovals: asList(na['punchApprovals'], PunchApprovalItem.fromJson),
+      faceEnrollments: asList(na['faceEnrollments'], FaceEnrollment.fromJson),
       flags: asList(na['flags'], FlagItem.fromJson),
       staffCount: asInt(plan['staffCount']),
       staffLimit: asInt(plan['staffLimit']),

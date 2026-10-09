@@ -10,6 +10,7 @@ import '../../features/employee/attendance/employee_attendance_screen.dart';
 import '../../features/employee/consent/consent_screen.dart';
 import '../../features/employee/home/employee_home_screen.dart';
 import '../../features/employee/leave/employee_leave_screen.dart';
+import '../../features/employee/face/face_setup_screen.dart';
 import '../../features/employee/profile/employee_profile_screen.dart';
 import '../../features/employee/salary/employee_salary_screen.dart';
 import '../../features/employee/shell/employee_shell.dart';
@@ -134,7 +135,15 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(routes: [r(Routes.employeeAttendance, (_) => const EmployeeAttendanceScreen())]),
           StatefulShellBranch(routes: [r(Routes.employeeLeave, (_) => const EmployeeLeaveScreen())]),
           StatefulShellBranch(routes: [r(Routes.employeeSalary, (_) => const EmployeeSalaryScreen())]),
-          StatefulShellBranch(routes: [r(Routes.employeeProfile, (_) => const EmployeeProfileScreen())]),
+          StatefulShellBranch(
+            routes: [
+              r(
+                Routes.employeeProfile,
+                (_) => const EmployeeProfileScreen(),
+                routes: [GoRoute(path: 'face', builder: (_, _) => const FaceSetupScreen())],
+              ),
+            ],
+          ),
         ],
       ),
     ],

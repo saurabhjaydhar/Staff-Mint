@@ -30,6 +30,14 @@ class EmployeesApi {
 
   Future<Employee> get(String id) async => Employee.fromJson(asMap(await _c.get('/employees/$id')));
 
+  Future<FaceInfo> face(String id) async => FaceInfo.fromJson(asMap(await _c.get('/employees/$id/face')));
+
+  Future<FaceInfo> approveFace(String id) async =>
+      FaceInfo.fromJson(asMap(await _c.post('/employees/$id/face/approve')));
+
+  /// Deletes the photo; the staff member is asked to set it up again.
+  Future<FaceInfo> resetFace(String id) async => FaceInfo.fromJson(asMap(await _c.delete('/employees/$id/face')));
+
   Future<Employee> update(String id, Json partial) async =>
       Employee.fromJson(asMap(await _c.patch('/employees/$id', body: partial)));
 

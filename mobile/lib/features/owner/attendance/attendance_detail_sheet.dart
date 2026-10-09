@@ -291,6 +291,18 @@ class _PunchCard extends StatelessWidget {
                           label: Text(s.openMap),
                         ),
                       ],
+                      if (p.faceResult != null)
+                        Text(
+                          [
+                            s.faceResultLabel(p.faceResult),
+                            if (p.faceSimilarity != null) '${p.faceSimilarity!.round()}%',
+                          ].join(' · '),
+                          key: Key('faceResult_${p.id}'),
+                          style: TextStyle(
+                            color: p.faceFlagged ? AppColors.red : AppColors.muted,
+                            fontWeight: p.faceFlagged ? FontWeight.w700 : FontWeight.w400,
+                          ),
+                        ),
                       if (p.lockCheck != null)
                         Text(
                           '${s.phoneLockLabel}: ${s.lockCheckLabel(p.lockCheck)}',

@@ -50,7 +50,7 @@ class _FakeCapture implements PunchCapture {
   @override
   Future<CapturedLocation> location() async => const CapturedLocation(lat: 28.6, lng: 77.2, accuracyM: 12);
   @override
-  Future<String?> selfie() async {
+  Future<String?> selfie(BuildContext context, {bool live = false}) async {
     selfies++;
     return 'c2VsZmll';
   }

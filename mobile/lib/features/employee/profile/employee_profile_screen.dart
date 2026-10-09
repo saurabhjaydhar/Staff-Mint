@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/i18n/locale_provider.dart';
 import '../../../core/i18n/strings.dart';
+import '../../../core/router/routes.dart';
 import '../../../core/utils/phone.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/bilingual.dart';
@@ -42,6 +44,15 @@ class EmployeeProfileScreen extends ConsumerWidget {
                 children: [
                   if (session.company != null)
                     ListTile(leading: const Icon(Icons.storefront_rounded), title: Text(session.company!.name)),
+                  if (session.company?.settings.faceMatchPolicy == 'review' || (emp?.faceStatus ?? 'none') != 'none')
+                    ListTile(
+                      key: const Key('faceTile'),
+                      leading: const Icon(Icons.face_retouching_natural_rounded),
+                      title: Text(s.faceCheckBi.text),
+                      subtitle: Text(s.faceStatusLabel(emp?.faceStatus ?? 'none')),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () => context.push(Routes.employeeFace),
+                    ),
                   ListTile(
                     leading: const Icon(Icons.translate_rounded),
                     title: Text(s.language),

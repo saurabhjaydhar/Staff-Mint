@@ -74,6 +74,7 @@ class CompanySettings {
     this.sickLeavePaid = true,
     this.outsideGeofencePolicy = 'block',
     this.phoneLockPolicy = 'recommended',
+    this.faceMatchPolicy = 'off',
     this.language = 'en',
     this.digestTime = '09:30',
     this.roundToRupee = true,
@@ -94,6 +95,9 @@ class CompanySettings {
 
   /// off | recommended | required — ask the phone's own screen lock at check-in.
   final String phoneLockPolicy;
+
+  /// off | review — compare check-in selfies with approved face photos.
+  final String faceMatchPolicy;
   final String language;
   final String digestTime;
   final bool roundToRupee;
@@ -112,6 +116,7 @@ class CompanySettings {
     sickLeavePaid: asBool(j['sickLeavePaid'], true),
     outsideGeofencePolicy: asString(j['outsideGeofencePolicy'], 'block'),
     phoneLockPolicy: asString(j['phoneLockPolicy'], 'recommended'),
+    faceMatchPolicy: asString(j['faceMatchPolicy'], 'off'),
     language: asString(j['language'], 'en'),
     digestTime: asString(j['digestTime'], '09:30'),
     roundToRupee: asBool(j['roundToRupee'], true),
@@ -131,6 +136,7 @@ class CompanySettings {
     'sickLeavePaid': sickLeavePaid,
     'outsideGeofencePolicy': outsideGeofencePolicy,
     'phoneLockPolicy': phoneLockPolicy,
+    'faceMatchPolicy': faceMatchPolicy,
     'language': language,
     'digestTime': digestTime,
     'roundToRupee': roundToRupee,

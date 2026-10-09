@@ -72,9 +72,12 @@ class LeaveDecisionCard extends StatelessWidget {
 
 /// Reject (red outline) + Approve (mint) pair.
 class DecisionButtons extends StatelessWidget {
-  const DecisionButtons({super.key, required this.busy, required this.onDecide});
+  const DecisionButtons({super.key, required this.busy, required this.onDecide, this.rejectLabel});
   final bool busy;
   final ValueChanged<bool> onDecide;
+
+  /// Overrides "Reject" (e.g. "Ask for a new photo").
+  final String? rejectLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -89,7 +92,7 @@ class DecisionButtons extends StatelessWidget {
             ),
             onPressed: busy ? null : () => onDecide(false),
             icon: const Icon(Icons.close_rounded),
-            label: Text(s.reject),
+            label: Text(rejectLabel ?? s.reject, maxLines: 1, overflow: TextOverflow.ellipsis),
           ),
         ),
         const SizedBox(width: 10),
