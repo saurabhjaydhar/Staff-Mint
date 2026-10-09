@@ -55,6 +55,12 @@ attendanceRouter.post('/override', requireRole('owner', 'manager'), async (req, 
   res.json({ data: await svc.attendanceView(await svc.overrideDay(ctxOf(req), b)) });
 });
 
+attendanceRouter.post('/clear-override', requireRole('owner', 'manager'), async (req, res) => {
+  const b = body(req, z.object({ employeeId: z.string(), date: zDate, reason: z.string().trim().min(2).max(300) }));
+  const r = await svc.clearOverride(ctxOf(req), b);
+  res.json({ data: r ? await svc.attendanceView(r) : null });
+});
+
 attendanceRouter.post('/:id/punches/:punchId/decision', requireRole('owner', 'manager'), async (req, res) => {
   const b = body(req, z.object({ approve: z.boolean() }));
   const punchId = String(req.params.punchId);

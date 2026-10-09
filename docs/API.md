@@ -120,6 +120,7 @@ Fields: `name, phone, ratePaise, wageType, designation, joiningDate, branch, adv
 | GET | /attendance/month | `?month=YYYY-MM&employeeId?` (employee: own only) | `{month, days:string[], rows: {employee, days: {[date]: displayStatus}, totals}[]}` |
 | POST | /attendance/override | `{employeeId, date, status, leaveType?, reason}` (owner/manager) | `Attendance` (audited) |
 | POST | /attendance/:id/punches/:punchId/decision | `{approve:boolean}` | `Attendance` |
+| POST | /attendance/clear-override | `{employeeId, date, reason}` (owner/manager) | `Attendance` with status recomputed from punches/leave/holiday (may be `null`), or `null` if no record. Used for Undo |
 
 ### Leave
 | GET | /leaves | `?status&employeeId` (employee → own) | `Leave[]` |

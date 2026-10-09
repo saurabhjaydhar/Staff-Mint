@@ -1,0 +1,57 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="common.css">
+<style>
+:root{--font:'Plus Jakarta Sans',sans-serif;--display:'Plus Jakarta Sans',sans-serif}
+body{background:#F4F6F5}
+.grid{display:grid;grid-template-columns:200px 1fr 1fr 110px;gap:0;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 10px 30px -18px rgba(0,0,0,.25)}
+.h{background:#0F1A14;color:#fff;font-size:13px;font-weight:700;padding:12px 14px;letter-spacing:.3px}
+.c{padding:14px;border-top:1px solid #EEF1EF;font-size:13px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.task{font-weight:800;font-size:15px;flex-direction:column;align-items:flex-start;gap:2px}.task span{font-weight:500;font-size:12px;color:#6b776f}
+.s{background:#F1F3F2;border-radius:10px;padding:5px 9px;font-weight:600}.s.new{background:#E3F7EE;color:#0F7A4E}
+.ar{color:#9aa59f;font-weight:700}
+.win{font-weight:800;font-size:20px;color:#1FA971;flex-direction:column;align-items:flex-start;gap:0}.win span{font-size:11px;color:#6b776f;font-weight:600}
+.g{margin-top:22px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.g div{background:#fff;border-radius:18px;padding:14px;font-size:13px;line-height:1.45;box-shadow:0 6px 20px -16px rgba(0,0,0,.3)}.g b{display:block;font-size:14.5px;margin-bottom:4px}
+</style></head><body>
+<div class="title"><h1>Flow first: smoother journeys</h1><span>these apply with any style · ordered by how often owners do them</span></div>
+<div class="sub">Goal: the daily jobs take fewer taps, less typing and no dead ends. Actions happen where the owner already is (the notification, the Today screen, a voice command), and every save can be undone.</div>
+<div class="grid">
+ <div class="h">Task</div><div class="h">Today</div><div class="h">Proposed</div><div class="h">Saving</div>
+ <div class="c task">Approve leave<span>daily · owner</span></div>
+ <div class="c"><span class="s">Push opens app</span><span class="ar">→</span><span class="s">Scroll Home</span><span class="ar">→</span><span class="s">Approve</span></div>
+ <div class="c"><span class="s new">Approve / Reject buttons right in the notification</span><span class="ar">or</span><span class="s new">Swipe card on Today</span></div>
+ <div class="c win">0–1 tap<span>from 3 + scroll</span></div>
+
+ <div class="c task">Fix someone's attendance<span>daily · owner</span></div>
+ <div class="c"><span class="s">Attendance tab</span><span class="ar">→</span><span class="s">Tap person</span><span class="ar">→</span><span class="s">Pick status</span><span class="ar">→</span><span class="s">Type reason</span><span class="ar">→</span><span class="s">Save</span></div>
+ <div class="c"><span class="s new">Tap status pill to cycle P → HD → A → L</span><span class="ar">→</span><span class="s new">Quick-reason chips</span><span class="ar">→</span><span class="s new">Auto-save + Undo</span></div>
+ <div class="c win">2 taps<span>from 5 + typing</span></div>
+
+ <div class="c task">Staff check-in<span>2× daily · employee</span></div>
+ <div class="c"><span class="s">Check in</span><span class="ar">→</span><span class="s">Camera</span><span class="ar">→</span><span class="s">Shutter</span><span class="ar">→</span><span class="s">Confirm</span></div>
+ <div class="c"><span class="s new">GPS ready before tap</span><span class="ar">→</span><span class="s new">Tap: camera auto-captures when a face is seen</span><span class="ar">→</span><span class="s new">Success + vibration</span></div>
+ <div class="c win">1 tap<span>from 3 · ~2 s</span></div>
+
+ <div class="c task">Ask Mint / voice<span>daily · owner</span></div>
+ <div class="c"><span class="s">Find Mint button</span><span class="ar">→</span><span class="s">Full-screen chat</span><span class="ar">→</span><span class="s">Type</span><span class="ar">→</span><span class="s">Confirm</span></div>
+ <div class="c"><span class="s new">Centre mic on every tab: hold & speak</span><span class="ar">→</span><span class="s new">Result as a sheet over the current screen</span><span class="ar">→</span><span class="s new">Confirm · Undo</span></div>
+ <div class="c win">1 hold<span>no screen change</span></div>
+
+ <div class="c task">Month-end salary<span>monthly · owner</span></div>
+ <div class="c"><span class="s">Salary tab</span><span class="ar">→</span><span class="s">Scan all staff</span><span class="ar">→</span><span class="s">Approve</span><span class="ar">→</span><span class="s">Send</span><span class="ar">→</span><span class="s">Mark paid</span></div>
+ <div class="c"><span class="s new">"Salary day" guided flow (3 steps)</span><span class="ar">→</span><span class="s new">Only flagged staff shown</span><span class="ar">→</span><span class="s new">Approve &amp; send in one button</span><span class="ar">→</span><span class="s new">Cash needed: ₹70,500</span></div>
+ <div class="c win">3 steps<span>from 5 + scanning</span></div>
+
+ <div class="c task">First-time setup<span>once · owner</span></div>
+ <div class="c"><span class="s">5 screens</span><span class="ar">→</span><span class="s">Tap map</span><span class="ar">→</span><span class="s">Pick times</span><span class="ar">→</span><span class="s">Add staff one by one</span></div>
+ <div class="c"><span class="s new">Use current location first</span><span class="ar">→</span><span class="s new">Times pre-filled by business type</span><span class="ar">→</span><span class="s new">Pick many contacts at once</span><span class="ar">→</span><span class="s new">Invite staff by WhatsApp link</span></div>
+ <div class="c win">&lt;3 min<span>to first check-in</span></div>
+</div>
+<div class="g">
+ <div><b>Navigation</b>4 tabs (Today · Staff · Salary · More) + centre Mint mic. Attendance moves into Today and the staff profile.</div>
+ <div><b>Feels faster</b>Skeleton loaders instead of spinners, numbers that count up, smooth page transitions, pull-to-refresh everywhere.</div>
+ <div><b>Trust &amp; safety</b>Every save shows a 5-second Undo; money actions need a swipe or hold; offline state is always visible.</div>
+ <div><b>Accessibility</b>48 dp+ touch targets, larger Hindi line-height, sunlight-readable contrast, voice on every screen, vibration feedback.</div>
+</div>
+</body></html>

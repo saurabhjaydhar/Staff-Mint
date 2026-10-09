@@ -1,0 +1,158 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="common.css">
+<style>
+:root{--font:'Mukta',sans-serif;--display:'Mukta',sans-serif;--ink:#1C1A17;--mint:#1E9E64;--mintL:#E3F5EC;--red:#D64545;--redL:#FCE9E7;--amb:#E39A0B;--ambL:#FFF2D6;--ind:#5146E0;--indL:#ECEBFF;--paper:#FFFDF7;--line:#EDE5D3;--mut:#7B7262}
+body{background:#F3EEE3}
+.phone{background:var(--paper);color:var(--ink)}
+.row+.row{margin-top:34px}
+.top{padding:2px 18px 0;display:flex;justify-content:space-between;align-items:center}
+.top .h{font-size:23px;font-weight:800;line-height:1.05}.top .s{font-size:13px;color:var(--mut)}
+.lang{border:1.5px solid var(--ink);border-radius:999px;padding:2px 10px;font-size:13px;font-weight:700}
+/* ledger day sheet */
+.sheet{margin:12px 14px 0;background:#fff;border:1.5px solid var(--line);border-radius:18px;overflow:hidden;position:relative}
+.sheet:before{content:'';position:absolute;left:44px;top:0;bottom:0;width:1.5px;background:#F4C7C3}
+.sh{display:flex;justify-content:space-between;align-items:flex-end;padding:12px 14px 10px 56px;border-bottom:1.5px solid var(--line);background:repeating-linear-gradient(#fff 0 31px,#F5EFE2 31px 32px)}
+.sh .big{font-size:44px;font-weight:800;line-height:.9}.sh .big small{font-size:20px;color:var(--mut)}
+.sh .lbl{font-size:13px;color:var(--mut);font-weight:600}
+.tot{display:flex;gap:6px}.tot span{font-size:12px;font-weight:700;border-radius:8px;padding:2px 7px}
+.lr{display:flex;align-items:center;height:40px;padding:0 12px 0 0;border-bottom:1px solid #F3EDDF;font-size:15px}
+.lr .i{width:44px;text-align:center;font-size:12px;color:var(--mut)}
+.lr .nm{flex:1;padding-left:12px;font-weight:600}.lr .tm{font-size:12.5px;color:var(--mut);margin-right:8px}
+.st{min-width:66px;text-align:center;border-radius:9px;font-size:12.5px;font-weight:800;padding:2px 6px}
+.P{background:var(--mintL);color:var(--mint)}.L{background:var(--ambL);color:#A86E00}.A{background:var(--redL);color:var(--red)}.V{background:var(--indL);color:var(--ind)}.N{background:#F1EEE6;color:var(--mut)}
+.need{margin:12px 14px 0;background:var(--ink);color:#fff;border-radius:18px;padding:12px 14px;display:flex;align-items:center;gap:10px}
+.need b{font-size:15px}.need span{font-size:12.5px;opacity:.75;display:block}
+.need .go{margin-left:auto;background:var(--mint);border-radius:12px;padding:7px 12px;font-weight:800;font-size:14px}
+.nav{position:absolute;bottom:0;left:0;right:0;height:82px;background:#fff;border-top:1.5px solid var(--line);display:flex;justify-content:space-around;align-items:center;padding-bottom:12px;font-size:12px;font-weight:700;color:var(--mut)}
+.nav div{text-align:center;line-height:1.1}.nav .on{color:var(--ink)}.nav .i{font-size:19px;display:block}
+.nav small{display:block;font-size:9.5px;font-weight:500}
+.mic{width:62px;height:62px;border-radius:50%;background:var(--mint);color:#fff;display:grid;place-items:center;font-size:25px;margin-top:-30px;border:5px solid var(--paper);box-shadow:0 8px 18px -6px rgba(30,158,100,.6)}
+/* employee */
+.loc{margin:12px 16px 0;display:flex;gap:8px}.loc div{flex:1;background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:8px 10px;font-size:13px;font-weight:600}.loc small{display:block;color:var(--mut);font-weight:500;font-size:11.5px}
+.ok{color:var(--mint)}
+.press{margin:26px auto 0;width:230px;height:230px;border-radius:50%;background:var(--mint);color:#fff;display:grid;place-items:center;text-align:center;box-shadow:0 0 0 12px var(--mintL),0 0 0 24px #F0FAF4,0 18px 30px -10px rgba(30,158,100,.6)}
+.press b{font-size:30px;font-weight:800;display:block;line-height:1}.press span{font-size:15px;opacity:.95}
+.month{margin:30px 16px 0;background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:10px 12px}
+.dots{display:flex;gap:4px;margin-top:6px}.dots i{flex:1;height:22px;border-radius:6px}
+/* success */
+.succ{position:absolute;inset:0;background:var(--mint);color:#fff;display:flex;flex-direction:column;align-items:center;padding-top:120px;text-align:center}
+.tick{width:120px;height:120px;border-radius:50%;background:#fff;color:var(--mint);display:grid;place-items:center;font-size:66px;font-weight:800;box-shadow:0 0 0 16px rgba(255,255,255,.18),0 0 0 32px rgba(255,255,255,.08)}
+.succ h2{font-size:32px;margin-top:34px;line-height:1.05}.succ p{font-size:16px;opacity:.92;margin-top:6px}
+.rc{margin-top:26px;width:300px;background:#fff;color:var(--ink);border-radius:18px;padding:12px 16px;text-align:left;font-size:14px}
+.rc div{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed var(--line)}.rc div:last-child{border:0}.rc span{color:var(--mut)}
+.done{position:absolute;bottom:34px;left:24px;right:24px;height:56px;border-radius:18px;background:rgba(0,0,0,.18);display:grid;place-items:center;font-weight:800;font-size:17px}
+/* whatsapp-like mint */
+.wa{position:absolute;top:34px;left:0;right:0;bottom:0;background:#EFE7DB url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cg fill='%23e2d8c6' fill-opacity='.55'%3E%3Ccircle cx='8' cy='8' r='2'/%3E%3Ccircle cx='38' cy='26' r='1.6'/%3E%3Cpath d='M20 44h6v2h-6z'/%3E%3C/g%3E%3C/svg%3E")}
+.wah{background:var(--ink);color:#fff;height:58px;display:flex;align-items:center;gap:10px;padding:0 14px}
+.wah .av{width:38px;height:38px;border-radius:50%;background:var(--mint);display:grid;place-items:center;font-weight:800}
+.wah b{font-size:17px;display:block;line-height:1.1}.wah span{font-size:12px;opacity:.7}
+.msgs{padding:12px 10px}
+.m{max-width:82%;border-radius:12px;padding:7px 10px 4px;font-size:15px;line-height:1.35;margin-bottom:8px;box-shadow:0 1px 1px rgba(0,0,0,.08);position:relative}
+.m .t{font-size:10.5px;color:var(--mut);text-align:right;margin-top:2px}
+.out{margin-left:auto;background:#D7F8C8;border-top-right-radius:2px}.in{background:#fff;border-top-left-radius:2px}
+.voice{display:flex;align-items:center;gap:8px;min-width:230px}.voice .pl{width:30px;height:30px;border-radius:50%;background:var(--mint);color:#fff;display:grid;place-items:center;font-size:12px}
+.wave{flex:1;height:20px;background:repeating-linear-gradient(90deg,#5aa874 0 2px,transparent 2px 5px);mask:linear-gradient(90deg,#000 0 60%,rgba(0,0,0,.35) 60%);-webkit-mask:radial-gradient(ellipse at center,#000 55%,transparent 56%)}
+.rcpt{background:#fff;border-radius:12px;overflow:hidden;width:82%;box-shadow:0 1px 1px rgba(0,0,0,.08)}
+.rcpt .hd{background:var(--mintL);padding:8px 12px;font-weight:800;font-size:14.5px;color:var(--mint)}
+.rcpt .bd{padding:6px 12px;font-size:14px}.rcpt .bd div{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed var(--line)}.rcpt .bd span{color:var(--mut)}
+.rcpt .bt{display:flex;border-top:1px solid var(--line)}.rcpt .bt div{flex:1;text-align:center;padding:9px 0;font-weight:800;font-size:14.5px;color:var(--mint)}.rcpt .bt div+div{border-left:1px solid var(--line)}
+.wai{position:absolute;bottom:12px;left:8px;right:8px;display:flex;gap:8px;align-items:center}
+.wai .f{flex:1;height:48px;background:#fff;border-radius:24px;display:flex;align-items:center;padding:0 16px;color:var(--mut);font-size:15px}
+.wai .mc{width:50px;height:50px;border-radius:50%;background:var(--mint);color:#fff;display:grid;place-items:center;font-size:21px}
+.sug{position:absolute;bottom:70px;left:10px;right:10px;display:flex;gap:6px;overflow:hidden}.sug div{background:#fff;border-radius:999px;padding:5px 11px;font-size:13px;font-weight:700;white-space:nowrap;color:var(--mint);border:1px solid #CDEBDB}
+/* salary day */
+.steps{display:flex;gap:6px;margin:12px 16px 0}.steps div{flex:1;height:6px;border-radius:6px;background:var(--line)}.steps .d{background:var(--mint)}
+.stl{display:flex;justify-content:space-between;margin:6px 16px 0;font-size:12px;color:var(--mut);font-weight:600}
+.cash{margin:14px 16px 0;background:var(--ink);color:#fff;border-radius:20px;padding:16px}
+.cash .k{font-size:13px;opacity:.75}.cash .v{font-size:44px;font-weight:800;line-height:1;margin-top:2px}
+.cash .br{display:flex;gap:14px;margin-top:10px;font-size:12.5px;opacity:.85}
+.flag{margin:12px 16px 0;background:#fff;border:1.5px solid #F6D58A;border-radius:16px;padding:10px 12px}
+.flag b{font-size:14.5px}.flag p{font-size:13px;color:var(--mut);line-height:1.35}.flag .fx{display:flex;gap:8px;margin-top:8px}.flag .fx span{border:1.5px solid var(--ink);border-radius:10px;padding:3px 10px;font-size:13px;font-weight:700}
+.allok{margin:10px 16px 0;font-size:13.5px;color:var(--mint);font-weight:700}
+.slide{position:absolute;bottom:30px;left:16px;right:16px;height:62px;border-radius:999px;background:var(--mint);display:flex;align-items:center;padding:5px;color:#fff;font-weight:800;font-size:16px}
+.slide .k{width:52px;height:52px;border-radius:50%;background:#fff;color:var(--mint);display:grid;place-items:center;font-size:22px;margin-right:14px}
+/* payslip receipt */
+.slip{margin:14px 16px 0;background:#fff;border-radius:6px 6px 0 0;padding:16px 16px 22px;position:relative;box-shadow:0 10px 24px -14px rgba(0,0,0,.35)}
+.slip:after{content:'';position:absolute;left:0;right:0;bottom:-12px;height:12px;background:linear-gradient(-45deg,transparent 8px,#fff 0) 0 0/16px 12px,linear-gradient(45deg,transparent 8px,#fff 0) 0 0/16px 12px}
+.slip .co{font-size:13px;color:var(--mut)}.slip h3{font-size:19px;line-height:1.1}
+.slip .net{font-size:40px;font-weight:800;margin:8px 0 2px}.slip .net small{font-size:13px;color:var(--mut);font-weight:600;display:block}
+.slip .ln{display:flex;justify-content:space-between;font-size:14px;padding:5px 0;border-top:1px dashed var(--line)}
+.slip .ln.minus b{color:var(--red)}.slip .ln.plus b{color:var(--mint)}
+.why{font-size:12.5px;color:var(--mut);background:#FBF8F0;border-radius:10px;padding:7px 9px;margin-top:8px;line-height:1.35}
+.stamp{position:absolute;right:14px;top:58px;border:3px solid var(--mint);color:var(--mint);border-radius:10px;padding:2px 10px;font-weight:800;font-size:20px;transform:rotate(-12deg);opacity:.85;letter-spacing:1px}
+.share{position:absolute;bottom:26px;left:16px;right:16px;display:flex;gap:10px}.share div{flex:1;height:54px;border-radius:16px;display:grid;place-items:center;font-weight:800;font-size:15px}
+</style></head><body>
+<div class="title"><h1>E · Bahi-Khata Modern</h1><span>derived from the niche analysis · familiar first: ledger + WhatsApp + UPI patterns</span></div>
+<div class="sub">The look of a clean, upgraded <b>bahi-khata</b>: warm paper background, ruled day-sheet rows, the red margin line, green for good / red for cuts. Mint looks and behaves like a <b>WhatsApp chat</b>, with voice notes and buttons. Money moments use <b>UPI patterns</b> owners use daily: big ₹ amount, slide to pay, a full-screen ✓ success, receipts with a "PAID" stamp. Mukta typeface (designed for Hindi + English together), Hindi-first labels with English hints, high contrast for sunlight, light on budget phones.</div>
+<div class="row">
+<div><div class="phone">
+ <div class="status"><span>9:41</span><span>●●● 4G ▮</span></div>
+ <div class="top"><div><div class="s">शुक्र, 9 अक्टू · Sharma Medical</div><div class="h">आज की हाज़िरी</div></div><span class="lang">हि / En</span></div>
+ <div class="sheet">
+  <div class="sh"><div><div class="lbl">हाज़िर · Present</div><div class="big">3<small> / 6</small></div></div><div class="tot"><span class="L">लेट 1</span><span class="V">छुट्टी 1</span><span class="N">बाकी 2</span></div></div>
+  <div class="lr"><span class="i">8:56</span><span class="nm">Ramesh Kumar</span><span class="st P">✔ हाज़िर</span></div>
+  <div class="lr"><span class="i">9:02</span><span class="nm">Pooja Singh</span><span class="st P">✔ हाज़िर</span></div>
+  <div class="lr"><span class="i">9:38</span><span class="nm">Suresh Yadav</span><span class="tm">38 min</span><span class="st L">⏰ लेट</span></div>
+  <div class="lr"><span class="i">—</span><span class="nm">Ramesh Gupta</span><span class="st V">🤒 छुट्टी</span></div>
+  <div class="lr"><span class="i">9:10</span><span class="nm">Raju</span><span class="tm">560 m</span><span class="st N">📍 जाँचें</span></div>
+  <div class="lr" style="border:0"><span class="i">—</span><span class="nm">Amit Verma</span><span class="st N">— बाकी</span></div>
+ </div>
+ <div class="need"><div><b>2 काम आपके लिए</b><span>Amit ki chutti · Raju ka punch</span></div><div class="go">देखें →</div></div>
+ <div class="nav"><div class="on"><span class="i">📒</span>आज<small>Today</small></div><div><span class="i">👥</span>स्टाफ़<small>Staff</small></div><div class="mic">🎙️</div><div><span class="i">₹</span>सैलरी<small>Salary</small></div><div><span class="i">☰</span>और<small>More</small></div></div>
+</div><div class="cap">Owner "Today" = a ledger day-sheet · tap any status to change it</div></div>
+
+<div><div class="phone">
+ <div class="status"><span>9:41</span><span>●●● 4G ▮</span></div>
+ <div class="top"><div><div class="s">शुक्र, 9 अक्टू · Shift 9:00 – 9:00</div><div class="h">नमस्ते Kavita</div></div><span class="lang">हि / En</span></div>
+ <div class="loc"><div>📍 <span class="ok">दुकान पर</span><small>At shop · 12 m</small></div><div>🕘 <span class="ok">समय पर</span><small>On time · 8:56</small></div></div>
+ <div class="press"><div><div style="font-size:44px">👆</div><b>हाज़िरी लगाएँ</b><span>Check in · 1 tap</span></div></div>
+ <div class="month"><div style="display:flex;justify-content:space-between;font-size:13.5px;font-weight:700"><span>अक्टूबर · 7 दिन हाज़िर</span><span class="ok">₹3,613 अब तक</span></div>
+  <div class="dots"><i class="P" style="background:#BDE8D1"></i><i style="background:#BDE8D1"></i><i style="background:#F8DB9C"></i><i style="background:#E6E1D5"></i><i style="background:#BDE8D1"></i><i style="background:#F3B9B4"></i><i style="background:#BDE8D1"></i><i style="background:#F8DB9C"></i><i style="background:#fff;border:2px solid var(--mint)"></i></div></div>
+</div><div class="cap">Employee: one round green button, Hindi first</div></div>
+
+<div><div class="phone">
+ <div class="status" style="color:#fff;position:relative;z-index:2"><span>9:41</span><span>●●● 4G ▮</span></div>
+ <div class="succ"><div class="tick">✓</div><h2>हाज़िरी लग गई!</h2><p>Checked in · 8:56 AM · on time</p>
+  <div class="rc"><div><span>Selfie</span><b>✔ saved</b></div><div><span>Location</span><b>Sharma Medical · 12 m</b></div><div><span>Shift</span><b>9:00 AM – 9:00 PM</b></div></div>
+  <div class="done">ठीक है · Done</div></div>
+</div><div class="cap">Check-in success, like a UPI payment ✓ (sound + vibration)</div></div>
+</div>
+
+<div class="row">
+<div><div class="phone">
+ <div class="status"><span>9:41</span><span>●●● 4G ▮</span></div>
+ <div class="wa"><div class="wah"><span style="font-size:20px">←</span><div class="av">✦</div><div><b>Mint</b><span>आपका सहायक · online</span></div></div>
+ <div class="msgs">
+  <div class="m out"><div class="voice"><div class="pl">▶</div><div class="wave"></div><span style="font-size:12px;color:var(--mut)">0:03</span></div><div style="font-size:13px;color:#4a6b4f;margin-top:4px">"Suresh aaj nahi aaya"</div><div class="t">9:41 ✓✓</div></div>
+  <div class="rcpt"><div class="hd">📝 हाज़िरी लगाऊँ?</div><div class="bd"><div><span>Staff</span><b>Suresh Yadav</b></div><div><span>Date</span><b>आज · 9 Oct</b></div><div style="border:0"><span>Status</span><b style="color:var(--red)">गैरहाज़िर Absent</b></div></div>
+   <div class="bt"><div style="color:var(--mut)">नहीं</div><div>✓ हाँ, कर दो</div></div></div>
+  <div class="m in" style="margin-top:8px">✅ हो गया। Suresh आज Absent. <b style="color:var(--mint)">Undo</b><div class="t">9:41</div></div>
+ </div>
+ <div class="sug"><div>⏰ कौन लेट?</div><div>₹ सैलरी कितनी?</div><div>🏖️ छुट्टी</div><div>💸 एडवांस</div></div>
+ <div class="wai"><div class="f">लिखें या 🎙️ दबाकर बोलें…</div><div class="mc">🎙️</div></div></div>
+</div><div class="cap">Mint = WhatsApp-style chat with voice notes</div></div>
+
+<div><div class="phone">
+ <div class="status"><span>9:41</span><span>●●● 4G ▮</span></div>
+ <div class="top"><div><div class="s">सैलरी डे · Salary day</div><div class="h">सितंबर 2026</div></div><span class="lang">हि / En</span></div>
+ <div class="steps"><div class="d"></div><div class="d"></div><div></div></div><div class="stl"><span>✔ जाँचें</span><span>● भेजें</span><span>भुगतान</span></div>
+ <div class="cash"><div class="k">कुल देना है · Cash needed</div><div class="v">₹70,500</div><div class="br"><span>6 staff</span><span>₹73,000 earned</span><span>−₹2,500 advance</span></div></div>
+ <div class="flag"><b>⚠️ Amit Verma: ₹2,467 less than last month</b><p>3 absent days + ₹2,500 advance recovery. Is that right?</p><div class="fx"><span>✔ ठीक है</span><span>✎ बदलें</span></div></div>
+ <div class="allok">✔ बाकी 5 staff में कोई दिक्कत नहीं · 5 others look fine</div>
+ <div class="slide"><div class="k">»</div>स्लाइड करें · Approve & send payslips</div>
+</div><div class="cap">Salary day: only the problems, then slide to approve</div></div>
+
+<div><div class="phone">
+ <div class="status"><span>9:41</span><span>●●● 4G ▮</span></div>
+ <div class="top"><div><div class="s">वेतन पर्ची · Payslip</div><div class="h">Pooja Singh</div></div><span class="lang">हि / En</span></div>
+ <div class="slip"><div class="co">Sharma Medical Store · सितंबर 2026</div><h3>हाथ में वेतन · Net pay</h3><div class="stamp">PAID ✓</div>
+  <div class="net">₹13,367<small>26.5 of 30 days</small></div>
+  <div class="ln"><span>26.5 दिन का वेतन</span><b>₹12,367</b></div>
+  <div class="ln plus"><span>बोनस · Best cashier</span><b>+ ₹1,000</b></div>
+  <div class="ln minus"><span>कटौती · Deductions</span><b>− ₹0</b></div>
+  <div class="why">क्यों? हाज़िर 23, आधा दिन 1, गैरहाज़िर 3, साप्ताहिक छुट्टी 4 → ₹14,000 ÷ 30 × 26.5</div></div>
+ <div class="share"><div style="background:#25D366;color:#fff">WhatsApp पर भेजें</div><div style="border:2px solid var(--ink)">PDF</div></div>
+</div><div class="cap">Payslip as a receipt with a "PAID" stamp, shared on WhatsApp</div></div>
+</div>
+</body></html>
