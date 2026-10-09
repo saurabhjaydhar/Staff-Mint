@@ -98,7 +98,7 @@ Set `LLM_PROVIDER=gemini` and `SPEECH_PROVIDER=gemini` (voice notes).
 | Variable | Notes |
 |---|---|
 | `GEMINI_API_KEY` | Google AI Studio → Get API key (or Vertex AI) |
-| `GEMINI_MODEL` | Default `gemini-2.5-flash`; change if you prefer another model |
+| `GEMINI_MODEL` | Default `gemini-3.8-flash` (fast, cheap, handles function calling and audio); change if you prefer another model |
 | `ASSISTANT_RULES_FASTPATH` | `true` (default): the free rule parser handles confident phrases, and Gemini is only called for the rest (saves cost) |
 
 ### File storage (Cloudflare R2) (🔴 for multi-server or cloud deploys; local disk works on a single VPS)
