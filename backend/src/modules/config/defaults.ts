@@ -34,7 +34,7 @@ export const DEFAULT_PLANS = [
     extraStaffPricePaise: 0,
     maxStaffHardCap: 30,
     trialDays: 14,
-    features: ['attendance', 'leave', 'digest', 'payroll', 'advances', 'payslips', 'assistant', 'reports', 'branches', 'whatsapp_payslips', 'whatsapp_assistant'],
+    features: ['attendance', 'leave', 'digest', 'payroll', 'advances', 'payslips', 'assistant', 'reports', 'branches', 'whatsapp_payslips', 'whatsapp_assistant', 'face_match'],
     sort: 2,
   },
   {
@@ -60,6 +60,7 @@ export const DEFAULT_PLANS = [
       'whatsapp_assistant',
       'priority_support',
       'ca_access',
+      'face_match',
     ],
     sort: 3,
   },

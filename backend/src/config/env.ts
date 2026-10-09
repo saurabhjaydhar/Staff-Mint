@@ -44,6 +44,7 @@ const schema = z.object({
   EMAIL_PROVIDER: z.enum(['mock', 'resend']).default('mock'),
   GEO_PROVIDER: z.enum(['mock', 'google']).default('mock'),
   ANALYTICS_PROVIDER: z.enum(['mock', 'posthog']).default('mock'),
+  FACE_PROVIDER: z.enum(['mock', 'rekognition']).default('mock'),
 
   // OTP
   OTP_MOCK_CODE: z.string().default('123456'),
@@ -94,6 +95,15 @@ const schema = z.object({
 
   // Geo
   GOOGLE_MAPS_API_KEY: z.string().default('fake-google-maps-api-key'),
+
+  // Face match (selfie vs enrolled photo). Off per company until the owner turns it on.
+  AWS_REGION: z.string().default('ap-south-1'),
+  AWS_ACCESS_KEY_ID: z.string().default('fake-aws-access-key-id'),
+  AWS_SECRET_ACCESS_KEY: z.string().default('fake-aws-secret-access-key'),
+  /** Similarity at or above this is a match. */
+  FACE_MATCH_THRESHOLD: z.coerce.number().min(50).max(100).default(90),
+  /** Below the match threshold but at or above this is "unsure"; lower is a mismatch. */
+  FACE_UNSURE_THRESHOLD: z.coerce.number().min(0).max(100).default(75),
 
   // Observability
   SENTRY_DSN: z.string().default(''),

@@ -16,6 +16,15 @@ const employeeSchema = new Schema(
     status: { type: String, enum: ['active', 'inactive'], default: 'active' },
     appRole: { type: String, enum: ['employee', 'manager'], default: 'employee' },
     consent: { location: { type: Boolean, default: false }, at: Date },
+    /** Face match reference photo. Explicit, separate consent; deleted on exit or withdrawal. */
+    face: {
+      status: { type: String, enum: ['none', 'pending', 'approved'], default: 'none' },
+      refKey: { type: String, default: null },
+      consentAt: { type: Date, default: null },
+      enrolledAt: { type: Date, default: null },
+      approvedAt: { type: Date, default: null },
+      approvedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+    },
     userId: { type: Schema.Types.ObjectId, ref: 'User', default: null },
     language: { type: String, enum: ['en', 'hi'], default: 'hi' },
     bankDetailsEnc: { type: String, default: null }, // field-level encrypted JSON

@@ -12,6 +12,8 @@ import { provider } from '../../providers/registry.js';
 import { env } from '../../config/env.js';
 import { getConfig } from '../config/service.js';
 import { notifyOwners, notifyEmployee } from '../notifications/service.js';
+import { companyPlan } from '../billing/plans.js';
+import { faceView, matchSelfie, type FaceResult } from '../face/service.js';
 
 export interface PunchInput {
   type: 'in' | 'out';
@@ -148,11 +150,21 @@ export async function punch(ctx: Ctx, input: PunchInput, source: 'app' | 'offlin
 
   const punchId = new Types.ObjectId();
   let selfieKey: string | null = null;
+  let face: { result: FaceResult; similarity: number | null } | null = null;
   if (input.selfieBase64) {
     const buf = Buffer.from(input.selfieBase64.replace(/^data:image\/\w+;base64,/, ''), 'base64');
     if (buf.length > 2_000_000) throw new AppError('VALIDATION_ERROR', 'Selfie too large (max 2 MB)');
     selfieKey = `selfies/${ctx.companyId}/${date}/${employee._id}-${punchId}.jpg`;
     await (await provider('storage')).put(selfieKey, buf, 'image/jpeg');
+    // Face check: only for approved photos, on plans that include it. Never blocks a check-in.
+    if (s.faceMatchPolicy === 'review' && employee.face?.status === 'approved' && employee.face.refKey) {
+      const { plan } = await companyPlan(company);
+      if (plan.features.includes('face_match')) {
+        face = await matchSelfie(employee, buf);
+        if (face.result !== 'match') flags.push(face.result === 'error' ? 'face_check_failed' : `face_${face.result}`);
+        if (face.result !== 'match' && face.result !== 'error') approval = 'pending';
+      }
+    }
   }
 
   record.punches.push({
@@ -167,6 +179,7 @@ export async function punch(ctx: Ctx, input: PunchInput, source: 'app' | 'offlin
     selfieKey,
     mockLocation: !!input.mockLocation,
     lockCheck: lockPolicy === 'off' ? null : (input.lockCheck ?? null),
+    face: face ?? undefined,
     deviceId: input.deviceId,
     clientPunchId: input.clientPunchId,
     source,
@@ -181,8 +194,18 @@ export async function punch(ctx: Ctx, input: PunchInput, source: 'app' | 'offlin
       template: 'punch_approval',
       title: 'Check-in needs approval',
       titleHi: 'पंच को मंज़ूरी चाहिए',
-      body: insideGeofence === false || input.mockLocation ? `${employee.name} punched ${input.type} ${distanceM ?? '?'} m away from the shop` : `${employee.name} punched ${input.type} without unlocking their phone`,
-      bodyHi: insideGeofence === false || input.mockLocation ? `${employee.name} ने दुकान से ${distanceM ?? '?'} मीटर दूर पंच किया` : `${employee.name} ने फ़ोन लॉक खोले बिना पंच किया`,
+      body:
+        insideGeofence === false || input.mockLocation
+          ? `${employee.name} punched ${input.type} ${distanceM ?? '?'} m away from the shop`
+          : face && face.result !== 'match' && face.result !== 'error'
+            ? `${employee.name}'s selfie does not clearly match their face photo`
+            : `${employee.name} punched ${input.type} without unlocking their phone`,
+      bodyHi:
+        insideGeofence === false || input.mockLocation
+          ? `${employee.name} ने दुकान से ${distanceM ?? '?'} मीटर दूर पंच किया`
+          : face && face.result !== 'match' && face.result !== 'error'
+            ? `${employee.name} की सेल्फ़ी उनकी चेहरे की फ़ोटो से साफ़ मेल नहीं खाती`
+            : `${employee.name} ने फ़ोन लॉक खोले बिना पंच किया`,
       data: { type: 'punch_approval', attendanceId: String(record._id), punchId: String(punchId) },
     });
   }
@@ -218,6 +241,7 @@ export async function punchView(p: any) {
     selfieUrl: p.selfieKey ? await storage.signedUrl(p.selfieKey, env.SIGNED_URL_TTL_SEC) : null,
     mockLocation: !!p.mockLocation,
     lockCheck: p.lockCheck ?? null,
+    face: p.face?.result ? { result: p.face.result, similarity: p.face.similarity ?? null } : null,
     deviceId: p.deviceId ?? null,
     source: p.source,
     flags: p.flags ?? [],
@@ -506,12 +530,23 @@ export async function dashboardToday(ctx: Ctx) {
   const scopeIds = rows.map((r) => new Types.ObjectId(r.employee.id));
   const { leaveView } = await import('../views.js');
   const leaveRequests = (await Leave.find({ companyId: ctx.companyId, status: 'pending', deletedAt: null, employeeId: { $in: scopeIds } }).sort({ createdAt: 1 }).populate('employeeId', 'name').lean()).map((l) => leaveView(l));
-  const pending = await Attendance.find({ companyId: ctx.companyId, 'punches.approval': 'pending', employeeId: { $in: scopeIds } }).populate('employeeId', 'name').lean();
+  const pending = await Attendance.find({ companyId: ctx.companyId, 'punches.approval': 'pending', employeeId: { $in: scopeIds } }).populate('employeeId', 'name face').lean();
   const punchApprovals = [];
   for (const r of pending)
-    for (const p of r.punches.filter((x: any) => x.approval === 'pending'))
-      punchApprovals.push({ attendanceId: String(r._id), employeeName: (r.employeeId as any)?.name, date: r.date, punch: await punchView(p) });
-  const flagged = await Attendance.find({ companyId: ctx.companyId, date: { $gte: date.slice(0, 8) + '01' }, flags: { $in: ['mock_location', 'device_time_drift', 'needs_review', 'late_sync', 'phone_lock_failed'] }, employeeId: { $in: scopeIds } })
+    for (const p of r.punches.filter((x: any) => x.approval === 'pending')) {
+      const emp = r.employeeId as any;
+      // The approved face photo sits next to the selfie when the face check flagged it.
+      const facePhotoUrl = p.face?.result && emp?.face?.refKey ? (await faceView(emp)).photoUrl : null;
+      punchApprovals.push({ attendanceId: String(r._id), employeeName: emp?.name, date: r.date, punch: await punchView(p), facePhotoUrl });
+    }
+  const faceEnrollments = await Promise.all(
+    (await Employee.find({ companyId: ctx.companyId, 'face.status': 'pending', status: 'active', _id: { $in: scopeIds } }).lean()).map(async (e) => ({
+      employeeId: String(e._id),
+      employeeName: e.name,
+      ...(await faceView(e)),
+    })),
+  );
+  const flagged = await Attendance.find({ companyId: ctx.companyId, date: { $gte: date.slice(0, 8) + '01' }, flags: { $in: ['mock_location', 'device_time_drift', 'needs_review', 'late_sync', 'phone_lock_failed', 'face_check_failed'] }, employeeId: { $in: scopeIds } })
     .sort({ date: -1 })
     .limit(20)
     .populate('employeeId', 'name')
@@ -524,6 +559,7 @@ export async function dashboardToday(ctx: Ctx) {
     needsAction: {
       leaveRequests,
       punchApprovals,
+      faceEnrollments,
       flags: flagged.map((r) => ({ attendanceId: String(r._id), employeeName: (r.employeeId as any)?.name, date: r.date, flags: r.flags })),
     },
     plan: { code: plan.code, staffCount: await activeStaffCount(ctx.companyId), staffLimit: plan.staffLimit },
