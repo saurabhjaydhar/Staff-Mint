@@ -161,7 +161,11 @@ class _EmployeeHomeScreenState extends ConsumerState<EmployeeHomeScreen> {
             rows: rows,
             note: [
               if (response.punch.isPendingApproval)
-                response.punch.insideGeofence == false || loc.isMocked ? s.pendingApprovalNote : s.lockPendingNote,
+                response.punch.insideGeofence == false || loc.isMocked
+                    ? s.pendingApprovalNote
+                    : response.punch.faceFlagged
+                    ? s.facePendingNote
+                    : s.lockPendingNote,
               if (loc.isMocked) s.mockLocationWarning,
             ].join('\n').ifEmptyNull,
           );

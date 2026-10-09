@@ -240,7 +240,8 @@ class _PunchApprovalCard extends StatelessWidget {
                             ? s.faceResultLabel(p.faceResult)
                             : s.lockPunchApproval} · ${p.isIn ? s.checkInLabel : s.checkOutLabel} ${Dates.time(p.clientTime, s.languageCode)}',
                       ),
-                      if (p.distanceM != null)
+                      // Distance only matters when the punch was outside the shop area.
+                      if (p.distanceM != null && p.insideGeofence == false)
                         Text(s.distanceAway(p.distanceM!), style: const TextStyle(color: AppColors.red)),
                     ],
                   ),

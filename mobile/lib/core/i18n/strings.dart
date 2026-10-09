@@ -776,6 +776,10 @@ class S {
     'unavailable' => _t('No lock on phone', 'फ़ोन पर लॉक नहीं'),
     _ => _t('Not asked', 'नहीं पूछा'),
   };
+  String get facePendingNote => _t(
+    'Face not clearly matched — sent to owner for approval',
+    'चेहरा साफ़ मेल नहीं खाया — मंज़ूरी के लिए मालिक को भेजा गया',
+  );
   String get lockPendingNote =>
       _t('Phone lock not opened — sent to owner for approval', 'फ़ोन लॉक नहीं खुला — मंज़ूरी के लिए मालिक को भेजा गया');
   String get submitting => _t('Saving…', 'सेव हो रहा है…');

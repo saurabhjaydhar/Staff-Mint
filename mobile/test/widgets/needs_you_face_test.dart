@@ -40,7 +40,11 @@ void main() {
     date: '2026-10-09',
     counts: const DashboardCounts(total: 6),
     faceEnrollments: const [
-      FaceEnrollment(employeeId: 'e7', employeeName: 'Kavita Sharma', face: FaceInfo(status: 'pending')),
+      FaceEnrollment(
+        employeeId: 'e7',
+        employeeName: 'Kavita Sharma',
+        face: FaceInfo(status: 'pending'),
+      ),
     ],
     punchApprovals: [
       PunchApprovalItem(
@@ -52,6 +56,7 @@ void main() {
           type: 'in',
           clientTime: DateTime(2026, 10, 9, 9, 38),
           insideGeofence: true,
+          distanceM: 3,
           selfieUrl: 'https://example.test/selfie.jpg',
           approval: 'pending',
           faceResult: 'mismatch',
@@ -70,7 +75,9 @@ void main() {
         retry: (_, _) => null,
         overrides: [sharedPreferencesProvider.overrideWithValue(prefs), employeesApiProvider.overrideWithValue(api)],
         child: MaterialApp(
-          home: Scaffold(body: SingleChildScrollView(child: NeedsYouCard(dashboard: dashboard))),
+          home: Scaffold(
+            body: SingleChildScrollView(child: NeedsYouCard(dashboard: dashboard)),
+          ),
         ),
       ),
     );
@@ -83,6 +90,8 @@ void main() {
     await pump(tester);
     expect(find.text('2 things need you'), findsOneWidget);
     expect(find.textContaining('Face does not match'), findsOneWidget);
+    // Inside the shop: no red "m away" line on a face-only flag.
+    expect(find.textContaining('m away'), findsNothing);
     final pair = find.byKey(const Key('photoPair_p2'));
     expect(pair, findsOneWidget);
     expect(find.descendant(of: pair, matching: find.text('Approved photo')), findsOneWidget);
