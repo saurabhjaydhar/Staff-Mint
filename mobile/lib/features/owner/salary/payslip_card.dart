@@ -45,7 +45,8 @@ class PayslipCard extends ConsumerWidget {
             ? const Icon(Icons.warning_amber_rounded, color: AppColors.late)
             : InitialsAvatar(p.employeeName, radius: 18),
         title: Text(title ?? p.employeeName, style: Theme.of(context).textTheme.titleMedium),
-        subtitle: Text(s.payableDays(p.payableDays, p.divisor)),
+        // Daily-wage staff have no divisor (the API sends 1); show only the day count.
+        subtitle: Text(p.wageType == 'daily' ? s.payableDaysOnly(p.payableDays) : s.payableDays(p.payableDays, p.divisor)),
         trailing: Text(Money.format(p.netPaise), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
         childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
         expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
