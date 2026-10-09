@@ -69,7 +69,7 @@ const schema = z.object({
 
   // LLM / speech (Google Gemini)
   GEMINI_API_KEY: z.string().default('fake-gemini-api-key'),
-  GEMINI_MODEL: z.string().default('gemini-2.5-flash'),
+  GEMINI_MODEL: z.string().default('gemini-3.8-flash'),
   ASSISTANT_RULES_FASTPATH: bool(true),
 
   // Storage (Cloudflare R2 / S3)

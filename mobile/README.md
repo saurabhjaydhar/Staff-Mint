@@ -14,7 +14,7 @@ The app is built strictly against [`../docs/API.md`](../docs/API.md).
 
 ## Requirements
 
-- Flutter 3.47+ / Dart 3.13+ (`flutter --version`)
+- Flutter 3.44+ / Dart 3.12+ (`flutter --version`)
 - Android SDK (API 24+ device/emulator) to run on Android. iOS needs Xcode + CocoaPods.
 
 ```bash

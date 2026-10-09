@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "000000000000",
-    "project_id": "staffmint-placeholder",
-    "storage_bucket": "staffmint-placeholder.appspot.com"
+    "project_number": "217049256483",
+    "project_id": "staffmint-app",
+    "storage_bucket": "staffmint-app.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:000000000000:android:0000000000000000000000",
+        "mobilesdk_app_id": "1:217049256483:android:aefb9f6817115ff62e5796",
         "android_client_info": {
           "package_name": "com.staffmint.app"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSy-PLACEHOLDER-REPLACE-ME-000000000"
+          "current_key": "AIzaSyBBoboqDYhmr_Dz09Ny25ysgecsu4ZAEl0"
         }
       ],
       "services": {
