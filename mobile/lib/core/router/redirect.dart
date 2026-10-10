@@ -22,6 +22,9 @@ String? computeRedirect(SessionState session, String location) {
     return under(Routes.accounts) ? null : Routes.accounts;
   }
 
+  // Recovering a lost number and past payslips are for people without a business too.
+  if (at(Routes.accountsRecover) || at(Routes.accountsPayslips)) return null;
+
   if (session.needsCompanySetup) {
     return at(Routes.setup) ? null : Routes.setup;
   }

@@ -103,5 +103,11 @@ void main() {
       final s = _auth(UserRole.owner, needsSetup: true);
       expect(computeRedirect(s, Routes.accounts), Routes.setup);
     });
+
+    test('without a business, recover and past payslips still open', () {
+      final s = _auth(UserRole.owner, needsSetup: true);
+      expect(computeRedirect(s, Routes.accountsRecover), isNull);
+      expect(computeRedirect(s, Routes.accountsPayslips), isNull);
+    });
   });
 }
