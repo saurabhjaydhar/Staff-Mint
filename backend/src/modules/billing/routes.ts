@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { body } from '../../lib/http.js';
+import { body, objectId, param } from '../../lib/http.js';
 import { authenticate, ctxOf, requireRole } from '../../middleware/auth.js';
 import { AppError } from '../../lib/errors.js';
 import { isProd } from '../../config/env.js';
@@ -8,6 +8,7 @@ import { provider } from '../../providers/registry.js';
 import { listPlans } from './plans.js';
 import { requireBillingAccess } from '../accounts/owners.js';
 import * as svc from './service.js';
+import * as group from './group.js';
 
 export const billingRouter = Router();
 
@@ -24,6 +25,18 @@ billingRouter.post('/subscribe', authenticate, requireRole('owner'), requireBill
 billingRouter.post('/cancel', authenticate, requireRole('owner'), requireBillingAccess, async (req, res) => {
   const sub = await svc.cancel(ctxOf(req));
   res.json({ data: { subscription: { status: sub.status, planCode: sub.planCode, currentPeriodEnd: sub.currentPeriodEnd ?? null } } });
+});
+
+// One bill for several businesses (main owner / billing-allowed co-owner of the paying business).
+billingRouter.get('/group', authenticate, requireRole('owner'), requireBillingAccess, async (req, res) => {
+  res.json({ data: await group.billingGroup(ctxOf(req)) });
+});
+billingRouter.post('/group/members', authenticate, requireRole('owner'), requireBillingAccess, async (req, res) => {
+  const b = body(req, z.object({ companyId: objectId }));
+  res.json({ data: await group.addToBill(ctxOf(req), b.companyId) });
+});
+billingRouter.delete('/group/members/:companyId', authenticate, requireRole('owner'), requireBillingAccess, async (req, res) => {
+  res.json({ data: await group.removeFromBill(ctxOf(req), param(req, 'companyId')) });
 });
 
 export const paymentsWebhookRouter = Router();

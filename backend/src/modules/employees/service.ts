@@ -4,7 +4,7 @@ import { normalizePhone } from '../../lib/phone.js';
 import { todayIn } from '../../lib/dates.js';
 import type { Ctx } from '../../lib/context.js';
 import { Branch, Company, Employee, Membership, SalaryStructure, Shift, User } from '../../models/index.js';
-import { companyPlan, activeStaffCount } from '../billing/plans.js';
+import { companyPlan, billingStaffCount } from '../billing/plans.js';
 import { audit } from '../audit/service.js';
 import { employeeView } from '../views.js';
 import { activate, attachStaffMemberships, deactivateStaffMemberships, revokeMembershipSessions } from '../auth/memberships.js';
@@ -59,7 +59,8 @@ export async function listEmployees(ctx: Ctx, q: { search?: string; status?: 'ac
 
 export async function ensureStaffCapacity(companyId: Types.ObjectId, adding = 1) {
   const { plan } = await companyPlan({ _id: companyId });
-  const count = await activeStaffCount(companyId);
+  // One bill for several businesses: the limit covers all of them together.
+  const count = await billingStaffCount(companyId);
   const limit = plan.extraStaffPricePaise > 0 ? plan.maxStaffHardCap : plan.staffLimit;
   if (count + adding > limit) {
     throw new AppError('PLAN_LIMIT', `Your ${plan.name} plan allows ${limit} staff. Upgrade to add more.`, { planCode: plan.code, limit, count });

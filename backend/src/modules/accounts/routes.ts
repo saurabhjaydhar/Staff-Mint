@@ -141,3 +141,13 @@ accountsRouter.post('/me/delete', authenticate, async (req, res) => {
 accountsRouter.get('/me/past-payslips', authenticate, async (req, res) => {
   res.json({ data: await identity.pastPayslips(req.auth!.userId) });
 });
+
+// ------------------------------------------------------------ Phase 4
+accountsRouter.patch('/me/accounts/:id', authenticate, async (req, res) => {
+  const b = body(req, z.object({ pinned: z.boolean() }));
+  await svc.pinAccount(req.auth!.userId, param(req, 'id'), b.pinned);
+  res.json({ data: { ok: true } });
+});
+accountsRouter.get('/me/clients', authenticate, async (req, res) => {
+  res.json({ data: await svc.caClients(req.auth!.userId) });
+});

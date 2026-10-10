@@ -82,6 +82,8 @@ export const DEFAULT_CONFIG: Record<string, unknown> = {
   /** Hold before a support recovery completes; the old number and the business's people can stop it. */
   'accounts.recoveryHoldDays': 7,
   'accounts.transferDays': 7,
+  /** Added to the payer's monthly price for each extra business on one bill (yearly = ×10). */
+  'billing.extraBusinessPricePaise': 19900,
 };
 
 /** India national + major holidays template (editable per company). Dates for 2026–2027. */
