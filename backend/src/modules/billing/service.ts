@@ -4,7 +4,7 @@ import type { Ctx } from '../../lib/context.js';
 import { Company, Plan, Subscription, User, WebhookEvent } from '../../models/index.js';
 import { provider } from '../../providers/registry.js';
 import type { PaymentEvent } from '../../providers/types.js';
-import { activeStaffCount, companyPlan, getPlan } from './plans.js';
+import { activeStaffCount, billingGroupIds, billingStaffCount, companyPlan, getPlan } from './plans.js';
 import { getConfig } from '../config/service.js';
 import { audit } from '../audit/service.js';
 import { systemCtx } from '../../lib/context.js';
@@ -27,18 +27,32 @@ export async function subscriptionSummary(ctx: Ctx) {
         }
       : null,
     staffCount: await activeStaffCount(ctx.companyId),
+    /** Paid together with another business (one bill); manage the plan there. */
+    billedTo: await payerOf(ctx.companyId),
   };
+}
+
+async function payerOf(companyId: Types.ObjectId) {
+  const c = await Company.findById(companyId).select('billedTo').lean();
+  if (!c?.billedTo) return null;
+  const payer = await Company.findById(c.billedTo).select('name').lean();
+  return payer ? { companyId: String(payer._id), name: payer.name } : null;
 }
 
 export async function subscribe(ctx: Ctx, planCode: string, interval: 'monthly' | 'yearly') {
   const plan = await getPlan(planCode);
   if (plan.code !== planCode || plan.priceMonthlyPaise <= 0) throw new AppError('VALIDATION_ERROR', 'Choose a paid plan');
   const company = await Company.findById(ctx.companyId).lean();
+  if (company?.billedTo) throw new AppError('CONFLICT', 'This business is paid together with another one. Change the plan there.', { reason: 'billed_elsewhere' });
   const owner = await User.findById(company!.ownerUserId).lean();
-  const staff = await activeStaffCount(ctx.companyId);
+  // One bill: staff across every business on it, plus a small price per extra business.
+  const group = await billingGroupIds(ctx.companyId);
+  const staff = await billingStaffCount(ctx.companyId);
   if (staff > plan.maxStaffHardCap) throw new AppError('PLAN_LIMIT', `${plan.name} supports up to ${plan.maxStaffHardCap} staff`);
-  const extra = Math.max(0, staff - plan.staffLimit) * plan.extraStaffPricePaise * (interval === 'yearly' ? 10 : 1);
-  const amountPaise = (interval === 'yearly' ? plan.priceYearlyPaise : plan.priceMonthlyPaise) + extra;
+  const yearly = interval === 'yearly' ? 10 : 1;
+  const extra = Math.max(0, staff - plan.staffLimit) * plan.extraStaffPricePaise * yearly;
+  const extraBusinesses = (group.length - 1) * (await getConfig<number>('billing.extraBusinessPricePaise')) * yearly;
+  const amountPaise = (interval === 'yearly' ? plan.priceYearlyPaise : plan.priceMonthlyPaise) + extra + extraBusinesses;
   const payments = await provider('payments', company!.paymentProvider);
   const planDoc = await Plan.findOne({ code: planCode }).lean();
   const providerPlanId = (planDoc?.providerPlanIds as any)?.[payments.name]?.[interval];

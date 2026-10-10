@@ -166,4 +166,17 @@ class AccountsApi {
 
   Future<List<PastPayslipGroup>> pastPayslips() async =>
       asList(await _c.get('/me/past-payslips'), PastPayslipGroup.fromJson);
+
+  // ---------------------------------------------------------------- Phase 4
+
+  Future<void> pin(String membershipId, {required bool pinned}) async =>
+      _c.patch('/me/accounts/$membershipId', body: {'pinned': pinned});
+
+  Future<BillingGroup> billingGroup() async => BillingGroup.fromJson(asMap(await _c.get('/billing/group')));
+
+  Future<BillingGroup> addToBill(String companyId) async =>
+      BillingGroup.fromJson(asMap(await _c.post('/billing/group/members', body: {'companyId': companyId})));
+
+  Future<BillingGroup> removeFromBill(String companyId) async =>
+      BillingGroup.fromJson(asMap(await _c.delete('/billing/group/members/$companyId')));
 }

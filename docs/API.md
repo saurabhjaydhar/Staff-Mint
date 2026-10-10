@@ -207,6 +207,17 @@ Fields: `name, phone, ratePaise, wageType, designation, joiningDate, branch, adv
 - The reference photo is deleted when the staff member withdraws consent, when the owner resets it, and when the staff member is deactivated.
 - `FACE_PROVIDER=mock` refuses to decide in production, so a missing key cannot approve anyone.
 
+### Accounts at scale (F14 Phase 4)
+| Method | Path | Body | Returns |
+|---|---|---|---|
+| PATCH | /me/accounts/:membershipId | `{pinned}` | pins an account to the top of the chooser; memberships carry `pinned` |
+| GET | /me/clients | — | accountant's clients: `[{membershipId, companyId, companyName, staffCount, month, payrollStatus:'not_started'\|'draft'\|'approved'\|'paid', netPaise, pinned}]` (last month, pinned first) |
+| GET | /billing/group | — | `{payer, isPayer, members, candidates, totalStaff, extraBusinessPricePaise, plan}` |
+| POST · DELETE | /billing/group/members · /billing/group/members/:companyId | `{companyId}` (main owner of both) | put another of your businesses on this bill / take it off |
+
+- **One bill for several businesses:** a business on another's bill (`company.billedTo`) uses the payer's plan; `/billing/subscribe` there returns 409 `billed_elsewhere`. Staff limits and extra-staff pricing count staff across the whole bill, plus `billing.extraBusinessPricePaise` (₹199/month default, yearly ×10) per extra business. A business with its own paid plan must cancel it before joining. Price changes apply to the next subscription/renewal.
+- **WhatsApp with several businesses:** the first message asks "Which business is this for?" (buttons, plus a numbered list past 3) and keeps the message until answered; the choice is remembered (`user.whatsappCompanyId`). "switch", "switch to <name>" or "business badlo" changes it. Replies start with `*Business name* ·`. Leave buttons from alerts always act on the business that sent them.
+
 ### Accounts: shared ownership & recovery (F14 Phase 3)
 | Method | Path | Body | Returns |
 |---|---|---|---|

@@ -53,6 +53,8 @@ const companySchema = new Schema(
     /** Owner closed the business; it can be restored until restoreUntil. deletedAt is set too so jobs skip it. */
     closedAt: { type: Date, default: null },
     restoreUntil: { type: Date, default: null },
+    /** One bill for several businesses: this business is paid for by another one of the same main owner. */
+    billedTo: { type: Schema.Types.ObjectId, ref: 'Company', default: null, index: true },
     deletedAt: { type: Date, default: null },
   },
   { timestamps: true },
@@ -79,6 +81,9 @@ const userSchema = new Schema(
     lastLoginAt: Date,
     /** Devices this person logged in from (last 10), for the recycled-number check. */
     loginDevices: { type: [String], default: [] },
+    /** WhatsApp has no account picker: the business WhatsApp commands go to, and a message waiting for that choice. */
+    whatsappCompanyId: { type: Schema.Types.ObjectId, ref: 'Company', default: null },
+    whatsappPending: { text: String, at: Date },
     deletedAt: { type: Date, default: null },
   },
   { timestamps: true },
@@ -108,6 +113,8 @@ const membershipSchema = new Schema(
     noticeDismissedAt: { type: Date, default: null },
     /** Co-owners: billing only when the main owner allows it (PRD F14 decisions). */
     canManageBilling: { type: Boolean, default: false },
+    /** Pinned to the top of the account chooser (accountants with many clients). */
+    pinnedAt: { type: Date, default: null },
   },
   { timestamps: true },
 );

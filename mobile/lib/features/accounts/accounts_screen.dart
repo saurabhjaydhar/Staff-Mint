@@ -85,6 +85,10 @@ class AccountsScreen extends ConsumerStatefulWidget {
 
 class _AccountsScreenState extends ConsumerState<AccountsScreen> {
   String? _busyId;
+  String _query = '';
+
+  /// Search appears for accountants and others with many businesses.
+  static const searchFrom = 7;
 
   Future<void> _open(Membership m) async {
     setState(() => _busyId = m.id);
@@ -125,13 +129,32 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
             ),
             const SizedBox(height: 20),
             const AccountAlerts(padding: EdgeInsets.zero),
-            for (final m in session.memberships) ...[
+            if (session.memberships.length >= searchFrom) ...[
+              TextField(
+                key: const Key('accountSearch'),
+                decoration: InputDecoration(prefixIcon: const Icon(Icons.search_rounded), hintText: s.searchBusinesses),
+                onChanged: (v) => setState(() => _query = v.trim().toLowerCase()),
+              ),
+              const SizedBox(height: 12),
+            ],
+            // Pinned first, otherwise most recently used first (server order).
+            for (final m in [
+              ...session.memberships.where((m) => m.pinned),
+              ...session.memberships.where((m) => !m.pinned),
+            ].where((m) => _query.isEmpty || m.companyName.toLowerCase().contains(_query))) ...[
               AccountCard(
                 key: Key('account-${m.id}'),
                 membership: m,
                 active: m.id == session.activeMembershipId,
                 busy: _busyId == m.id,
                 onTap: _busyId == null ? () => _open(m) : null,
+                onPin: session.memberships.length > 2
+                    ? () => ref.read(authControllerProvider.notifier).pinAccount(m.id, pinned: !m.pinned).catchError((
+                        Object e,
+                      ) {
+                        if (context.mounted) showError(context, e);
+                      })
+                    : null,
               ),
               const SizedBox(height: 12),
             ],
@@ -173,11 +196,21 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
 };
 
 class AccountCard extends StatelessWidget {
-  const AccountCard({super.key, required this.membership, required this.active, this.busy = false, this.onTap});
+  const AccountCard({
+    super.key,
+    required this.membership,
+    required this.active,
+    this.busy = false,
+    this.onTap,
+    this.onPin,
+  });
   final Membership membership;
   final bool active;
   final bool busy;
   final VoidCallback? onTap;
+
+  /// Star to keep this business at the top (shown when there are several).
+  final VoidCallback? onPin;
 
   @override
   Widget build(BuildContext context) {
@@ -262,6 +295,17 @@ class AccountCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
+                if (onPin != null)
+                  IconButton(
+                    key: Key('pin-${m.id}'),
+                    tooltip: m.pinned ? s.unpin : s.pin,
+                    visualDensity: VisualDensity.compact,
+                    icon: Icon(
+                      m.pinned ? Icons.star_rounded : Icons.star_outline_rounded,
+                      color: m.pinned ? AppColors.amber : AppColors.muted,
+                    ),
+                    onPressed: onPin,
+                  ),
                 if (busy)
                   const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5))
                 else if (active)

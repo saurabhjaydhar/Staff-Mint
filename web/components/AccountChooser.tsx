@@ -2,8 +2,14 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { errorMessage } from "@/lib/api";
-import { ROLE_KEY, ROLE_TONE, businessIcon, newBusinessLabel, webCanOpen } from "@/lib/accounts";
+import { api, errorMessage } from "@/lib/api";
+import {
+  ROLE_KEY,
+  ROLE_TONE,
+  businessIcon,
+  newBusinessLabel,
+  webCanOpen,
+} from "@/lib/accounts";
 import type { Membership } from "@/lib/types";
 import { ClosedBusinesses } from "./AccountNotices";
 import { useAuth, useI18n, useToast } from "./providers";
@@ -24,10 +30,29 @@ export function AccountChooser({
   onChosen: (m: Membership, switched: boolean) => void;
   showNew?: boolean;
 }) {
-  const { switchAccount, me } = useAuth();
+  const { switchAccount, me, refreshMe } = useAuth();
   const { t } = useI18n();
   const toast = useToast();
   const [busy, setBusy] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  // Pinned first, then the server's most-recent order; search for long lists (accountants).
+  const shown = [
+    ...memberships.filter((m) => m.pinned),
+    ...memberships.filter((m) => !m.pinned),
+  ].filter(
+    (m) =>
+      !query.trim() ||
+      m.companyName.toLowerCase().includes(query.trim().toLowerCase()),
+  );
+
+  async function togglePin(m: Membership) {
+    try {
+      await api.patch(`/me/accounts/${m.id}`, { pinned: !m.pinned });
+      await refreshMe();
+    } catch (e) {
+      toast(errorMessage(e), "red");
+    }
+  }
 
   async function pick(m: Membership) {
     if (m.id === activeId) return onChosen(m, false);
@@ -45,7 +70,16 @@ export function AccountChooser({
 
   return (
     <div className="space-y-2.5">
-      {memberships.map((m) => {
+      {memberships.length >= 7 && (
+        <input
+          data-account-search
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={t("acc_search")}
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-mint-400"
+        />
+      )}
+      {shown.map((m) => {
         const active = m.id === activeId;
         const usable = webCanOpen(m);
         return (
@@ -57,26 +91,78 @@ export function AccountChooser({
             onClick={() => void pick(m)}
             className={cx(
               "flex w-full items-center gap-3 rounded-xl p-3 text-left ring-1 transition-colors",
-              active && usable ? "bg-mint-50 ring-2 ring-mint-400" : "bg-white ring-slate-200",
+              active && usable
+                ? "bg-mint-50 ring-2 ring-mint-400"
+                : "bg-white ring-slate-200",
               usable ? "hover:bg-mint-50/60" : "cursor-not-allowed opacity-70",
             )}
           >
             <span
-              className={cx("grid h-11 w-11 shrink-0 place-items-center rounded-xl text-xl", active && usable ? "bg-mint-500 text-white" : "bg-mint-50 text-mint-700")}
+              className={cx(
+                "grid h-11 w-11 shrink-0 place-items-center rounded-xl text-xl",
+                active && usable
+                  ? "bg-mint-500 text-white"
+                  : "bg-mint-50 text-mint-700",
+              )}
               aria-hidden
             >
               {businessIcon(m.businessType)}
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block truncate font-semibold text-slate-900">{m.companyName}</span>
+              <span className="block truncate font-semibold text-slate-900">
+                {m.companyName}
+              </span>
               <span className="mt-1 flex flex-wrap items-center gap-2 text-xs">
                 <Badge tone={ROLE_TONE[m.role]}>{t(ROLE_KEY[m.role])}</Badge>
-                {active && usable && <span className="font-medium text-mint-700">{t("acc_open_now")}</span>}
-                {!usable && <span className="text-slate-500">{t("acc_app_only")}</span>}
+                {active && usable && (
+                  <span className="font-medium text-mint-700">
+                    {t("acc_open_now")}
+                  </span>
+                )}
+                {!usable && (
+                  <span className="text-slate-500">{t("acc_app_only")}</span>
+                )}
               </span>
             </span>
-            <span className="w-5 shrink-0 text-center text-slate-400" aria-hidden>
-              {busy === m.id ? <Spinner /> : active && usable ? <span className="text-mint-600">✓</span> : usable ? "›" : ""}
+            {memberships.length > 2 && (
+              <span
+                role="button"
+                tabIndex={0}
+                data-pin={m.id}
+                title={m.pinned ? t("acc_unpin") : t("acc_pin")}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void togglePin(m);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.stopPropagation();
+                    void togglePin(m);
+                  }
+                }}
+                className={cx(
+                  "shrink-0 px-1 text-lg leading-none",
+                  m.pinned
+                    ? "text-amber-500"
+                    : "text-slate-300 hover:text-slate-500",
+                )}
+              >
+                ★
+              </span>
+            )}
+            <span
+              className="w-5 shrink-0 text-center text-slate-400"
+              aria-hidden
+            >
+              {busy === m.id ? (
+                <Spinner />
+              ) : active && usable ? (
+                <span className="text-mint-600">✓</span>
+              ) : usable ? (
+                "›"
+              ) : (
+                ""
+              )}
             </span>
           </button>
         );
@@ -88,12 +174,19 @@ export function AccountChooser({
           data-new-business
           className="flex items-center gap-3 rounded-xl p-3 text-left border border-dashed border-mint-300 transition-colors hover:bg-mint-50/60"
         >
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-mint-50 text-xl font-semibold text-mint-700" aria-hidden>
+          <span
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-mint-50 text-xl font-semibold text-mint-700"
+            aria-hidden
+          >
             ＋
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block font-semibold text-mint-700">{t(newBusinessLabel(memberships))}</span>
-            <span className="block text-xs text-slate-500">{t("acc_new_hint")}</span>
+            <span className="block font-semibold text-mint-700">
+              {t(newBusinessLabel(memberships))}
+            </span>
+            <span className="block text-xs text-slate-500">
+              {t("acc_new_hint")}
+            </span>
           </span>
         </Link>
       )}

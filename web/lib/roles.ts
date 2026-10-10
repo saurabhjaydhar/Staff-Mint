@@ -11,6 +11,7 @@ export interface NavItem {
 // Owner sees everything. Manager (branch-scoped) gets day-to-day pages.
 // CA sees only Reports + Payroll (read-only) + Export. Employees use the mobile app.
 export const NAV_ITEMS: NavItem[] = [
+  { href: "/clients", label: "nav_clients", roles: ["ca"], icon: "◫" },
   { href: "/", label: "nav_dashboard", roles: ["owner", "manager"], icon: "▦" },
   { href: "/import", label: "nav_import", roles: ["owner"], icon: "⇪" },
   { href: "/staff", label: "nav_staff", roles: ["owner", "manager"], icon: "☺" },

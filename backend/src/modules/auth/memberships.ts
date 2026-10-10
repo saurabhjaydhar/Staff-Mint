@@ -103,6 +103,8 @@ export async function membershipViews(
     businessType: names.get(String(m.companyId))?.businessType ?? null,
     role: m.role,
     lastUsedAt: m.lastUsedAt ?? null,
+    /** Pinned to the top of the chooser. */
+    pinned: !!(m as { pinnedAt?: Date | null }).pinnedAt,
     /** Staff account bound to another phone (only known when the device is). */
     lockedToOtherPhone: deviceId ? !deviceAllowed(m, deviceId) : false,
   }));

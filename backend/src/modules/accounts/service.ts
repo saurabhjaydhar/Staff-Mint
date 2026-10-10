@@ -237,3 +237,42 @@ export async function inviteStaff(ctx: Ctx, employeeId: string | Types.ObjectId,
   return { invitedAt: emp.invitedAt };
 }
 
+
+// ------------------------------------------------------------ Phase 4
+
+/** Pin an account to the top of the chooser (accountants with many clients). */
+export async function pinAccount(userId: Types.ObjectId | string, membershipId: string, pinned: boolean) {
+  const r = await Membership.updateOne({ _id: membershipId, userId, status: 'active' }, { pinnedAt: pinned ? new Date() : null });
+  if (!r.matchedCount) throw notFound('Account');
+}
+
+/**
+ * Accountant's clients at a glance: every business they are CA for, with
+ * staff and last month's payroll state, so the month-end round needs no
+ * switching just to see who is ready.
+ */
+export async function caClients(userId: Types.ObjectId | string) {
+  const ms = await Membership.find({ userId, role: 'ca', status: 'active' }).lean();
+  const companies = await Company.find({ _id: { $in: ms.map((m) => m.companyId) }, closedAt: null }).select('name businessType timezone').lean();
+  const { PayrollRun } = await import('../../models/index.js');
+  const { previousMonth, todayIn } = await import('../../lib/dates.js');
+  const { activeStaffCount } = await import('../billing/plans.js');
+  const out = [];
+  for (const c of companies) {
+    const m = ms.find((x) => String(x.companyId) === String(c._id))!;
+    const month = previousMonth(todayIn(c.timezone ?? 'Asia/Kolkata').slice(0, 7));
+    const run = await PayrollRun.findOne({ companyId: c._id, month, status: { $ne: 'superseded' } }).sort({ revision: -1 }).lean();
+    out.push({
+      membershipId: String(m._id),
+      companyId: String(c._id),
+      companyName: c.name,
+      businessType: c.businessType ?? null,
+      pinned: !!m.pinnedAt,
+      staffCount: await activeStaffCount(c._id),
+      month,
+      payrollStatus: run?.status ?? 'not_started',
+      netPaise: run?.totals?.netPaise ?? null,
+    });
+  }
+  return out.sort((a, b) => Number(b.pinned) - Number(a.pinned) || a.companyName.localeCompare(b.companyName));
+}
