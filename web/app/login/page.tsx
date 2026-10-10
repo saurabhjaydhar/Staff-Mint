@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { LanguageToggle, Logo } from "@/components/AppShell";
 import { useAuth, useI18n } from "@/components/providers";
 import { AccountChooser } from "@/components/AccountChooser";
+import { AccountAlerts } from "@/components/AccountAlerts";
 import { ClosedBusinesses, EndedNotices } from "@/components/AccountNotices";
 import { CompanySetup } from "@/components/CompanySetup";
 import { Alert, Button, Field, Input, Loading } from "@/components/ui";
@@ -12,7 +14,7 @@ import { api, errorMessage } from "@/lib/api";
 import { displayPhone } from "@/lib/profile";
 import { homeFor } from "@/lib/roles";
 import { getDeviceId } from "@/lib/tokens";
-import type { OtpRequestResult, OtpVerifyResult } from "@/lib/types";
+import type { IdentityCheck, OtpRequestResult, OtpVerifyResult } from "@/lib/types";
 
 
 export default function LoginPage() {
@@ -23,6 +25,8 @@ export default function LoginPage() {
   const [step, setStep] = useState<"phone" | "otp">("phone");
   /** Several businesses on this number: ask which one before entering. */
   const [choosing, setChoosing] = useState(false);
+  /** Login paused: "Is this you?" for a long-idle number on a new device. */
+  const [identity, setIdentity] = useState<IdentityCheck | null>(null);
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [otpInfo, setOtpInfo] = useState<OtpRequestResult | null>(null);
@@ -66,6 +70,10 @@ export default function LoginPage() {
         { phone: phone.trim(), code: code.trim(), deviceId: getDeviceId(), deviceName: "StaffMint Web" },
         { auth: false },
       );
+      if (res.identityCheck) {
+        setIdentity(res.identityCheck);
+        return;
+      }
       if (res.needsAccountChoice) setChoosing(true);
       const loaded = await signIn({ accessToken: res.accessToken, refreshToken: res.refreshToken });
       // Redirect / setup step is derived from auth state.
@@ -77,8 +85,40 @@ export default function LoginPage() {
     }
   }
 
+  async function answerIdentity(isMe: boolean) {
+    if (!identity) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await api.post<OtpVerifyResult>(`/auth/identity/${isMe ? "confirm" : "reject"}`, { token: identity.token }, { auth: false });
+      setIdentity(null);
+      if (res.needsAccountChoice) setChoosing(true);
+      await signIn({ accessToken: res.accessToken, refreshToken: res.refreshToken });
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   let content;
-  if (status === "loading" || readyToEnter) {
+  if (identity) {
+    content = (
+      <div className="space-y-4" data-identity-check>
+        <h1 className="text-xl font-semibold">{t("id_title").replace("{name}", identity.maskedName)}</h1>
+        <p className="text-sm text-slate-600">{t("id_body")}</p>
+        {error && <Alert>{error}</Alert>}
+        <div className="flex gap-2">
+          <Button variant="secondary" className="flex-1" disabled={busy} onClick={() => void answerIdentity(false)}>
+            {t("id_no")}
+          </Button>
+          <Button className="flex-1" loading={busy} onClick={() => void answerIdentity(true)}>
+            {t("id_yes")}
+          </Button>
+        </div>
+      </div>
+    );
+  } else if (status === "loading" || readyToEnter) {
     content = <Loading label={t("loading")} />;
   } else if (choosing && status === "authenticated" && me) {
     content = (
@@ -102,7 +142,11 @@ export default function LoginPage() {
         {/* Why there is no business any more, and businesses that can be brought back. */}
         <EndedNotices notices={me?.endedNotices ?? []} />
         <ClosedBusinesses list={me?.closedBusinesses ?? []} />
+        <AccountAlerts />
         <CompanySetup onDone={(tokens) => signIn(tokens)} />
+        <Link href="/recover" className="block text-center text-sm font-medium text-mint-700 hover:underline" data-recover-link>
+          {t("rec_link")}
+        </Link>
       </div>
     );
   } else if (step === "phone") {

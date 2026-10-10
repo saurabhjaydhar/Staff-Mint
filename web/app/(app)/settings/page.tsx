@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { AccountantsCard, CloseBusinessCard } from "@/components/AccountCards";
+import { AccountantsCard, CloseBusinessCard, OwnersCard } from "@/components/AccountCards";
 import { useAuth, useI18n, useToast } from "@/components/providers";
 import { Alert, Button, Card, Checkbox, EmptyState, Field, Input, Loading, PageHeader, Select, Table, Td, Th } from "@/components/ui";
 import { useAction, useAsync } from "@/hooks/useAsync";
@@ -39,6 +39,7 @@ export default function SettingsPage() {
       <HolidaysCard />
       <ShiftsCard />
       <BranchesCard />
+      <OwnersCard />
       <AccountantsCard />
       <CloseBusinessCard />
     </div>
@@ -133,6 +134,7 @@ function toDraft(s: CompanySettings): Draft {
 
 function SettingsForm({ settings, onSaved }: { settings: CompanySettings; onSaved: (c: Company) => void }) {
   const toast = useToast();
+  const { t } = useI18n();
   const [base, setBase] = useState(settings);
   const [d, setD] = useState<Draft>(() => toDraft(settings));
   const action = useAction();
@@ -244,6 +246,7 @@ function SettingsForm({ settings, onSaved }: { settings: CompanySettings; onSave
           <Checkbox label="Round salary to the nearest rupee" checked={d.roundToRupee} onChange={(e) => set("roundToRupee", e.target.checked)} />
           <Checkbox label="Selfie required at check-in" checked={d.selfieRequired} onChange={(e) => set("selfieRequired", e.target.checked)} />
           <Checkbox label="WhatsApp alerts" checked={d.whatsappAlerts} onChange={(e) => set("whatsappAlerts", e.target.checked)} />
+          <Checkbox label={t("set_ex_staff")} checked={d.exStaffPayslips !== false} onChange={(e) => set("exStaffPayslips", e.target.checked)} />
         </div>
         {action.error && <Alert>{action.error}</Alert>}
         <div className="flex justify-end">

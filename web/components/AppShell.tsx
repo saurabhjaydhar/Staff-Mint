@@ -10,6 +10,7 @@ import type { Role } from "@/lib/types";
 import type { DictKey } from "@/lib/i18n";
 import { initials } from "@/lib/profile";
 import { businessIcon } from "@/lib/accounts";
+import { AccountAlerts } from "./AccountAlerts";
 import { AccountChooser } from "./AccountChooser";
 import { useAuth, useI18n, useToast } from "./providers";
 import { Alert, Button, Loading, cx } from "./ui";
@@ -248,7 +249,12 @@ export function AppShell({ children }: { children: ReactNode }) {
         {/* Keyed by account: switching remounts every page so nothing from the old business lingers. */}
         <main key={me.activeMembershipId ?? me.company?.id ?? "none"} className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-6">
           {allowed ? (
-            children
+            <>
+              <div className="mb-4 empty:mb-0">
+                <AccountAlerts />
+              </div>
+              {children}
+            </>
           ) : (
             <div className="rounded-xl bg-white p-6 text-center shadow-sm ring-1 ring-slate-200">
               <p className="text-slate-700">You don&apos;t have access to this page.</p>
