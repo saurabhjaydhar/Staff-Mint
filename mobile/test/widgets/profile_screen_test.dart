@@ -56,8 +56,8 @@ const _staff = Profile(
     shiftStart: '09:00',
     shiftEnd: '21:00',
   ),
-  completePercent: 40,
-  missing: ['photo', 'email', 'bank'],
+  completePercent: 50,
+  missing: ['photo', 'bank'],
 );
 
 class _FakeProfileApi implements ProfileApi {

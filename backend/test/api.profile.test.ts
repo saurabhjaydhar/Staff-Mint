@@ -58,7 +58,7 @@ describe('profile', () => {
 
     r = await api().patch(`${V}/me/profile`).set(auth(e.token)).send({ name: 'Pooja S.', emergencyContact: { name: 'Ramesh Singh', phone: '9876512345', relation: 'Father' } }).expect(200);
     expect(r.body.data.emergencyContact).toEqual({ name: 'Ramesh Singh', phone: '+919876512345', relation: 'Father' });
-    expect(r.body.data.completeness.missing).toEqual(['photo', 'email']);
+    expect(r.body.data.completeness.missing).toEqual(['photo']);
     // Name change reaches the staff record the owner sees.
     const detail = await api().get(`${V}/employees/${emp.id}`).set(auth(owner.token)).expect(200);
     expect(detail.body.data).toMatchObject({ name: 'Pooja S.', bank: { accountLast4: '9012' }, emergencyContact: { name: 'Ramesh Singh' } });

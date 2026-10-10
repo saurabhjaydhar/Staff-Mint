@@ -36,7 +36,27 @@ The redesign follows [docs/design](../design/README.md): a warm paper ledger, Hi
 | <img src="mobile/50-employee-face-banner.jpg" width="240"><br>Staff home asks to set up face check once the owner turns it on | <img src="mobile/51-employee-face-consent.jpg" width="240"><br>Explicit consent (unticked by default) before any photo is taken | <img src="mobile/52-employee-face-pending.jpg" width="240"><br>Photo waits for the owner; retake or remove any time |
 | <img src="mobile/53-owner-face-approve.jpg" width="240"><br>Owner approves the photo or asks for a new one | <img src="mobile/56-owner-face-compare.jpg" width="240"><br>A selfie that doesn't match waits for the owner, shown next to the approved photo (mismatch simulated: the dev face engine is a mock) | <img src="mobile/57-owner-settings-face.jpg" width="240"><br>Setting: off / on (Growth plan and above) |
 
+### Profile
+
+| | | |
+|---|---|---|
+| <img src="mobile/m1-owner-more-card.jpg" width="240"><br>Owner opens the profile from the More card | <img src="mobile/m2-owner-profile.jpg" width="240"><br>Owner profile: photo, role, business | <img src="mobile/m2b-owner-profile-more.jpg" width="240"><br>Personal details, business, account & security |
+| <img src="mobile/m3-staff-profile.jpg" width="240"><br>Staff profile with completeness ring and one-tap chips | <img src="mobile/m3b-staff-profile-work.jpg" width="240"><br>Work details are read-only (set by the owner) | <img src="mobile/m4-staff-bank-sheet.jpg" width="240"><br>Salary account: number typed twice, IFSC or UPI |
+| <img src="mobile/m5-staff-bank-card.jpg" width="240"><br>Saved salary account, masked; the owner is notified | | |
+
 ## Web dashboard
+
+### My profile
+<img src="web/w1-profile.jpg" width="900">
+
+### Profile complete (photo + email saved)
+<img src="web/w2-profile-complete.jpg" width="900">
+
+### Change mobile number (code to the new number)
+<img src="web/w3-change-mobile.jpg" width="900">
+
+### Profile in Hindi
+<img src="web/w4-profile-hindi.jpg" width="900">
 
 ### Login
 <img src="web/01-login.jpg" width="900">

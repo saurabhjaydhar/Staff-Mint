@@ -229,6 +229,7 @@ class _ProfileBody extends ConsumerWidget {
               icon: Icons.badge_rounded,
               label: s.fullName,
               value: p.name.isEmpty ? null : p.name,
+              placeholder: s.notAdded,
               onTap: editName,
             ),
             _Row(
@@ -244,6 +245,7 @@ class _ProfileBody extends ConsumerWidget {
               icon: Icons.alternate_email_rounded,
               label: s.emailLabel,
               value: p.email,
+              placeholder: s.notAdded,
               onTap: editEmail,
             ),
             _Row(
@@ -651,6 +653,7 @@ class _Row extends StatelessWidget {
     this.action,
     this.locked = false,
     this.danger = false,
+    this.placeholder,
   });
   final IconData icon;
   final String label;
@@ -661,9 +664,11 @@ class _Row extends StatelessWidget {
   final bool locked;
   final bool danger;
 
+  /// Shown under the label when a data field is empty ("Not added").
+  final String? placeholder;
+
   @override
   Widget build(BuildContext context) {
-    final s = context.s;
     final color = danger ? AppColors.red : AppColors.mintDark;
     final hasValue = value != null && value!.isNotEmpty;
     return InkWell(
@@ -696,8 +701,8 @@ class _Row extends StatelessWidget {
                   ),
                   if (hasValue)
                     Text(value!, style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700))
-                  else if (onTap != null && !danger && trailing == null && action == null)
-                    Text(s.notAdded, style: const TextStyle(color: AppColors.muted, fontSize: 13)),
+                  else if (placeholder != null)
+                    Text(placeholder!, style: const TextStyle(color: AppColors.muted, fontSize: 13)),
                 ],
               ),
             ),

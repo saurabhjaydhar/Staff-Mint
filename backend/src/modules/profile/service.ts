@@ -77,8 +77,9 @@ function completeness(user: any, employee: any) {
   const items: [string, boolean][] = [
     ['photo', !!user.photoKey],
     ['name', !!user.name?.trim()],
-    ['email', !!user.email],
   ];
+  // Shop staff often have no email; only owners / managers are nudged for one.
+  if (!employee) items.push(['email', !!user.email]);
   if (employee) {
     items.push(['bank', !!employee.bankDetailsEnc]);
     items.push(['emergencyContact', !!employee.emergencyContact?.name]);
