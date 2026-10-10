@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/i18n/strings.dart';
+import '../../core/models/models.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/phone.dart';
 import '../../core/widgets/common.dart';
@@ -57,12 +58,37 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     setState(() => _busy = true);
     try {
       // On success the router redirects automatically (auth state changes).
-      await ref.read(authControllerProvider.notifier).verifyOtp(widget.phone, code);
+      final check = await ref.read(authControllerProvider.notifier).verifyOtp(widget.phone, code);
+      if (check != null && mounted) await _askIdentity(check);
     } catch (e) {
       if (mounted) showError(context, e);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  /// The number was idle for months and this phone is new: it may belong to someone else now.
+  Future<void> _askIdentity(IdentityCheck check) async {
+    final s = context.s;
+    final isMe = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        icon: const Icon(Icons.person_search_rounded, size: 34, color: AppColors.mintDark),
+        title: Text(s.isThisYou(check.maskedName)),
+        content: Text(s.isThisYouBody),
+        actions: [
+          TextButton(key: const Key('identityNo'), onPressed: () => Navigator.pop(ctx, false), child: Text(s.notMe)),
+          FilledButton(
+            key: const Key('identityYes'),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(s.yesItsMe),
+          ),
+        ],
+      ),
+    );
+    if (isMe == null || !mounted) return;
+    await ref.read(authControllerProvider.notifier).answerIdentity(check.token, isMe: isMe);
   }
 
   Future<void> _resend() async {

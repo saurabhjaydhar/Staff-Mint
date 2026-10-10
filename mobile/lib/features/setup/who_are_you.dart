@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/i18n/strings.dart';
 import '../../core/models/models.dart';
+import '../../core/router/routes.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/dates.dart';
 import '../../core/utils/phone.dart';
 import '../../core/widgets/bilingual.dart';
 import '../../core/widgets/common.dart';
+import '../accounts/accounts_screen.dart' show AccountAlerts;
+import '../accounts/past_payslips_screen.dart' show pastPayslipsProvider;
 import '../auth/auth_controller.dart';
 
 /// First question for a number StaffMint doesn't know: owner or staff?
@@ -30,6 +34,7 @@ class WhoAreYouView extends ConsumerWidget {
             // Why this person has no business any more, so it is never a mystery.
             for (final n in session.endedNotices) ...[EndedNoticeCard(notice: n), const SizedBox(height: 12)],
             for (final c in session.closedBusinesses) ...[RestoreBusinessCard(business: c), const SizedBox(height: 12)],
+            const AccountAlerts(padding: EdgeInsets.zero),
             Text(s.whoAreYou, style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 6),
             Text(s.whoAreYouHint, style: const TextStyle(color: AppColors.muted, fontSize: 15)),
@@ -48,6 +53,21 @@ class WhoAreYouView extends ConsumerWidget {
               title: s.iWorkAtShop,
               subtitle: s.iWorkAtShopHint,
               onTap: onStaff,
+            ),
+            const SizedBox(height: 20),
+            if ((ref.watch(pastPayslipsProvider).value ?? const []).isNotEmpty)
+              TextButton.icon(
+                key: const Key('pastPayslipsLink'),
+                onPressed: () => context.push(Routes.accountsPayslips),
+                icon: const Icon(Icons.receipt_long_rounded),
+                label: Text(s.pastPayslipsBi.text),
+              ),
+            // Someone who lost their old number can bring their account to this one.
+            TextButton.icon(
+              key: const Key('lostOldNumber'),
+              onPressed: () => context.push(Routes.accountsRecover),
+              icon: const Icon(Icons.history_rounded),
+              label: Text(s.lostOldNumber),
             ),
           ],
         ),

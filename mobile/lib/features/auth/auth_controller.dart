@@ -67,11 +67,24 @@ class AuthController extends Notifier<SessionState> {
   Future<OtpRequestResult> requestOtp(String phone, {String channel = 'sms'}) =>
       ref.read(authApiProvider).requestOtp(phone, channel: channel);
 
-  Future<void> verifyOtp(String phone, String code) async {
+  /// Returns an [IdentityCheck] when the login is paused to ask "Is this you?".
+  Future<IdentityCheck?> verifyOtp(String phone, String code) async {
     final deviceId = await ref.read(deviceIdServiceProvider).getDeviceId();
     final result = await ref
         .read(authApiProvider)
         .verifyOtp(phone: phone, code: code, deviceId: deviceId, deviceName: _deviceName());
+    if (result.identityCheck != null) return result.identityCheck;
+    await _startSession(result);
+    return null;
+  }
+
+  /// "Is this you?" — yes continues the login; no starts fresh on this number.
+  Future<void> answerIdentity(String token, {required bool isMe}) async {
+    final result = await ref.read(accountsApiProvider).answerIdentity(token, isMe: isMe);
+    await _startSession(result);
+  }
+
+  Future<void> _startSession(AuthResult result) async {
     await ref.read(tokenStorageProvider).saveTokens(accessToken: result.accessToken, refreshToken: result.refreshToken);
     try {
       await refreshMe(needsCompanySetupHint: result.needsCompanySetup, needsAccountChoice: result.needsAccountChoice);
@@ -196,6 +209,41 @@ class AuthController extends Notifier<SessionState> {
 
   void clearNotice() => state = state.copyWith(clearNotice: true);
 
+  /// Accept or decline becoming main owner of a business.
+  Future<void> decideTransfer(String transferId, {required bool accept}) async {
+    final d = await _deviceSession();
+    final res = await ref
+        .read(accountsApiProvider)
+        .decideTransfer(transferId, accept: accept, deviceId: d.deviceId, refreshToken: d.refreshToken);
+    if (res != null) {
+      await _applySession(res);
+    } else {
+      state = state.copyWith(pendingTransfers: [...state.pendingTransfers.where((t) => t.id != transferId)]);
+    }
+  }
+
+  /// Stop a support recovery that looks wrong.
+  Future<void> stopRecovery(String id) async {
+    await ref.read(accountsApiProvider).stopRecovery(id);
+    state = state.copyWith(recoveryHolds: [...state.recoveryHolds.where((h) => h.id != id)]);
+  }
+
+  /// Lost-number recovery by the email on the old account: the account moves to this number.
+  Future<void> recoverByEmail(String email, String code) async {
+    final d = await _deviceSession();
+    final res = await ref
+        .read(accountsApiProvider)
+        .verifyEmailRecovery(email: email, code: code, deviceId: d.deviceId, refreshToken: d.refreshToken);
+    await _applySession(res);
+  }
+
+  /// Delete this person (code = OTP to their own number). Ends the local session too.
+  Future<void> deleteAccount(String code) async {
+    await ref.read(accountsApiProvider).deleteAccount(code);
+    await ref.read(tokenStorageProvider).clear();
+    state = const SessionState.unauthenticated();
+  }
+
   Future<void> _sendQueuedPunches() async {
     final int pending;
     try {
@@ -304,6 +352,8 @@ class AuthController extends Notifier<SessionState> {
       blockedAccounts: me.blockedAccounts,
       endedNotices: me.endedNotices,
       closedBusinesses: me.closedBusinesses,
+      pendingTransfers: me.pendingTransfers,
+      recoveryHolds: me.recoveryHolds,
       notice: state.notice,
     );
   }

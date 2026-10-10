@@ -24,6 +24,7 @@ class AuthResult {
     this.memberships = const [],
     this.activeMembershipId,
     this.needsAccountChoice = false,
+    this.identityCheck,
   });
   final String accessToken;
   final String refreshToken;
@@ -37,14 +38,20 @@ class AuthResult {
   /// More than one account: the app asks which one to open.
   final bool needsAccountChoice;
 
+  /// Set instead of a session when the app must ask "Is this you?" first.
+  final IdentityCheck? identityCheck;
+
   factory AuthResult.fromJson(Json j) => AuthResult(
     accessToken: asString(j['accessToken']),
     refreshToken: asString(j['refreshToken']),
-    user: User.fromJson(asMap(j['user'])),
+    user: j['user'] is Map
+        ? User.fromJson(asMap(j['user']))
+        : const User(id: '', phone: '', name: '', role: UserRole.owner),
     needsCompanySetup: asBool(j['needsCompanySetup']),
     memberships: asList(j['memberships'], Membership.fromJson),
     activeMembershipId: asStringOrNull(j['activeMembershipId']),
     needsAccountChoice: asBool(j['needsAccountChoice']),
+    identityCheck: IdentityCheck.fromJsonOrNull(j['identityCheck']),
   );
 }
 

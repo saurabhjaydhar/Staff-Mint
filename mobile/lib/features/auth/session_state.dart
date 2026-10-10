@@ -17,6 +17,8 @@ class SessionState {
     this.blockedAccounts = const [],
     this.endedNotices = const [],
     this.closedBusinesses = const [],
+    this.pendingTransfers = const [],
+    this.recoveryHolds = const [],
     this.notice,
   });
 
@@ -32,6 +34,8 @@ class SessionState {
       blockedAccounts = const [],
       endedNotices = const [],
       closedBusinesses = const [],
+      pendingTransfers = const [],
+      recoveryHolds = const [],
       notice = null;
 
   const SessionState.unauthenticated()
@@ -47,6 +51,8 @@ class SessionState {
       blockedAccounts = const [],
       endedNotices = const [],
       closedBusinesses = const [],
+      pendingTransfers = const [],
+      recoveryHolds = const [],
       notice = null;
 
   final SessionStatus status;
@@ -76,6 +82,12 @@ class SessionState {
 
   /// Businesses this person closed that can still be restored.
   final List<ClosedBusiness> closedBusinesses;
+
+  /// Offers to become main owner of a business.
+  final List<TransferOffer> pendingTransfers;
+
+  /// Support recoveries in their hold that this person can stop.
+  final List<RecoveryHold> recoveryHolds;
 
   /// Shown once as a snackbar after the account changed under this phone.
   final AccountChange? notice;
@@ -107,6 +119,8 @@ class SessionState {
     List<Membership>? blockedAccounts,
     List<EndedNotice>? endedNotices,
     List<ClosedBusiness>? closedBusinesses,
+    List<TransferOffer>? pendingTransfers,
+    List<RecoveryHold>? recoveryHolds,
     AccountChange? notice,
     bool clearNotice = false,
   }) => SessionState(
@@ -121,6 +135,8 @@ class SessionState {
     blockedAccounts: blockedAccounts ?? this.blockedAccounts,
     endedNotices: endedNotices ?? this.endedNotices,
     closedBusinesses: closedBusinesses ?? this.closedBusinesses,
+    pendingTransfers: pendingTransfers ?? this.pendingTransfers,
+    recoveryHolds: recoveryHolds ?? this.recoveryHolds,
     notice: clearNotice ? null : (notice ?? this.notice),
   );
 }

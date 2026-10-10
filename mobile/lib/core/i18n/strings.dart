@@ -1136,6 +1136,91 @@ class S {
   String get resendInvite => _t('Resend invite', 'आमंत्रण फिर भेजें');
   String get inviteSent => _t('Invite sent on WhatsApp', 'WhatsApp पर आमंत्रण भेज दिया');
 
+  // ------------------------------------------- Shared ownership & recovery
+  String isThisYou(String masked) => _t('Is this you, $masked?', 'क्या आप $masked हैं?');
+  String get isThisYouBody => _t(
+    'This number was not used for a long time. Mobile numbers are sometimes given to someone new.',
+    'यह नंबर बहुत समय से इस्तेमाल नहीं हुआ। कभी-कभी मोबाइल नंबर किसी नए व्यक्ति को मिल जाते हैं।',
+  );
+  String get yesItsMe => _t('Yes, it’s me', 'हाँ, मैं ही हूँ');
+  String get notMe => _t('No, not me', 'नहीं, मैं नहीं');
+  Bi get ownersBi => _b('Owners', 'मालिक');
+  String get ownersHint => _t('Partners can run the business with you.', 'पार्टनर आपके साथ बिज़नेस चला सकते हैं।');
+  String get mainOwner => _t('Main owner', 'मुख्य मालिक');
+  String get coOwner => _t('Co-owner', 'सह-मालिक');
+  String get you => _t('You', 'आप');
+  String get addCoOwner => _t('Add co-owner', 'सह-मालिक जोड़ें');
+  String get canManageBilling => _t('Can manage billing', 'बिलिंग संभाल सकते हैं');
+  String removeOwnerConfirm(String name) => _t('Remove $name as co-owner?', '$name को सह-मालिक से हटाएँ?');
+  String get transferBusiness => _t('Transfer the business', 'बिज़नेस किसी और को सौंपें');
+  String get transferHint => _t(
+    'The new owner accepts from their phone. You can stay as co-owner or leave.',
+    'नए मालिक अपने फ़ोन से स्वीकार करेंगे। आप सह-मालिक रह सकते हैं या छोड़ सकते हैं।',
+  );
+  String get newOwnerNumber => _t('New owner’s mobile number', 'नए मालिक का मोबाइल नंबर');
+  String get stayCoOwner => _t('Keep me as co-owner', 'मुझे सह-मालिक रखें');
+  String get leaveAfterTransfer => _t('Remove me after the transfer', 'सौंपने के बाद मुझे हटा दें');
+  String get codeSentToYou => _t('Enter the code sent to your number', 'आपके नंबर पर भेजा गया कोड लिखें');
+  String transferPending(String phone) => _t('Waiting for $phone to accept', '$phone के स्वीकार करने का इंतज़ार');
+  String get cancelTransfer => _t('Cancel transfer', 'सौंपना रद्द करें');
+  String get ownerLostNumber => _t('Main owner lost their number?', 'मुख्य मालिक का नंबर खो गया?');
+  String get ownerLostNumberHint => _t(
+    'Move main ownership to their new number. Their old number is told by SMS.',
+    'मुख्य मालिकाना उनके नए नंबर पर ले जाएँ। पुराने नंबर पर SMS जाएगा।',
+  );
+  String get ownersNewNumber => _t('Owner’s new number', 'मालिक का नया नंबर');
+  String offerTitle(String company) => _t('$company: become the owner?', '$company: मालिक बनें?');
+  String offerBody(String? from) =>
+      _t('${from ?? 'The owner'} is handing the business to you.', '${from ?? 'मालिक'} बिज़नेस आपको सौंप रहे हैं।');
+  String get accept => _t('Accept', 'स्वीकार करें');
+  String get decline => _t('Decline', 'मना करें');
+  String holdTitle(String company) =>
+      _t('$company: owner account is being recovered', '$company: मालिक का खाता वापस लिया जा रहा है');
+  String holdBody(String date) => _t(
+    'It moves to a new number on $date. Stop it if this looks wrong.',
+    '$date को यह नए नंबर पर चला जाएगा। गलत लगे तो रोकें।',
+  );
+  String get stop => _t('Stop it', 'रोकें');
+  String get stopped => _t('Stopped', 'रोक दिया');
+  String get lostOldNumber => _t('Lost your old number? Recover your account', 'पुराना नंबर खो गया? खाता वापस पाएँ');
+  String get recoverTitle => _t('Recover your account', 'अपना खाता वापस पाएँ');
+  String get recoverByEmail => _t('With the email on your account', 'खाते के ईमेल से');
+  String get recoverByEmailHint =>
+      _t('We send a code to the email you added in your profile.', 'प्रोफ़ाइल में जोड़े गए ईमेल पर कोड भेजेंगे।');
+  String get codeLabel => _t('Code', 'कोड');
+  String get recoverNow => _t('Recover account', 'खाता वापस पाएँ');
+  String get recoverBySupport => _t('No email? Ask support', 'ईमेल नहीं? सपोर्ट से मदद लें');
+  String get recoverBySupportHint => _t(
+    'Give any 2 of these. After support checks them, your old number, managers and accountant get 7 days to stop it.',
+    'इनमें से कोई 2 दें। जाँच के बाद आपके पुराने नंबर, मैनेजर और अकाउंटेंट को 7 दिन मिलेंगे, ताकि गलत हो तो रोक सकें।',
+  );
+  String get oldNumber => _t('Old mobile number', 'पुराना मोबाइल नंबर');
+  String get gstinOrLicence => _t('GSTIN / shop licence / Udyam number', 'GSTIN / दुकान लाइसेंस / उद्यम नंबर');
+  String get paymentId => _t('A past StaffMint payment ID', 'पिछले StaffMint भुगतान की ID');
+  String get recordSelfieVideo => _t(
+    'Record a 10-second selfie video saying the business name',
+    '10 सेकंड का सेल्फ़ी वीडियो, बिज़नेस का नाम बोलते हुए',
+  );
+  String get videoRecorded => _t('Video recorded', 'वीडियो रिकॉर्ड हो गया');
+  String get needTwoProofs => _t('Give at least 2 of the 3', '3 में से कम से कम 2 दें');
+  String get sendRequest => _t('Send request', 'अनुरोध भेजें');
+  String recoveryStatus(String status) => switch (status) {
+    'hold' => _t('Approved — waiting 7 days', 'मंज़ूर — 7 दिन का इंतज़ार'),
+    'completed' => _t('Done — your account is back', 'हो गया — खाता वापस मिल गया'),
+    'rejected' => _t('Not approved', 'मंज़ूर नहीं'),
+    'stopped' => _t('Stopped by the business', 'बिज़नेस ने रोक दिया'),
+    _ => _t('Sent to support', 'सपोर्ट को भेजा गया'),
+  };
+  String get deleteAccount => _t('Delete my account', 'मेरा खाता हटाएँ');
+  String get deleteAccountHint => _t(
+    'Your login and profile are deleted. Employers keep salary records as the law requires. Owners must transfer or close their businesses first.',
+    'आपका लॉगिन और प्रोफ़ाइल हट जाएगी। मालिक क़ानून के अनुसार सैलरी रिकॉर्ड रखेंगे। मालिकों को पहले बिज़नेस सौंपना या बंद करना होगा।',
+  );
+  String get deleteForever => _t('Delete forever', 'हमेशा के लिए हटाएँ');
+  Bi get pastPayslipsBi => _b('Past payslips', 'पुरानी पेस्लिप');
+  String get exStaffPayslips =>
+      _t('Ex-staff can see their old payslips (12 months)', 'पुराने स्टाफ़ अपनी पेस्लिप देख सकें (12 महीने)');
+
   // ---------------------------------------------------------------- Misc
   String get thisMonth => _t('This month', 'इस महीने');
   String get offlineNote => _t('Offline · showing saved data', 'ऑफ़लाइन · सेव डेटा दिखा रहे हैं');

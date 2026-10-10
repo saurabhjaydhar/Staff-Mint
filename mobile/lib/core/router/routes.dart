@@ -14,6 +14,12 @@ class Routes {
   /// Create another business from any account, staff included.
   static const accountsNew = '/accounts/new';
 
+  /// Lost the old number: bring the account to this one (email or support).
+  static const accountsRecover = '/accounts/recover';
+
+  /// Own payslips from businesses this person left (12 months).
+  static const accountsPayslips = '/accounts/payslips';
+
   // Owner / manager shell. `ownerHome` is the Today tab.
   static const ownerHome = '/owner/home';
   static const ownerStaff = '/owner/staff';
@@ -28,6 +34,7 @@ class Routes {
   static const ownerBranches = '/owner/more/settings/branches';
   static const ownerHolidays = '/owner/more/settings/holidays';
   static const ownerAccountants = '/owner/more/settings/accountants';
+  static const ownerOwners = '/owner/more/settings/owners';
   static const ownerBilling = '/owner/more/billing';
   static const ownerAudit = '/owner/more/audit';
   static const ownerHelp = '/owner/more/help';

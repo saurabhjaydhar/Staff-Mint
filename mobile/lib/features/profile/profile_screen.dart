@@ -18,6 +18,7 @@ import '../../core/utils/phone.dart';
 import '../../core/widgets/bilingual.dart';
 import '../../core/widgets/common.dart';
 import '../accounts/accounts_screen.dart';
+import '../accounts/past_payslips_screen.dart';
 import '../auth/auth_controller.dart';
 import '../employee/punch/punch_providers.dart';
 import '../setup/setup_screen.dart' show businessIcons;
@@ -214,6 +215,7 @@ class _ProfileBody extends ConsumerWidget {
     }
 
     final session = ref.watch(authControllerProvider);
+    final pastSlips = ref.watch(pastPayslipsProvider).value ?? const [];
     final faceOn =
         session.company?.settings.faceMatchPolicy == 'review' || (session.employee?.faceStatus ?? 'none') != 'none';
     final w = p.work;
@@ -400,6 +402,13 @@ class _ProfileBody extends ConsumerWidget {
                 value: s.faceStatusLabel(session.employee?.faceStatus ?? 'none'),
                 onTap: () => context.push(Routes.employeeFace),
               ),
+            if (pastSlips.isNotEmpty)
+              _Row(
+                key: const Key('rowPastPayslips'),
+                icon: Icons.receipt_long_rounded,
+                label: s.pastPayslipsBi.text,
+                onTap: () => context.push(Routes.accountsPayslips),
+              ),
             _Row(key: const Key('rowLogout'), icon: Icons.logout_rounded, label: s.logout, danger: true, onTap: logout),
             _Row(
               key: const Key('rowLogoutAll'),
@@ -407,6 +416,13 @@ class _ProfileBody extends ConsumerWidget {
               label: s.logoutAll,
               danger: true,
               onTap: logoutAll,
+            ),
+            _Row(
+              key: const Key('rowDeleteAccount'),
+              icon: Icons.delete_forever_rounded,
+              label: s.deleteAccount,
+              danger: true,
+              onTap: () => _confirmDelete(context, ref),
             ),
           ],
         ),
@@ -423,6 +439,56 @@ class _ProfileBody extends ConsumerWidget {
           const SizedBox(height: 32),
       ],
     );
+  }
+}
+
+/// Delete the person: explain, send an OTP to their own number, confirm with it.
+Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+  final s = context.s;
+  final ok = await confirmDialog(
+    context,
+    title: s.deleteAccount,
+    message: s.deleteAccountHint,
+    confirmLabel: s.sendCode,
+    destructive: true,
+  );
+  if (!ok || !context.mounted) return;
+  final phone = ref.read(authControllerProvider).user?.phone ?? '';
+  try {
+    await ref.read(authControllerProvider.notifier).requestOtp(phone);
+  } catch (e) {
+    if (context.mounted) showError(context, e);
+    return;
+  }
+  if (!context.mounted) return;
+  final code = TextEditingController();
+  final go = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(s.deleteAccount),
+      content: TextField(
+        key: const Key('deleteCode'),
+        controller: code,
+        keyboardType: TextInputType.number,
+        decoration: InputDecoration(labelText: s.codeSentToYou),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(s.cancel)),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: AppColors.red),
+          onPressed: () => Navigator.pop(ctx, true),
+          child: Text(s.deleteForever),
+        ),
+      ],
+    ),
+  );
+  final c = code.text.trim();
+  code.dispose();
+  if (go != true || !context.mounted) return;
+  try {
+    await ref.read(authControllerProvider.notifier).deleteAccount(c);
+  } catch (e) {
+    if (context.mounted) showError(context, e);
   }
 }
 

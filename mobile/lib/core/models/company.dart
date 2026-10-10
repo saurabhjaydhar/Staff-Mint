@@ -82,6 +82,7 @@ class CompanySettings {
     this.maxDeviceTimeDriftMin = 10,
     this.selfieRetentionDays = 90,
     this.whatsappAlerts = false,
+    this.exStaffPayslips = true,
   });
 
   final int graceMinutes;
@@ -106,6 +107,9 @@ class CompanySettings {
   final int selfieRetentionDays;
   final bool whatsappAlerts;
 
+  /// Ex-staff can see their own payslips for 12 months.
+  final bool exStaffPayslips;
+
   factory CompanySettings.fromJson(Json j) => CompanySettings(
     graceMinutes: asInt(j['graceMinutes'], 15),
     halfDayHours: asNum(j['halfDayHours'], 4),
@@ -124,6 +128,7 @@ class CompanySettings {
     maxDeviceTimeDriftMin: asInt(j['maxDeviceTimeDriftMin'], 10),
     selfieRetentionDays: asInt(j['selfieRetentionDays'], 90),
     whatsappAlerts: asBool(j['whatsappAlerts']),
+    exStaffPayslips: j['exStaffPayslips'] == null ? true : asBool(j['exStaffPayslips']),
   );
 
   Json toJson() => {
@@ -144,6 +149,7 @@ class CompanySettings {
     'maxDeviceTimeDriftMin': maxDeviceTimeDriftMin,
     'selfieRetentionDays': selfieRetentionDays,
     'whatsappAlerts': whatsappAlerts,
+    'exStaffPayslips': exStaffPayslips,
   };
 }
 
