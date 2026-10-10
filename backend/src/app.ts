@@ -11,6 +11,7 @@ import { errorHandler, notFoundHandler } from './middleware/error.js';
 import { authRouter } from './modules/auth/routes.js';
 import { meRouter } from './modules/me/routes.js';
 import { faceRouter } from './modules/face/routes.js';
+import { profileRouter } from './modules/profile/routes.js';
 import { companyRouter } from './modules/company/routes.js';
 import { employeesRouter } from './modules/employees/routes.js';
 import { importsRouter } from './modules/imports/routes.js';
@@ -62,6 +63,7 @@ export function createApp() {
     res.json({ data: { minAppVersion: env.MIN_APP_VERSION, features: await enabledFlags(), supportWhatsApp: env.SUPPORT_WHATSAPP, otpProvider: providerName('otp'), environment: env.NODE_ENV } });
   });
   api.use('/', faceRouter);
+  api.use('/', profileRouter);
   api.use('/me', meRouter);
   api.use('/', companyRouter);
   api.use('/dashboard', dashboardRouter);

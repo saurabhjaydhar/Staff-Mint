@@ -50,7 +50,7 @@ export async function requestOtp(rawPhone: string, channel: 'sms' | 'whatsapp', 
   return { requestId: String(doc._id), expiresInSec: env.OTP_TTL_SEC, ...(sent.devCode ? { devCode: sent.devCode } : {}) };
 }
 
-async function consumeOtp(phone: string, code: string) {
+export async function consumeOtp(phone: string, code: string) {
   const req = await OtpRequest.findOne({ phone, consumedAt: null, expiresAt: { $gt: new Date() } }).sort({ createdAt: -1 });
   if (!req) throw new AppError('OTP_INVALID', 'OTP expired. Request a new one.');
   if (req.attempts >= MAX_VERIFY_ATTEMPTS) throw new AppError('RATE_LIMITED', 'Too many wrong attempts. Request a new OTP.');
@@ -116,6 +116,7 @@ export function userView(u: any) {
     id: String(u._id),
     phone: u.phone,
     name: u.name ?? '',
+    email: u.email ?? null,
     role: u.role,
     companyId: u.companyId ? String(u.companyId) : null,
     employeeId: u.employeeId ? String(u.employeeId) : null,
