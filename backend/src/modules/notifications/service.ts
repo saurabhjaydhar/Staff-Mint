@@ -1,5 +1,5 @@
 import { Types } from 'mongoose';
-import { Company, Employee, Notification, User } from '../../models/index.js';
+import { Company, Employee, Membership, Notification, User } from '../../models/index.js';
 import { provider } from '../../providers/registry.js';
 import { logger } from '../../lib/logger.js';
 
@@ -24,7 +24,8 @@ async function pushToUser(companyId: Types.ObjectId, user: any, msg: NotifyMessa
   if (!tokens.length) return;
   try {
     const push = await provider('push');
-    const r = await push.send(tokens, { title, body, data: msg.data });
+    // A person's phone may be open in another of their businesses; the app uses companyId to switch on tap.
+    const r = await push.send(tokens, { title, body, data: { ...(msg.data ?? {}), companyId: String(companyId) } });
     await Notification.create({ companyId, userId: user._id, employeeId: employeeId ?? null, channel: 'push', template: msg.template, title, body, data: msg.data, status: 'sent', provider: push.name });
     if (r.invalidTokens.length) await User.updateOne({ _id: user._id }, { $pull: { pushTokens: { token: { $in: r.invalidTokens } } } });
   } catch (err) {
@@ -54,10 +55,12 @@ export async function sendWhatsApp(companyId: Types.ObjectId, to: string, wa: No
 export async function notifyOwners(companyId: Types.ObjectId, msg: NotifyMessage, opts: { includeManagers?: boolean } = {}) {
   const company = await Company.findById(companyId).lean();
   const roles: ('owner' | 'manager')[] = opts.includeManagers === false ? ['owner'] : ['owner', 'manager'];
-  const users = await User.find({ companyId, role: { $in: roles }, deletedAt: null }).lean();
+  const ms = await Membership.find({ companyId, role: { $in: roles }, status: 'active' }).select('userId role').lean();
+  const roleOf = new Map(ms.map((m) => [String(m.userId), m.role]));
+  const users = ms.length ? await User.find({ _id: { $in: ms.map((m) => m.userId) }, deletedAt: null }).lean() : [];
   for (const u of users) {
     await pushToUser(companyId, u, msg);
-    if (msg.whatsapp && company?.settings?.whatsappAlerts && u.role === 'owner') await sendWhatsApp(companyId, u.phone, msg.whatsapp, { userId: u._id, language: u.language as any });
+    if (msg.whatsapp && company?.settings?.whatsappAlerts && roleOf.get(String(u._id)) === 'owner') await sendWhatsApp(companyId, u.phone, msg.whatsapp, { userId: u._id, language: u.language as any });
   }
 }
 

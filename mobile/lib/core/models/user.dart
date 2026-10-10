@@ -51,11 +51,11 @@ class User {
     'language': language,
   };
 
-  User copyWith({String? name, String? language, String? companyId}) => User(
+  User copyWith({String? name, String? language, String? companyId, String? role}) => User(
     id: id,
     phone: phone,
     name: name ?? this.name,
-    role: role,
+    role: role ?? this.role,
     companyId: companyId ?? this.companyId,
     employeeId: employeeId,
     language: language ?? this.language,

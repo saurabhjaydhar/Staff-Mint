@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../core/api/services/company_api.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/models/models.dart';
+import '../../core/router/routes.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/bilingual.dart';
 import '../../core/widgets/common.dart';
@@ -26,7 +28,7 @@ const businessHours = <String, (String, String)>{
   'other': ('09:00', '19:00'),
 };
 
-const _businessIcons = <String, IconData>{
+const businessIcons = <String, IconData>{
   'pharmacy': Icons.local_pharmacy_rounded,
   'clinic': Icons.medical_services_rounded,
   'salon': Icons.content_cut_rounded,
@@ -37,8 +39,12 @@ const _businessIcons = <String, IconData>{
 };
 
 /// Company setup: 4 screens here + the "Add staff" screen = 5 (PRD F1).
+///
+/// [another]: a signed-in person (owner, staff or accountant elsewhere)
+/// creating one more business. Skips "who are you?" and can be left with back.
 class SetupScreen extends ConsumerStatefulWidget {
-  const SetupScreen({super.key});
+  const SetupScreen({super.key, this.another = false});
+  final bool another;
 
   @override
   ConsumerState<SetupScreen> createState() => _SetupScreenState();
@@ -49,8 +55,17 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   int _step = 0;
 
   /// null: not asked yet · owner · staff
-  String? _who;
+  late String? _who = widget.another ? 'owner' : null;
   bool _busy = false;
+
+  void _back() {
+    if (_step > 0) return setState(() => _step--);
+    if (widget.another) {
+      context.canPop() ? context.pop() : context.go(Routes.splash);
+      return;
+    }
+    setState(() => _who = null);
+  }
 
   final _name = TextEditingController();
   final _address = TextEditingController();
@@ -112,7 +127,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               weeklyOff: _weeklyOff,
             ),
           );
-      // Router forwards /setup → /setup/staff once the company exists.
+      // Router forwards /setup → /setup/staff once the company exists; another
+      // business starts at /accounts/new, so move on to the staff step here.
+      if (widget.another && mounted) context.go(Routes.setupStaff);
     } catch (e) {
       if (mounted) showError(context, e);
     } finally {
@@ -134,15 +151,12 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
-        setState(() => _step > 0 ? _step-- : _who = null);
+        _back();
       },
       child: Scaffold(
         appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => setState(() => _step > 0 ? _step-- : _who = null),
-          ),
-          title: Text(s.setupStep(_step + 1, totalSteps)),
+          leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: _back),
+          title: Text(widget.another && _step == 0 ? s.newBusiness : s.setupStep(_step + 1, totalSteps)),
           actions: const [LangPill(), SizedBox(width: 8)],
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(14),
@@ -217,7 +231,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               children: [
                 for (final t in businessTypes)
                   _TypeTile(
-                    icon: _businessIcons[t]!,
+                    icon: businessIcons[t]!,
                     label: s.businessTypeLabel(t),
                     selected: _type == t,
                     onTap: () => _setType(t),
@@ -251,7 +265,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                 decoration: BoxDecoration(color: AppColors.mintLight, borderRadius: AppTheme.radius),
                 child: Row(
                   children: [
-                    Icon(_businessIcons[_type], color: AppColors.mintDark),
+                    Icon(businessIcons[_type], color: AppColors.mintDark),
                     const SizedBox(width: 8),
                     Expanded(child: Text(s.timingsPrefilled(s.businessTypeLabel(_type)))),
                   ],

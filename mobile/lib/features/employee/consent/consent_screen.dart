@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/i18n/strings.dart';
+import '../../../core/router/routes.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/bilingual.dart';
 import '../../../core/widgets/common.dart';
@@ -82,6 +84,13 @@ class _ConsentScreenState extends ConsumerState<ConsentScreen> {
                 ),
               ),
             ),
+            // Someone who also owns or works at another business can go there instead.
+            if (ref.watch(authControllerProvider).hasManyAccounts)
+              TextButton(
+                key: const Key('consentSwitchAccount'),
+                onPressed: () => context.push(Routes.accounts),
+                child: Text(s.switchAccount),
+              ),
             TextButton(onPressed: () => ref.read(authControllerProvider.notifier).logout(), child: Text(s.logout)),
             const SizedBox(height: 8),
           ],

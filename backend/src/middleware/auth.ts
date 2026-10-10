@@ -2,7 +2,7 @@ import type { NextFunction, Request, Response } from 'express';
 import { Types } from 'mongoose';
 import { verifyAccessToken } from '../lib/jwt.js';
 import { AppError } from '../lib/errors.js';
-import { User, Company } from '../models/index.js';
+import { User, Company, Membership } from '../models/index.js';
 import type { Ctx, Role } from '../lib/context.js';
 import { companyPlan } from '../modules/billing/plans.js';
 
@@ -14,15 +14,35 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
   const claims = verifyAccessToken(token);
   const user = await User.findById(claims.sub).lean();
   if (!user || user.deletedAt) throw new AppError('UNAUTHORIZED', 'User not found');
-  req.auth = { userId: String(user._id), role: user.role, companyId: user.companyId ? String(user.companyId) : null, employeeId: user.employeeId ? String(user.employeeId) : null };
+  // The business comes from the session's membership (each device can be in a different one).
+  // Tokens from before memberships fall back to the business mirrored on the user.
+  let access: { role: string; companyId: Types.ObjectId | null; employeeId: Types.ObjectId | null; branchIds: Types.ObjectId[]; membershipId: string | null } = {
+    role: user.role,
+    companyId: user.companyId ?? null,
+    employeeId: user.employeeId ?? null,
+    branchIds: (user.branchIds ?? []) as Types.ObjectId[],
+    membershipId: null,
+  };
+  if (claims.mid) {
+    const m = await Membership.findOne({ _id: claims.mid, userId: user._id }).lean();
+    if (!m || m.status !== 'active') throw new AppError('UNAUTHORIZED', 'Your access to this business has changed. Please sign in again.');
+    access = { role: m.role, companyId: m.companyId, employeeId: m.employeeId ?? null, branchIds: (m.branchIds ?? []) as Types.ObjectId[], membershipId: String(m._id) };
+  }
+  req.auth = {
+    userId: String(user._id),
+    role: access.role,
+    companyId: access.companyId ? String(access.companyId) : null,
+    employeeId: access.employeeId ? String(access.employeeId) : null,
+    membershipId: access.membershipId,
+  };
   const lang = (req.headers['accept-language'] as string | undefined)?.slice(0, 2);
-  if (user.companyId) {
+  if (access.companyId) {
     req.ctx = {
       userId: user._id,
-      companyId: user.companyId,
-      role: user.role as Role,
-      employeeId: user.employeeId ?? null,
-      branchIds: (user.branchIds ?? []) as Types.ObjectId[],
+      companyId: access.companyId,
+      role: access.role as Role,
+      employeeId: access.employeeId,
+      branchIds: access.branchIds,
       actorName: user.name || user.phone,
       channel: req.headers['x-client'] === 'web' ? 'web' : 'app',
       language: lang === 'en' || lang === 'hi' ? lang : (user.language as 'en' | 'hi'),

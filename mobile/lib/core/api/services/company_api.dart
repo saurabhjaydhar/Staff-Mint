@@ -10,6 +10,8 @@ class CreateCompanyRequest {
     required this.openingTime,
     this.closingTime,
     required this.weeklyOff,
+    this.deviceId,
+    this.refreshToken,
   });
   final String name;
   final String businessType;
@@ -17,6 +19,21 @@ class CreateCompanyRequest {
   final String openingTime;
   final String? closingTime;
   final List<int> weeklyOff;
+
+  /// The device moves into the new business; its old session token is retired.
+  final String? deviceId;
+  final String? refreshToken;
+
+  CreateCompanyRequest withSession({String? deviceId, String? refreshToken}) => CreateCompanyRequest(
+    name: name,
+    businessType: businessType,
+    location: location,
+    openingTime: openingTime,
+    closingTime: closingTime,
+    weeklyOff: weeklyOff,
+    deviceId: deviceId,
+    refreshToken: refreshToken,
+  );
 
   Json toJson() => {
     'name': name,
@@ -28,14 +45,24 @@ class CreateCompanyRequest {
     'country': 'IN',
     'timezone': 'Asia/Kolkata',
     'currency': 'INR',
+    'deviceId': ?deviceId,
+    'refreshToken': ?refreshToken,
   };
 }
 
 class CreateCompanyResult {
-  const CreateCompanyResult({required this.company, required this.accessToken, required this.refreshToken});
+  const CreateCompanyResult({
+    required this.company,
+    required this.accessToken,
+    required this.refreshToken,
+    this.memberships = const [],
+    this.activeMembershipId,
+  });
   final Company company;
   final String accessToken;
   final String refreshToken;
+  final List<Membership> memberships;
+  final String? activeMembershipId;
 }
 
 class CompanyApi {
@@ -48,6 +75,8 @@ class CompanyApi {
       company: Company.fromJson(asMap(d['company'])),
       accessToken: asString(d['accessToken']),
       refreshToken: asString(d['refreshToken']),
+      memberships: asList(d['memberships'], Membership.fromJson),
+      activeMembershipId: asStringOrNull(d['activeMembershipId']),
     );
   }
 

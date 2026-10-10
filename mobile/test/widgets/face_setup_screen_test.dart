@@ -35,7 +35,7 @@ class _FakeAuth extends AuthController {
   );
 
   @override
-  Future<void> refreshMe({bool? needsCompanySetupHint}) async => refreshes++;
+  Future<void> refreshMe({bool? needsCompanySetupHint, bool? needsAccountChoice}) async => refreshes++;
 }
 
 class _FakeMeApi implements MeApi {

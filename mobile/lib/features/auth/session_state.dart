@@ -11,6 +11,9 @@ class SessionState {
     this.employee,
     this.needsCompanySetup = false,
     this.restoreFailed = false,
+    this.memberships = const [],
+    this.activeMembershipId,
+    this.needsAccountChoice = false,
   });
 
   const SessionState.unknown({this.restoreFailed = false})
@@ -18,7 +21,10 @@ class SessionState {
       user = null,
       company = null,
       employee = null,
-      needsCompanySetup = false;
+      needsCompanySetup = false,
+      memberships = const [],
+      activeMembershipId = null,
+      needsAccountChoice = false;
 
   const SessionState.unauthenticated()
     : status = SessionStatus.unauthenticated,
@@ -26,7 +32,10 @@ class SessionState {
       company = null,
       employee = null,
       needsCompanySetup = false,
-      restoreFailed = false;
+      restoreFailed = false,
+      memberships = const [],
+      activeMembershipId = null,
+      needsAccountChoice = false;
 
   final SessionStatus status;
   final User? user;
@@ -38,6 +47,23 @@ class SessionState {
   /// user (first start offline). The splash screen offers a retry.
   final bool restoreFailed;
 
+  /// Every business this number can open (owner here, staff there…).
+  final List<Membership> memberships;
+
+  /// The one this device is in.
+  final String? activeMembershipId;
+
+  /// Just logged in with more than one account: show the chooser first.
+  final bool needsAccountChoice;
+
+  bool get hasManyAccounts => memberships.length > 1;
+  Membership? get activeMembership {
+    for (final m in memberships) {
+      if (m.id == activeMembershipId) return m;
+    }
+    return null;
+  }
+
   bool get isAuthenticated => status == SessionStatus.authenticated;
   String? get role => user?.role;
   bool get isEmployee => user?.isEmployee ?? false;
@@ -46,11 +72,22 @@ class SessionState {
   /// Employees must accept the location notice before first check-in.
   bool get needsConsent => isEmployee && employee != null && !employee!.locationConsent;
 
-  SessionState copyWith({User? user, Company? company, Employee? employee, bool? needsCompanySetup}) => SessionState(
+  SessionState copyWith({
+    User? user,
+    Company? company,
+    Employee? employee,
+    bool? needsCompanySetup,
+    List<Membership>? memberships,
+    String? activeMembershipId,
+    bool? needsAccountChoice,
+  }) => SessionState(
     status: status,
     user: user ?? this.user,
     company: company ?? this.company,
     employee: employee ?? this.employee,
     needsCompanySetup: needsCompanySetup ?? this.needsCompanySetup,
+    memberships: memberships ?? this.memberships,
+    activeMembershipId: activeMembershipId ?? this.activeMembershipId,
+    needsAccountChoice: needsAccountChoice ?? this.needsAccountChoice,
   );
 }

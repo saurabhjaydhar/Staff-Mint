@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:staffmint/core/api/api_exception.dart';
 import 'package:staffmint/core/api/providers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:staffmint/core/api/services/auth_api.dart';
 import 'package:staffmint/core/api/services/me_api.dart';
 import 'package:staffmint/core/storage/key_value_store.dart';
 import 'package:staffmint/core/storage/providers.dart';
@@ -9,6 +11,49 @@ import 'package:staffmint/core/storage/token_storage.dart';
 import 'package:staffmint/core/utils/json.dart';
 import 'package:staffmint/features/auth/auth_controller.dart';
 import 'package:staffmint/features/auth/session_state.dart';
+import 'package:staffmint/features/employee/punch/punch_providers.dart';
+import 'package:staffmint/features/employee/punch/punch_queue.dart';
+
+Json _membership(String id, String company, String role) => {
+  'id': id,
+  'companyId': 'c-$id',
+  'companyName': company,
+  'businessType': 'shop',
+  'role': role,
+};
+
+class _FakeAuthApi implements AuthApi {
+  final switched = <({String membershipId, String deviceId, String? refreshToken})>[];
+
+  @override
+  Future<AuthResult> switchAccount({
+    required String membershipId,
+    required String deviceId,
+    String? refreshToken,
+  }) async {
+    switched.add((membershipId: membershipId, deviceId: deviceId, refreshToken: refreshToken));
+    return AuthResult.fromJson({
+      'accessToken': 'a2',
+      'refreshToken': 'r2',
+      'user': {'id': 'u1', 'phone': '9876543210', 'name': 'Sita', 'role': 'owner', 'companyId': 'c-m2'},
+      'needsCompanySetup': false,
+      'activeMembershipId': membershipId,
+      'memberships': [_membership('m1', 'Sharma Medical', 'employee'), _membership('m2', 'Sita Boutique', 'owner')],
+    });
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+/// Sync never gets through (offline).
+class _OfflineSync extends PunchSyncController {
+  @override
+  SyncStatus build() => const SyncStatus();
+
+  @override
+  Future<SyncReport> syncNow() async => SyncReport.empty;
+}
 
 class _FakeMeApi implements MeApi {
   ApiException? error;
@@ -43,10 +88,20 @@ class _FakeMeApi implements MeApi {
 void main() {
   late MemoryKeyValueStore store;
   late _FakeMeApi meApi;
+  late _FakeAuthApi authApi;
+  late PunchQueue queue;
+  late SharedPreferences prefs;
 
   ProviderContainer make() => ProviderContainer(
     retry: (_, _) => null,
-    overrides: [secureStoreProvider.overrideWithValue(store), meApiProvider.overrideWithValue(meApi)],
+    overrides: [
+      secureStoreProvider.overrideWithValue(store),
+      meApiProvider.overrideWithValue(meApi),
+      authApiProvider.overrideWithValue(authApi),
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      punchQueueProvider.overrideWithValue(queue),
+      punchSyncProvider.overrideWith(_OfflineSync.new),
+    ],
   );
 
   Future<SessionState> settle(ProviderContainer c) async {
@@ -58,9 +113,13 @@ void main() {
     return c.read(authControllerProvider);
   }
 
-  setUp(() {
+  setUp(() async {
     store = MemoryKeyValueStore();
     meApi = _FakeMeApi();
+    authApi = _FakeAuthApi();
+    queue = PunchQueue(MemoryPunchQueueStore());
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
   });
 
   test('no tokens → unauthenticated', () async {
@@ -118,5 +177,75 @@ void main() {
     addTearDown(c.dispose);
     final s = await settle(c);
     expect(s.needsCompanySetup, isTrue);
+  });
+
+  group('accounts', () {
+    Future<ProviderContainer> twoAccounts() async {
+      await TokenStorage(store).saveTokens(accessToken: 'a', refreshToken: 'r');
+      meApi.response = {
+        ...meApi.response,
+        'activeMembershipId': 'm1',
+        'memberships': [_membership('m1', 'Sharma Medical', 'employee'), _membership('m2', 'Sita Boutique', 'owner')],
+      };
+      final c = make();
+      addTearDown(c.dispose);
+      await settle(c);
+      return c;
+    }
+
+    test('a restored session knows its accounts but does not ask again', () async {
+      final c = await twoAccounts();
+      final s = c.read(authControllerProvider);
+      expect(s.memberships.map((m) => m.companyName), ['Sharma Medical', 'Sita Boutique']);
+      expect(s.activeMembership?.role, 'employee');
+      expect(s.hasManyAccounts, isTrue);
+      expect(s.needsAccountChoice, isFalse);
+    });
+
+    test('switching sends the device and old token, saves new tokens and reloads the session', () async {
+      final c = await twoAccounts();
+      meApi.response = {
+        'user': {'id': 'u1', 'phone': '9876543210', 'name': 'Sita', 'role': 'owner', 'companyId': 'c-m2'},
+        'company': {'id': 'c-m2', 'name': 'Sita Boutique'},
+        'employee': null,
+        'activeMembershipId': 'm2',
+        'memberships': [_membership('m1', 'Sharma Medical', 'employee'), _membership('m2', 'Sita Boutique', 'owner')],
+      };
+      await c.read(authControllerProvider.notifier).switchTo('m2');
+      expect(authApi.switched.single.membershipId, 'm2');
+      expect(authApi.switched.single.refreshToken, 'r');
+      expect(authApi.switched.single.deviceId, isNotEmpty);
+      expect(await TokenStorage(store).readAccessToken(), 'a2');
+      expect(await TokenStorage(store).readRefreshToken(), 'r2');
+      final s = c.read(authControllerProvider);
+      expect(s.isOwner, isTrue);
+      expect(s.company?.name, 'Sita Boutique');
+      expect(s.activeMembershipId, 'm2');
+    });
+
+    test('choosing the account already open only closes the chooser', () async {
+      final c = await twoAccounts();
+      c.read(authControllerProvider.notifier).state = c.read(authControllerProvider).copyWith(needsAccountChoice: true);
+      await c.read(authControllerProvider.notifier).chooseAccount('m1');
+      expect(c.read(authControllerProvider).needsAccountChoice, isFalse);
+      expect(authApi.switched, isEmpty);
+    });
+
+    test('unsent offline check-ins block a switch', () async {
+      final c = await twoAccounts();
+      await queue.enqueue(
+        PendingPunch(
+          clientPunchId: 'p1',
+          type: 'in',
+          payload: const {'deviceId': 'd'},
+          queuedAt: DateTime(2026, 10, 10, 9),
+        ),
+      );
+      await expectLater(
+        c.read(authControllerProvider.notifier).switchTo('m2'),
+        throwsA(isA<PendingPunchesException>().having((e) => e.count, 'count', 1)),
+      );
+      expect(authApi.switched, isEmpty);
+    });
   });
 }

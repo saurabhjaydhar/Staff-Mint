@@ -8,6 +8,12 @@ class Routes {
   static const setup = '/setup';
   static const setupStaff = '/setup/staff';
 
+  /// Account chooser (after login with several businesses, or from Profile).
+  static const accounts = '/accounts';
+
+  /// Create another business from any account, staff included.
+  static const accountsNew = '/accounts/new';
+
   // Owner / manager shell. `ownerHome` is the Today tab.
   static const ownerHome = '/owner/home';
   static const ownerStaff = '/owner/staff';

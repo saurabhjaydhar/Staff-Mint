@@ -3,15 +3,14 @@ import { z } from 'zod';
 import { body, param, query } from '../../lib/http.js';
 import { zDate, zLatLng, zTime, zWeekdays } from '../../lib/schemas.js';
 import { authenticate, ctxOf, requireRole } from '../../middleware/auth.js';
-import { AppError } from '../../lib/errors.js';
 import { describeRules } from '../attendance/rules.js';
 import { Shift } from '../../models/index.js';
 import * as svc from './service.js';
 
 export const companyRouter = Router();
 
+// Creates a business for the signed-in person: their first, or another one alongside existing accounts.
 companyRouter.post('/company', authenticate, async (req, res) => {
-  if (req.ctx) throw new AppError('CONFLICT', 'Company already set up');
   const b = body(
     req,
     z.object({
@@ -25,10 +24,13 @@ companyRouter.post('/company', authenticate, async (req, res) => {
       timezone: z.string().max(60).optional(),
       currency: z.string().length(3).optional(),
       ownerName: z.string().max(80).optional(),
+      deviceId: z.string().min(4).max(200).optional(),
+      refreshToken: z.string().max(500).optional(),
     }),
   );
+  const { deviceId, refreshToken, ...input } = b;
   const { Types } = await import('mongoose');
-  res.status(201).json({ data: await svc.setupCompany(new Types.ObjectId(req.auth!.userId), b) });
+  res.status(201).json({ data: await svc.setupCompany(new Types.ObjectId(req.auth!.userId), input, { deviceId, refreshToken }) });
 });
 
 companyRouter.get('/company', authenticate, requireRole('owner', 'manager', 'ca', 'employee'), async (req, res) => {

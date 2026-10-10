@@ -79,9 +79,36 @@ const userSchema = new Schema(
 export type UserDoc = HydratedDocument<InferSchemaType<typeof userSchema>>;
 export const User = model('User', userSchema);
 
+/**
+ * One person's access to one business. A user (one phone) can own one shop,
+ * work at another and be the accountant of a third; each session is opened
+ * in exactly one membership.
+ */
+const membershipSchema = new Schema(
+  {
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    companyId: { type: Schema.Types.ObjectId, ref: 'Company', required: true },
+    role: { type: String, enum: ['owner', 'manager', 'employee', 'ca'], required: true },
+    employeeId: { type: Schema.Types.ObjectId, ref: 'Employee', default: null },
+    branchIds: [{ type: Schema.Types.ObjectId, ref: 'Branch' }], // manager scope
+    /** Staff phone binding, per business. */
+    deviceIds: { type: [String], default: [] },
+    status: { type: String, enum: ['active', 'inactive'], default: 'active' },
+    lastUsedAt: { type: Date, default: null },
+  },
+  { timestamps: true },
+);
+membershipSchema.index({ userId: 1, companyId: 1 }, { unique: true });
+membershipSchema.index({ companyId: 1, role: 1, status: 1 });
+membershipSchema.index({ companyId: 1, employeeId: 1 });
+export type MembershipDoc = HydratedDocument<InferSchemaType<typeof membershipSchema>>;
+export const Membership = model('Membership', membershipSchema);
+
 const refreshTokenSchema = new Schema(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    /** The business this device session is open in; null before any business exists. */
+    membershipId: { type: Schema.Types.ObjectId, ref: 'Membership', default: null },
     tokenHash: { type: String, required: true, unique: true },
     family: { type: String, required: true, index: true },
     deviceId: String,

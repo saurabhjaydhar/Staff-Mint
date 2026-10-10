@@ -4,7 +4,7 @@ import { AppError, notFound } from '../../lib/errors.js';
 import { distanceMeters, fromGeoPoint } from '../../lib/geo.js';
 import { localDateOf, monthDays, todayIn, weekdayOf, dateRange } from '../../lib/dates.js';
 import type { Ctx } from '../../lib/context.js';
-import { Attendance, Branch, Company, Employee, Holiday, Leave, Shift, User, type AttendanceStatus } from '../../models/index.js';
+import { Attendance, Branch, Company, Employee, Holiday, Leave, Membership, Shift, type AttendanceStatus } from '../../models/index.js';
 import { computeDay } from './rules.js';
 import { audit } from '../audit/service.js';
 import { employeeScope, assertEmployeeInScope } from '../employees/service.js';
@@ -73,8 +73,9 @@ export async function punch(ctx: Ctx, input: PunchInput, source: 'app' | 'offlin
   if (employee.status !== 'active') throw new AppError('FORBIDDEN', 'Your staff account is inactive');
   if (!employee.consent?.location) throw new AppError('FORBIDDEN', 'Please accept the location consent first', { reason: 'consent_required' });
 
-  const user = ctx.userId ? await User.findById(ctx.userId).lean() : null;
-  if (user && user.deviceIds.length && !user.deviceIds.includes(input.deviceId)) throw new AppError('DEVICE_NOT_BOUND', 'Check-in is allowed only from your registered phone');
+  // Phone binding is per business: the membership this staff record belongs to.
+  const m = ctx.userId ? await Membership.findOne({ userId: ctx.userId, companyId: ctx.companyId, employeeId: employee._id }).select('deviceIds').lean() : null;
+  if (m && m.deviceIds.length && !m.deviceIds.includes(input.deviceId)) throw new AppError('DEVICE_NOT_BOUND', 'Check-in is allowed only from your registered phone');
 
   // Idempotency (offline queue may retry).
   const dup = await Attendance.findOne({ companyId: ctx.companyId, employeeId: employee._id, 'punches.clientPunchId': input.clientPunchId }).lean();

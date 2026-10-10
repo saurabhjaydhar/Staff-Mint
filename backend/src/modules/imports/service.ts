@@ -2,11 +2,12 @@ import { Types } from 'mongoose';
 import { AppError, notFound } from '../../lib/errors.js';
 import { todayIn } from '../../lib/dates.js';
 import type { Ctx } from '../../lib/context.js';
-import { Advance, Attendance, Branch, Company, Employee, ImportSession, LeaveBalance, User } from '../../models/index.js';
+import { Advance, Attendance, Branch, Company, Employee, ImportSession, LeaveBalance } from '../../models/index.js';
 import { audit } from '../audit/service.js';
 import { provider } from '../../providers/registry.js';
 import { ensureStaffCapacity, createEmployee } from '../employees/service.js';
 import { createAdvance } from '../advances/service.js';
+import { deactivateStaffMemberships } from '../auth/memberships.js';
 import { readPastedText, readTable } from './parse.js';
 import { autoMap, cleanRows, dayColumns, parseAttendanceCode, STAFF_FIELDS, type Mapping, type StaffField } from './mapping.js';
 import { normalizePhone } from '../../lib/phone.js';
@@ -303,8 +304,8 @@ export async function rollbackImport(ctx: Ctx, id: string) {
   if (s.kind === 'staff') {
     const empIds = (c.employees ?? []).map((x: string) => new Types.ObjectId(x));
     if (empIds.length) {
-      const users = await Employee.find({ companyId: ctx.companyId, _id: { $in: empIds } }).select('userId').lean();
-      await User.updateMany({ _id: { $in: users.map((u) => u.userId).filter(Boolean) } }, { deletedAt: new Date() });
+      // Imported staff who already logged in lose access to this business only; their own accounts stay.
+      await deactivateStaffMemberships(ctx.companyId, empIds);
       const r = await Employee.updateMany({ companyId: ctx.companyId, _id: { $in: empIds } }, { deletedAt: new Date(), status: 'inactive' });
       removed += r.modifiedCount;
     }

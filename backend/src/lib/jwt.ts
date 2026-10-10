@@ -7,6 +7,8 @@ export interface AccessClaims {
   role: string;
   cid: string | null;
   eid: string | null;
+  /** Membership the session is open in (absent on tokens issued before memberships). */
+  mid?: string | null;
 }
 
 export function signAccessToken(claims: AccessClaims): string {

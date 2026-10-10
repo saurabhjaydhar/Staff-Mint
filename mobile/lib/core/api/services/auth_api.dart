@@ -21,17 +21,30 @@ class AuthResult {
     required this.refreshToken,
     required this.user,
     required this.needsCompanySetup,
+    this.memberships = const [],
+    this.activeMembershipId,
+    this.needsAccountChoice = false,
   });
   final String accessToken;
   final String refreshToken;
   final User user;
   final bool needsCompanySetup;
 
+  /// Every business this number can open, most recently used first.
+  final List<Membership> memberships;
+  final String? activeMembershipId;
+
+  /// More than one account: the app asks which one to open.
+  final bool needsAccountChoice;
+
   factory AuthResult.fromJson(Json j) => AuthResult(
     accessToken: asString(j['accessToken']),
     refreshToken: asString(j['refreshToken']),
     user: User.fromJson(asMap(j['user'])),
     needsCompanySetup: asBool(j['needsCompanySetup']),
+    memberships: asList(j['memberships'], Membership.fromJson),
+    activeMembershipId: asStringOrNull(j['activeMembershipId']),
+    needsAccountChoice: asBool(j['needsAccountChoice']),
   );
 }
 
@@ -62,6 +75,20 @@ class AuthApi {
   Future<({String accessToken, String refreshToken})> refresh(String refreshToken) async {
     final d = asMap(await _c.post('/auth/refresh', body: {'refreshToken': refreshToken}, auth: false));
     return (accessToken: asString(d['accessToken']), refreshToken: asString(d['refreshToken']));
+  }
+
+  /// Opens another of this person's businesses on this device. The old
+  /// refresh token is retired server-side.
+  Future<AuthResult> switchAccount({
+    required String membershipId,
+    required String deviceId,
+    String? refreshToken,
+  }) async {
+    final d = await _c.post(
+      '/auth/switch',
+      body: {'membershipId': membershipId, 'deviceId': deviceId, 'refreshToken': ?refreshToken},
+    );
+    return AuthResult.fromJson(asMap(d));
   }
 
   Future<void> logout(String refreshToken) async {

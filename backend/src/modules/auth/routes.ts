@@ -3,6 +3,7 @@ import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
 import { body } from '../../lib/http.js';
 import { isTest } from '../../config/env.js';
+import { authenticate } from '../../middleware/auth.js';
 import * as auth from './service.js';
 
 export const authRouter = Router();
@@ -28,4 +29,10 @@ authRouter.post('/logout', async (req, res) => {
   const b = body(req, z.object({ refreshToken: z.string().min(10) }));
   await auth.logout(b.refreshToken);
   res.json({ data: { ok: true } });
+});
+
+// Open another of this person's businesses on the current device.
+authRouter.post('/switch', authenticate, async (req, res) => {
+  const b = body(req, z.object({ membershipId: z.string().regex(/^[a-f0-9]{24}$/), deviceId: z.string().min(4).max(200), refreshToken: z.string().max(200).optional() }));
+  res.json({ data: await auth.switchMembership(req.auth!.userId, b) });
 });
