@@ -132,6 +132,9 @@ export interface Employee {
   status: "active" | "inactive";
   consent: { location: boolean; at?: string };
   hasDevice: boolean;
+  /** Has opened StaffMint for this business; when the app invite was last sent. */
+  linked?: boolean;
+  invitedAt?: string | null;
   language: Lang;
 }
 
@@ -397,6 +400,48 @@ export interface Membership {
   businessType: string | null;
   role: Role;
   lastUsedAt: string | null;
+  /** Staff account bound to another phone. */
+  lockedToOtherPhone?: boolean;
+}
+
+/** "Your access to X ended on …" until dismissed. */
+export interface EndedNotice {
+  id: string;
+  companyName: string;
+  endedAt: string | null;
+  endedReason: "removed" | "closed" | "phone_changed" | "import_rollback" | null;
+}
+
+/** A business this person closed that can still be restored. */
+export interface ClosedBusiness {
+  companyId: string;
+  companyName: string;
+  businessType: string | null;
+  closedAt: string | null;
+  restoreUntil: string | null;
+}
+
+export interface AccountChange {
+  kind: "ended" | "role_changed";
+  reason: string | null;
+  companyName: string;
+  role: Role | null;
+  activeMembershipId: string | null;
+}
+
+export interface DeviceRequestItem {
+  id: string;
+  employeeId: string | null;
+  employeeName: string | null;
+  deviceName: string | null;
+  createdAt: string;
+}
+
+export interface Accountant {
+  id: string;
+  name: string;
+  phone: string;
+  addedAt: string;
 }
 
 export interface OtpVerifyResult extends Tokens {
@@ -417,6 +462,9 @@ export interface MeResult {
   employee: Employee | null;
   activeMembershipId?: string | null;
   memberships?: Membership[];
+  blockedAccounts?: Membership[];
+  endedNotices?: EndedNotice[];
+  closedBusinesses?: ClosedBusiness[];
 }
 
 export interface CompanySetupInput {
@@ -453,6 +501,7 @@ export interface DashboardToday {
     leaveRequests: Leave[];
     punchApprovals: { attendanceId: string; employeeName: string; punch: Punch }[];
     flags: { employeeName: string; date: string; flags: string[] }[];
+    deviceRequests?: DeviceRequestItem[];
   };
   plan: { staffCount: number; staffLimit: number };
 }

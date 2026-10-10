@@ -36,6 +36,13 @@ export default function DashboardPage() {
       reload();
     }
   }
+  async function decideDevice(id: string, approve: boolean) {
+    const res = await action.run(`device:${id}`, () => api.post(`/device-requests/${id}/${approve ? "approve" : "reject"}`));
+    if (res.ok) {
+      toast(approve ? "New phone approved" : "Request rejected");
+      reload();
+    }
+  }
   async function decidePunch(attendanceId: string, punchId: string, approve: boolean) {
     const res = await action.run(`punch:${punchId}`, () =>
       api.post(`/attendance/${attendanceId}/punches/${punchId}/decision`, { approve }),
@@ -51,7 +58,8 @@ export default function DashboardPage() {
 
   const c = data.counts;
   const na = data.needsAction;
-  const nothing = na.leaveRequests.length + na.punchApprovals.length + na.flags.length === 0;
+  const devices = na.deviceRequests ?? [];
+  const nothing = na.leaveRequests.length + na.punchApprovals.length + na.flags.length + devices.length === 0;
   const nearLimit = data.plan.staffLimit > 0 && data.plan.staffCount >= data.plan.staffLimit;
 
   return (
@@ -149,6 +157,29 @@ export default function DashboardPage() {
                           {t("approve")}
                         </Button>
                         <Button size="sm" variant="secondary" disabled={!!action.busy} onClick={() => decidePunch(p.attendanceId, p.punch.id, false)}>
+                          {t("reject")}
+                        </Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {devices.length > 0 && (
+              <div className="p-4">
+                <h3 className="mb-2 text-sm font-semibold text-slate-700">{t("acc_device_requests")}</h3>
+                <ul className="space-y-2">
+                  {devices.map((r) => (
+                    <li key={r.id} data-device-request={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2">
+                      <div className="text-sm">
+                        <span className="font-medium">{r.employeeName}</span>{" "}
+                        {t("acc_device_request_body").replace("{device}", r.deviceName ?? t("acc_device_new"))}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" loading={action.busy === `device:${r.id}`} onClick={() => decideDevice(r.id, true)}>
+                          {t("approve")}
+                        </Button>
+                        <Button size="sm" variant="secondary" disabled={!!action.busy} onClick={() => decideDevice(r.id, false)}>
                           {t("reject")}
                         </Button>
                       </div>

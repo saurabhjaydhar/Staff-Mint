@@ -5,6 +5,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { LanguageToggle, Logo } from "@/components/AppShell";
 import { useAuth, useI18n } from "@/components/providers";
 import { AccountChooser } from "@/components/AccountChooser";
+import { ClosedBusinesses, EndedNotices } from "@/components/AccountNotices";
 import { CompanySetup } from "@/components/CompanySetup";
 import { Alert, Button, Field, Input, Loading } from "@/components/ui";
 import { api, errorMessage } from "@/lib/api";
@@ -96,7 +97,14 @@ export default function LoginPage() {
       </div>
     );
   } else if (needsSetup) {
-    content = <CompanySetup onDone={(tokens) => signIn(tokens)} />;
+    content = (
+      <div className="space-y-4">
+        {/* Why there is no business any more, and businesses that can be brought back. */}
+        <EndedNotices notices={me?.endedNotices ?? []} />
+        <ClosedBusinesses list={me?.closedBusinesses ?? []} />
+        <CompanySetup onDone={(tokens) => signIn(tokens)} />
+      </div>
+    );
   } else if (step === "phone") {
     content = (
       <form onSubmit={requestOtp} className="space-y-4">

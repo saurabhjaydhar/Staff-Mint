@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { api, isApiError, setApiLanguage } from "@/lib/api";
 import { translate, type DictKey } from "@/lib/i18n";
 import { getDeviceId } from "@/lib/tokens";
-import type { Lang, MeResult, SwitchResult, Tokens } from "@/lib/types";
+import { homeFor } from "@/lib/roles";
+import type { AccountChange, Lang, MeResult, SwitchResult, Tokens } from "@/lib/types";
 
 // ---------------- i18n ----------------
 const LANG_KEY = "staffmint.lang";
@@ -108,6 +109,11 @@ interface AuthCtx {
   refreshMe: () => Promise<MeResult | null>;
   /** Open another of this person's businesses in this browser. */
   switchAccount: (membershipId: string) => Promise<MeResult | null>;
+  /** F14: leave a business, close/restore one, hide an "access ended" notice. */
+  leaveAccount: (membershipId: string) => Promise<MeResult | null>;
+  closeBusiness: (confirmName: string) => Promise<MeResult | null>;
+  restoreBusiness: (companyId: string) => Promise<MeResult | null>;
+  dismissNotice: (membershipId: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 const AuthContext = createContext<AuthCtx | null>(null);
@@ -153,6 +159,17 @@ function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [refreshMe]);
 
+  // A token refresh moved this browser to another business (access ended / role changed).
+  const [change, setChange] = useState<AccountChange | null>(null);
+  useEffect(() => {
+    const onChange = (e: Event) => {
+      setChange((e as CustomEvent<AccountChange>).detail);
+      void refreshMe().then((m) => router.replace(m?.company ? homeFor(m.user.role) : "/login"));
+    };
+    window.addEventListener("staffmint:account-changed", onChange);
+    return () => window.removeEventListener("staffmint:account-changed", onChange);
+  }, [refreshMe, router]);
+
   useEffect(() => {
     const onFailure = () => {
       setMe(null);
@@ -171,13 +188,25 @@ function AuthProvider({ children }: { children: ReactNode }) {
     [refreshMe],
   );
 
-  const switchAccount = useCallback(
-    async (membershipId: string) => {
-      const res = await api.post<SwitchResult>("/auth/switch", { membershipId, deviceId: getDeviceId(), refreshToken: api.tokens.get()?.refreshToken });
+  /** POST an account action that returns a new session for this browser, then reload. */
+  const sessionAction = useCallback(
+    async (path: string, extra: Record<string, unknown> = {}) => {
+      const res = await api.post<SwitchResult>(path, { ...extra, deviceId: getDeviceId(), refreshToken: api.tokens.get()?.refreshToken });
       api.tokens.set({ accessToken: res.accessToken, refreshToken: res.refreshToken });
       return refreshMe();
     },
     [refreshMe],
+  );
+  const switchAccount = useCallback((membershipId: string) => sessionAction("/auth/switch", { membershipId }), [sessionAction]);
+  const leaveAccount = useCallback((membershipId: string) => sessionAction(`/me/accounts/${membershipId}/leave`), [sessionAction]);
+  const closeBusiness = useCallback((confirmName: string) => sessionAction("/company/close", { confirmName }), [sessionAction]);
+  const restoreBusiness = useCallback((companyId: string) => sessionAction(`/me/businesses/${companyId}/restore`), [sessionAction]);
+  const dismissNotice = useCallback(
+    async (membershipId: string) => {
+      setMe((m) => (m ? { ...m, endedNotices: (m.endedNotices ?? []).filter((n) => n.id !== membershipId) } : m));
+      await api.post(`/me/notices/${membershipId}/dismiss`).catch(() => undefined);
+    },
+    [],
   );
 
   const logout = useCallback(async () => {
@@ -196,10 +225,31 @@ function AuthProvider({ children }: { children: ReactNode }) {
   }, [router]);
 
   const value = useMemo<AuthCtx>(
-    () => ({ status, me, error, signIn, refreshMe, switchAccount, logout }),
-    [status, me, error, signIn, refreshMe, switchAccount, logout],
+    () => ({ status, me, error, signIn, refreshMe, switchAccount, leaveAccount, closeBusiness, restoreBusiness, dismissNotice, logout }),
+    [status, me, error, signIn, refreshMe, switchAccount, leaveAccount, closeBusiness, restoreBusiness, dismissNotice, logout],
   );
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+      {change && <AccountChangeToast change={change} onDone={() => setChange(null)} />}
+    </AuthContext.Provider>
+  );
+}
+
+function AccountChangeToast({ change, onDone }: { change: AccountChange; onDone: () => void }) {
+  const { t } = useI18n();
+  const toast = useToast();
+  useEffect(() => {
+    const roleKey = { owner: "role_owner", manager: "role_manager", ca: "role_ca", employee: "role_employee" } as const;
+    toast(
+      change.kind === "ended"
+        ? t("acc_ended").replace("{name}", change.companyName)
+        : t("acc_role_changed").replace("{role}", t(roleKey[change.role ?? "employee"])),
+      "slate",
+    );
+    onDone();
+  }, [change, onDone, t, toast]);
+  return null;
 }
 
 export function useAuth() {

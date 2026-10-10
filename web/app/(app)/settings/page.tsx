@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { AccountantsCard, CloseBusinessCard } from "@/components/AccountCards";
 import { useAuth, useI18n, useToast } from "@/components/providers";
 import { Alert, Button, Card, Checkbox, EmptyState, Field, Input, Loading, PageHeader, Select, Table, Td, Th } from "@/components/ui";
 import { useAction, useAsync } from "@/hooks/useAsync";
@@ -38,6 +39,8 @@ export default function SettingsPage() {
       <HolidaysCard />
       <ShiftsCard />
       <BranchesCard />
+      <AccountantsCard />
+      <CloseBusinessCard />
     </div>
   );
 }

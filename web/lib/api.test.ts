@@ -199,3 +199,25 @@ describe("downloads", () => {
     expect(filenameFromDisposition(null)).toBeNull();
   });
 });
+
+describe("account changed during refresh", () => {
+  it("announces the change so the app can reload and say why", async () => {
+    const target = new EventTarget();
+    vi.stubGlobal("window", target);
+    const seen: unknown[] = [];
+    target.addEventListener("staffmint:account-changed", (e) => seen.push((e as CustomEvent).detail));
+    const { fn } = mockFetch((url, init) => {
+      if (url.endsWith("/auth/refresh")) {
+        return json(200, {
+          data: { accessToken: "A2", refreshToken: "R2", accountChange: { kind: "ended", reason: "removed", companyName: "Gupta Sweets", role: "owner", activeMembershipId: "m2" } },
+        });
+      }
+      if (authHeader(init) === "Bearer A1") return json(401, { error: { code: "TOKEN_EXPIRED", message: "changed", details: { reason: "account_changed" } } });
+      return json(200, { data: { ok: true } });
+    });
+    const client = new ApiClient({ baseUrl: BASE, fetch: fn, tokens: memoryTokenStore({ accessToken: "A1", refreshToken: "R1" }) });
+    expect(await client.get("/me")).toEqual({ ok: true });
+    expect(seen).toEqual([expect.objectContaining({ kind: "ended", companyName: "Gupta Sweets" })]);
+    vi.unstubAllGlobals();
+  });
+});
