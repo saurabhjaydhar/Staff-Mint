@@ -3,7 +3,9 @@ import { env } from '../../config/env.js';
 import { AppError } from '../../lib/errors.js';
 import { normalizePhone } from '../../lib/phone.js';
 import { randomDigits, randomToken, sha256, safeEqual } from '../../lib/crypto.js';
+import jwt from 'jsonwebtoken';
 import { signAccessToken } from '../../lib/jwt.js';
+import { getConfig } from '../config/service.js';
 import { OtpRequest, RefreshToken, User, Employee, Membership, type MembershipDoc, type UserDoc } from '../../models/index.js';
 import { activate, activeMemberships, attachStaffMemberships, bindDevice, defaultMembership, deviceAllowed, ensureLegacyMembership, membershipViews } from './memberships.js';
 import { provider } from '../../providers/registry.js';
@@ -114,13 +116,71 @@ export async function currentOrDefault(user: UserDoc, deviceId?: string | null, 
 export async function verifyOtp(input: { phone: string; code: string; deviceId: string; deviceName?: string }) {
   const phone = parsePhone(input.phone);
   await consumeOtp(phone, input.code);
+  const existed = await User.findOne({ phone, deletedAt: null }).lean();
+  // Recycled numbers: long unused, on a phone never seen before — ask "Is this you?" before opening anything.
+  if (existed && (await looksRecycled(existed, input.deviceId))) {
+    return {
+      identityCheck: {
+        token: signIdentityToken(String(existed._id), input.deviceId),
+        maskedName: maskName(existed.name || ''),
+      },
+    };
+  }
   const user = await resolveUser(phone);
-  const { list, chosen } = await defaultMembership(user, input.deviceId);
-  if (chosen) await bindDevice(chosen, input.deviceId);
+  return completeLogin(user, input.deviceId);
+}
+
+/** Open the right account for a verified person on this device. */
+export async function completeLogin(user: UserDoc, deviceId: string) {
+  const { list, chosen } = await defaultMembership(user, deviceId);
+  if (chosen) await bindDevice(chosen, deviceId);
   user.lastLoginAt = new Date();
+  user.loginDevices = [...(user.loginDevices ?? []).filter((d) => d !== deviceId), deviceId].slice(-10) as any;
   await activate(user, chosen);
-  const tokens = await issueTokens(user, input.deviceId, undefined, chosen);
-  return sessionResult(user, chosen, list, tokens, input.deviceId);
+  const tokens = await issueTokens(user, deviceId, undefined, chosen);
+  return sessionResult(user, chosen, list, tokens, deviceId);
+}
+
+async function looksRecycled(user: { _id: Types.ObjectId; name?: string | null; lastLoginAt?: Date | null; loginDevices?: string[] | null }, deviceId: string) {
+  if (!user.lastLoginAt || (user.loginDevices ?? []).includes(deviceId)) return false;
+  const days = await getConfig<number>('accounts.recycleDays');
+  if (Date.now() - user.lastLoginAt.getTime() < days * 86400_000) return false;
+  return !!(user.name || (await Membership.exists({ userId: user._id, status: 'active' })));
+}
+
+/** "R*** S***": enough for the real person to recognise themselves, nothing for anyone else. */
+export function maskName(name: string) {
+  return name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => `${[...w][0]}***`)
+    .join(' ');
+}
+
+const IDENTITY_AUDIENCE = 'staffmint-identity';
+function signIdentityToken(userId: string, deviceId: string) {
+  return jwt.sign({ sub: userId, did: deviceId }, env.JWT_ACCESS_SECRET, { expiresIn: '10m', issuer: 'staffmint', audience: IDENTITY_AUDIENCE });
+}
+
+export function verifyIdentityToken(token: string): { sub: string; did: string } {
+  try {
+    return jwt.verify(token, env.JWT_ACCESS_SECRET, { issuer: 'staffmint', audience: IDENTITY_AUDIENCE }) as { sub: string; did: string };
+  } catch {
+    throw new AppError('UNAUTHORIZED', 'This check has expired. Please log in again.');
+  }
+}
+
+/** A one-time code for a non-phone key (e.g. `email:a@b.com`); consumed with [consumeOtp]. */
+export async function createCode(key: string, channel: string) {
+  const hourAgo = new Date(Date.now() - 3600_000);
+  if ((await OtpRequest.countDocuments({ phone: key, createdAt: { $gte: hourAgo } })) >= MAX_OTP_PER_HOUR) {
+    throw new AppError('RATE_LIMITED', 'Too many codes requested. Try again in an hour.');
+  }
+  const otp = await provider('otp');
+  const code = otp.name === 'mock' ? env.OTP_MOCK_CODE : randomDigits(6);
+  await OtpRequest.create({ phone: key, codeHash: otpHash(key, code), channel, provider: otp.name, expiresAt: new Date(Date.now() + env.OTP_TTL_SEC * 1000) });
+  return { code, mock: otp.name === 'mock' };
 }
 
 /** Open another of the person's businesses on this device. */

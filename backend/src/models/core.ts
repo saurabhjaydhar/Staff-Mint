@@ -24,6 +24,8 @@ const settingsSchema = new Schema(
     locationRetentionMonths: { type: Number, default: 12 },
     whatsappAlerts: { type: Boolean, default: false },
     minGpsAccuracyM: { type: Number, default: 150 },
+    /** Removed or departed staff can still see their own payslips for 12 months (PRD F14 row 21). */
+    exStaffPayslips: { type: Boolean, default: true },
   },
   { _id: false },
 );
@@ -75,6 +77,8 @@ const userSchema = new Schema(
     deviceIds: { type: [String], default: [] },
     pushTokens: { type: [{ token: String, platform: String, updatedAt: Date }], default: [] },
     lastLoginAt: Date,
+    /** Devices this person logged in from (last 10), for the recycled-number check. */
+    loginDevices: { type: [String], default: [] },
     deletedAt: { type: Date, default: null },
   },
   { timestamps: true },
@@ -102,6 +106,8 @@ const membershipSchema = new Schema(
     endedAt: { type: Date, default: null },
     endedReason: { type: String, enum: ['removed', 'left', 'closed', 'phone_changed', 'import_rollback', null], default: null },
     noticeDismissedAt: { type: Date, default: null },
+    /** Co-owners: billing only when the main owner allows it (PRD F14 decisions). */
+    canManageBilling: { type: Boolean, default: false },
   },
   { timestamps: true },
 );

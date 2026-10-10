@@ -31,6 +31,8 @@ const employeeSchema = new Schema(
     bankUpdatedAt: { type: Date, default: null },
     /** Last app invite sent to this staff number (WhatsApp/SMS). */
     invitedAt: { type: Date, default: null },
+    /** The number now belongs to someone else (recycled); no login attaches until the owner updates it. */
+    phoneRecycledAt: { type: Date, default: null },
     emergencyContact: { name: String, phone: String, relation: String },
     importSessionId: { type: Schema.Types.ObjectId, ref: 'ImportSession', default: null },
     openingLastNetPaise: { type: Number, default: null }, // last salary from the previous app (import), used for anomaly checks

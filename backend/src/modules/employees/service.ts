@@ -203,6 +203,7 @@ export async function updateEmployee(ctx: Ctx, id: string, patch: Partial<Employ
       await deactivateStaffMemberships(ctx.companyId, [e._id], 'phone_changed');
       e.userId = null;
     }
+    if (phone !== e.phone) e.phoneRecycledAt = null;
     e.phone = phone;
   }
   const rateChanged = (patch.ratePaise !== undefined && patch.ratePaise !== e.ratePaise) || (patch.wageType && patch.wageType !== e.wageType);

@@ -63,6 +63,7 @@ const settingsSchema = z
     selfieRetentionDays: z.number().int().min(7).max(365),
     locationRetentionMonths: z.number().int().min(1).max(36),
     whatsappAlerts: z.boolean(),
+    exStaffPayslips: z.boolean(),
     minGpsAccuracyM: z.number().int().min(10).max(2000),
   })
   .partial()

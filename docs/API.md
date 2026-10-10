@@ -207,6 +207,30 @@ Fields: `name, phone, ratePaise, wageType, designation, joiningDate, branch, adv
 - The reference photo is deleted when the staff member withdraws consent, when the owner resets it, and when the staff member is deactivated.
 - `FACE_PROVIDER=mock` refuses to decide in production, so a missing key cannot approve anyone.
 
+### Accounts: shared ownership & recovery (F14 Phase 3)
+| Method | Path | Body | Returns |
+|---|---|---|---|
+| GET | /company/owners | — | `[{id, userId, name, phone, isMain, canManageBilling, isYou}]` (owners) |
+| POST | /company/owners | `{phone, name, canManageBilling?}` (main owner) | owners list; the number gets an owner account (co-owner) |
+| PATCH · DELETE | /company/owners/:membershipId | `{canManageBilling}` · — (main owner) | owners list |
+| POST | /company/transfer | `{phone, keepAs:'co_owner'\|'leave', code}` — `code` is an OTP to the main owner's own number | pending offer (7 days) |
+| GET · DELETE | /company/transfer | — | the pending offer · cancel it |
+| POST | /company/owner-recovery | `{newPhone}` (co-owner) | offer of kind `recovery`; the old number is told by text |
+| POST | /me/transfers/:id/accept · /decline | `{deviceId, refreshToken?}` | accept → `Session` as main owner |
+| POST | /auth/identity/confirm · /reject | `{token}` from `identityCheck` | `Session` (reject: the number starts fresh; the previous person's staff records wait for their owners to update the number) |
+| POST | /me/recovery/email | `{email}` | `{sent:true, devCode?}` (same answer for unknown emails) |
+| POST | /me/recovery/email/verify | `{email, code, deviceId, refreshToken?}` | `Session` of the recovered account, now on this number |
+| POST · GET | /me/recovery-requests | `{oldPhone, businessName, gstin?, paymentTxnId?, selfieVideoBase64?}` (2 of 3 proofs) | request / my requests |
+| POST | /me/recovery-holds/:id/stop | — | the old number or the business's owners, managers and CA can stop a hold |
+| GET | /admin/recovery-requests?status= · POST /admin/recovery-requests/:id/approve · /reject | admin key | approve starts the 7-day hold (`accounts.recoveryHoldDays`); the scheduler completes it |
+| GET | /me/export | — | profile, all accounts, own payslips |
+| POST | /me/delete | `{code}` (OTP to own number) | 409 `owns_business` while main owner of an open business |
+| GET | /me/past-payslips | — | `[{companyId, companyName, endedAt, payslips}]` for 12 months after leaving, unless `settings.exStaffPayslips` is false |
+
+- Billing (`/billing/subscription`, `/subscribe`, `/cancel`): main owner, or a co-owner with `canManageBilling`. Closing, transferring and managing owners: main owner only. Co-owners can leave; the main owner cannot.
+- `POST /auth/otp/verify` may return `{identityCheck:{token, maskedName}}` instead of a session when the number was idle for `accounts.recycleDays` (180) and the phone is new: the app asks "Is this you, R*** K***?".
+- `GET /me` adds `pendingTransfers` and `recoveryHolds`.
+
 ### Accounts: never stuck (F14 Phase 2)
 | Method | Path | Body | Returns |
 |---|---|---|---|

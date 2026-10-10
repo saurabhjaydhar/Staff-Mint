@@ -49,7 +49,13 @@ export async function leaveAccount(userId: Types.ObjectId | string, membershipId
   const user = await loadUser(userId);
   const m = await Membership.findOne({ _id: membershipId, userId: user._id, status: 'active' });
   if (!m) throw notFound('Account');
-  if (m.role === 'owner') throw new AppError('CONFLICT', 'An owner cannot leave their own business. Close it from Settings instead.', { reason: 'owner_cannot_leave' });
+  if (m.role === 'owner') {
+    // Co-owners can step away; the main owner transfers or closes instead.
+    const company = await Company.findById(m.companyId).select('ownerUserId').lean();
+    if (String(company?.ownerUserId) === String(user._id)) {
+      throw new AppError('CONFLICT', 'The main owner cannot leave. Transfer the business or close it from Settings.', { reason: 'owner_cannot_leave' });
+    }
+  }
   await endMemberships({ _id: m._id }, 'left');
   const who = user.name || user.phone;
   await notifyOwners(m.companyId, {

@@ -8,6 +8,8 @@ import { Company, Employee, User } from '../../models/index.js';
 import { userView } from '../auth/service.js';
 import { activeMemberships, endedNotices, membershipViews } from '../auth/memberships.js';
 import { closedBusinesses } from '../accounts/service.js';
+import { pendingTransfersFor } from '../accounts/owners.js';
+import { stoppableHolds } from '../accounts/identity.js';
 import { companyView } from '../company/service.js';
 import { employeeView } from '../views.js';
 import { audit } from '../audit/service.js';
@@ -43,6 +45,10 @@ meRouter.get('/', async (req, res) => {
       endedNotices: await endedNotices(uid),
       /** Businesses this person closed that can still be restored. */
       closedBusinesses: await closedBusinesses(uid),
+      /** Ownership offers waiting for this number (accept to become main owner). */
+      pendingTransfers: user ? await pendingTransfersFor(user) : [],
+      /** Support recoveries this person can stop (their own old account, or a business they help run). */
+      recoveryHolds: await stoppableHolds(a.userId),
     },
   });
 });

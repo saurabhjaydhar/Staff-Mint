@@ -40,7 +40,8 @@ export async function ensureLegacyMembership(user: UserDoc): Promise<void> {
  * in, and people who work at more than one shop. Returns how many it added.
  */
 export async function attachStaffMemberships(user: UserDoc, opts: { force?: (Types.ObjectId | string)[] } = {}): Promise<number> {
-  const emps = await Employee.find({ phone: user.phone, status: 'active', deletedAt: null }).setOptions({ skipTenant: true });
+  // Records whose number was found to be recycled wait for the owner to update the number.
+  const emps = await Employee.find({ phone: user.phone, status: 'active', deletedAt: null, phoneRecycledAt: null }).setOptions({ skipTenant: true });
   if (!emps.length) return 0;
   const closed = new Set(
     (await Company.find({ _id: { $in: emps.map((e) => e.companyId) }, closedAt: { $ne: null } }).select('_id').lean()).map((c) => String(c._id)),
