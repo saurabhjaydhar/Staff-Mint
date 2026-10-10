@@ -3,3 +3,5 @@ dist
 storage
 test
 .env
+.env.*
+!.env.example

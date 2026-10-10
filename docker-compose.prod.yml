@@ -1,0 +1,117 @@
+# Production stack for one VPS behind Coolify (or any reverse proxy that terminates TLS).
+#
+# Coolify (Hostinger VPS):
+#   1. New Resource → Public/Private Git repo → this repo, branch master,
+#      Build Pack "Docker Compose", compose file /docker-compose.prod.yml.
+#   2. Domains: give `api` https://api.example.com:4000 and `web` https://app.example.com:3000
+#      (the :port tells Coolify which container port to route to; the public URL stays on 443).
+#      Point both DNS A records at the VPS IP first so Let's Encrypt can issue certificates.
+#   3. Environment Variables tab: fill every variable marked :? below, plus the providers you use.
+#      NEXT_PUBLIC_API_BASE_URL is baked into the web bundle at build time — redeploy `web` after changing it.
+#   4. Deploy. The API seeds default plans/config on boot; no manual seed step is needed.
+#
+# Plain Docker: put the same variables in a `.env` next to this file and run
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Jobs run inline inside the API (no Redis/worker), which is fine for one small server.
+# Uploads (selfies, payslips, imports) go to the `api-storage` volume unless STORAGE_PROVIDER=s3.
+# Variables marked :? are required; the rest fall back to the defaults shown.
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes: [mongo-data:/data/db]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  api:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      mongo: { condition: service_healthy }
+    expose: ["4000"]
+    volumes: [api-storage:/data/storage]
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 4000
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      MONGODB_URI: mongodb://mongo:27017/staffmint
+      JOBS_DRIVER: inline
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?}
+      WEB_APP_URL: ${WEB_APP_URL:?}
+      CORS_ORIGINS: ${CORS_ORIGINS:?}
+
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?}
+      FIELD_ENCRYPTION_KEY: ${FIELD_ENCRYPTION_KEY:?}
+      FILE_URL_SECRET: ${FILE_URL_SECRET:?}
+      ADMIN_API_KEY: ${ADMIN_API_KEY:?}
+
+      OTP_PROVIDER: ${OTP_PROVIDER:?}
+      MSG91_AUTH_KEY: ${MSG91_AUTH_KEY:-}
+      MSG91_TEMPLATE_ID: ${MSG91_TEMPLATE_ID:-}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_FROM: ${TWILIO_FROM:-}
+
+      PUSH_PROVIDER: ${PUSH_PROVIDER:-fcm}
+      FCM_SERVICE_ACCOUNT_BASE64: ${FCM_SERVICE_ACCOUNT_BASE64:-}
+
+      LLM_PROVIDER: ${LLM_PROVIDER:-gemini}
+      SPEECH_PROVIDER: ${SPEECH_PROVIDER:-gemini}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.8-flash}
+
+      STORAGE_PROVIDER: ${STORAGE_PROVIDER:-local}
+      LOCAL_STORAGE_DIR: /data/storage
+      S3_ENDPOINT: ${S3_ENDPOINT:-}
+      S3_REGION: ${S3_REGION:-auto}
+      S3_BUCKET: ${S3_BUCKET:-staffmint-private}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-}
+
+      FACE_PROVIDER: ${FACE_PROVIDER:-mock}
+      AWS_REGION: ${AWS_REGION:-ap-south-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+
+      MESSAGING_PROVIDER: ${MESSAGING_PROVIDER:-mock}
+      WHATSAPP_META_TOKEN: ${WHATSAPP_META_TOKEN:-}
+      WHATSAPP_META_PHONE_NUMBER_ID: ${WHATSAPP_META_PHONE_NUMBER_ID:-}
+      WHATSAPP_META_APP_SECRET: ${WHATSAPP_META_APP_SECRET:-}
+      WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN:-}
+      AISENSY_API_KEY: ${AISENSY_API_KEY:-}
+      AISENSY_WEBHOOK_SECRET: ${AISENSY_WEBHOOK_SECRET:-}
+
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-mock}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-StaffMint <no-reply@staffmint.app>}
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-mock}
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
+      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-}
+      GEO_PROVIDER: ${GEO_PROVIDER:-mock}
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
+      ANALYTICS_PROVIDER: ${ANALYTICS_PROVIDER:-mock}
+      POSTHOG_API_KEY: ${POSTHOG_API_KEY:-}
+      POSTHOG_HOST: ${POSTHOG_HOST:-https://us.i.posthog.com}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SUPPORT_WHATSAPP: ${SUPPORT_WHATSAPP:-+910000000000}
+      MIN_APP_VERSION: ${MIN_APP_VERSION:-0.1.0}
+
+  web:
+    build:
+      context: ./web
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:?}
+    restart: unless-stopped
+    depends_on: [api]
+    expose: ["3000"]
+
+volumes:
+  mongo-data:
+  api-storage:
