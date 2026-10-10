@@ -42,8 +42,9 @@ class LiveSelfieScreen extends StatefulWidget {
 
   static Future<LiveSelfieResult> open(BuildContext context) async {
     if (kIsWeb) return const LiveSelfieUnavailable();
-    final r = await Navigator.of(context)
-        .push<LiveSelfieResult>(MaterialPageRoute(fullscreenDialog: true, builder: (_) => const LiveSelfieScreen()));
+    final r = await Navigator.of(
+      context,
+    ).push<LiveSelfieResult>(MaterialPageRoute(fullscreenDialog: true, builder: (_) => const LiveSelfieScreen()));
     return r ?? const LiveSelfieCancelled();
   }
 

@@ -44,8 +44,9 @@ class _SetupStaffScreenState extends ConsumerState<SetupStaffScreen> {
   }
 
   Future<void> _contacts() async {
-    final picked = await Navigator.of(context)
-        .push<List<PickedContact>>(MaterialPageRoute(builder: (_) => const ContactsPickerScreen()));
+    final picked = await Navigator.of(
+      context,
+    ).push<List<PickedContact>>(MaterialPageRoute(builder: (_) => const ContactsPickerScreen()));
     if (picked != null) {
       _addAll(picked.map((c) => NewEmployee(name: c.name, phone: c.phone)));
     }

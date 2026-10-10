@@ -12,6 +12,9 @@ import '../../../core/widgets/common.dart';
 import '../../../core/widgets/month_dots.dart';
 import '../../../core/widgets/skeleton.dart';
 import '../../../core/widgets/pickers.dart';
+import '../../auth/auth_controller.dart';
+import '../../profile/profile_screen.dart' show BankCard;
+import '../../profile/profile_sheets.dart';
 import '../providers/owner_providers.dart';
 import '../salary/money_dialogs.dart';
 import '../salary/advances_view.dart';
@@ -58,6 +61,20 @@ class StaffProfileScreen extends ConsumerWidget {
         data: (e) {
           final shift = shifts.where((x) => x.id == e.shiftId).firstOrNull;
           final lb = e.leaveBalance;
+          // Only the owner may set where salary goes.
+          final canEditBank = ref.read(authControllerProvider).user?.isOwner ?? false;
+          Future<void> editBank(BankInfo? current) async {
+            final api = ref.read(profileApiProvider);
+            final saved = await showEditSheet(
+              context,
+              BankSheet(initial: current, defaultHolder: e.name, onSave: (b) => api.setStaffBank(e.id, b)),
+            );
+            if (saved) {
+              invalidate();
+              if (context.mounted) showSnack(context, s.salaryAccountSaved);
+            }
+          }
+
           return RefreshableList(
             onRefresh: () => ref.refresh(employeeDetailProvider(employeeId).future),
             children: [
@@ -158,6 +175,37 @@ class StaffProfileScreen extends ConsumerWidget {
                   subtitle: lb == null ? null : Text('${s.paidLeaves}: ${lb.paid} · ${s.sickLeaves}: ${lb.sick}'),
                 ),
               ),
+              SectionHeader(s.salaryAccountBi.text),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: e.bank == null
+                    ? OutlinedButton.icon(
+                        key: const Key('staffAddBank'),
+                        onPressed: canEditBank ? () => editBank(null) : null,
+                        icon: const Icon(Icons.account_balance_rounded),
+                        label: Text(s.addSalaryAccount),
+                      )
+                    : BankCard(bank: e.bank!, onEdit: canEditBank ? () => editBank(e.bank) : null),
+              ),
+              if (e.emergencyContact != null) ...[
+                SectionHeader(s.emergencyBi.text),
+                Card(
+                  child: ListTile(
+                    key: const Key('staffEmergency'),
+                    leading: const Icon(Icons.contact_emergency_rounded, color: AppColors.red),
+                    title: Text([e.emergencyContact!.name, ?e.emergencyContact!.relation].join(' · ')),
+                    subtitle: e.emergencyContact!.phone == null
+                        ? null
+                        : Text(Phones.display(e.emergencyContact!.phone!)),
+                    trailing: e.emergencyContact!.phone == null
+                        ? null
+                        : IconButton(
+                            icon: const Icon(Icons.call_rounded, color: AppColors.mintDark),
+                            onPressed: () => openUrl(context, 'tel:${e.emergencyContact!.phone}'),
+                          ),
+                  ),
+                ),
+              ],
               SectionHeader(s.device),
               Card(
                 child: Column(

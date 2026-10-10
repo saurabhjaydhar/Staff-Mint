@@ -7,7 +7,11 @@ import { api, errorMessage } from "@/lib/api";
 import { saveBlob } from "@/lib/download";
 import { canAccess, canExport, homeFor, navFor } from "@/lib/roles";
 import type { Role } from "@/lib/types";
+import type { DictKey } from "@/lib/i18n";
+import { initials } from "@/lib/profile";
 import { useAuth, useI18n, useToast } from "./providers";
+
+const ROLE_KEY: Record<string, DictKey> = { owner: "role_owner", manager: "role_manager", ca: "role_ca", employee: "role_employee" };
 import { Alert, Button, Loading, cx } from "./ui";
 
 export function Logo({ className }: { className?: string }) {
@@ -155,14 +159,24 @@ export function AppShell({ children }: { children: ReactNode }) {
   const sidebar = (
     <div className="flex h-full flex-col gap-4 p-4">
       <Logo />
-      {me.company && (
-        <div className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
-          <div className="truncate font-medium text-slate-800">{me.company.name}</div>
-          <div className="truncate">
-            {me.user.name || me.user.phone} · <span className="uppercase">{role}</span>
-          </div>
-        </div>
-      )}
+      <Link
+        href="/profile"
+        onClick={() => setMenuOpen(false)}
+        title={t("nav_profile")}
+        className={cx(
+          "flex items-center gap-3 rounded-xl px-2.5 py-2 ring-1 transition-colors",
+          pathname === "/profile" ? "bg-mint-50 ring-mint-200" : "bg-slate-50 ring-transparent hover:bg-slate-100",
+        )}
+      >
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-mint-500 text-sm font-semibold text-white">{initials(me.user.name || me.user.phone)}</span>
+        <span className="min-w-0 flex-1 text-xs text-slate-600">
+          <span className="block truncate text-sm font-medium text-slate-900">{me.user.name || me.user.phone}</span>
+          <span className="block truncate">{me.company ? `${me.company.name} · ` : ""}{t(ROLE_KEY[role] ?? "role_owner")}</span>
+        </span>
+        <span className="text-slate-400" aria-hidden>
+          ›
+        </span>
+      </Link>
       {nav}
       <div className="space-y-2 border-t border-slate-100 pt-3">
         {canExport(role) && <ExportButton variant="ghost" className="w-full justify-start" />}

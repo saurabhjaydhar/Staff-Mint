@@ -61,6 +61,9 @@ const userSchema = new Schema(
   {
     phone: { type: String, required: true, unique: true },
     name: { type: String, default: '' },
+    email: { type: String, default: null, lowercase: true, trim: true },
+    /** Profile photo in private storage. */
+    photoKey: { type: String, default: null },
     role: { type: String, enum: ['owner', 'manager', 'employee', 'ca'], required: true },
     companyId: { type: Schema.Types.ObjectId, ref: 'Company', default: null, index: true },
     employeeId: { type: Schema.Types.ObjectId, ref: 'Employee', default: null },

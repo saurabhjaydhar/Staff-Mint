@@ -24,6 +24,7 @@ class Routes {
   static const ownerBilling = '/owner/more/billing';
   static const ownerAudit = '/owner/more/audit';
   static const ownerHelp = '/owner/more/help';
+  static const ownerProfile = '/owner/more/profile';
 
   // Employee shell.
   static const employeeConsent = '/employee/consent';

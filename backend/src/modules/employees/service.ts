@@ -123,7 +123,14 @@ export async function getEmployee(ctx: Ctx, id: string) {
   const company = await Company.findById(ctx.companyId).lean();
   const year = Number(todayIn(company!.timezone).slice(0, 4));
   const [view] = await withDeviceFlags([e.toObject()]);
-  return { ...view, leaveBalance: await getLeaveBalance(ctx, e._id, year), advanceBalancePaise: await advanceBalanceFor(ctx.companyId, e._id) };
+  const { bankView, emergencyView } = await import('../profile/service.js');
+  return {
+    ...view,
+    leaveBalance: await getLeaveBalance(ctx, e._id, year),
+    advanceBalancePaise: await advanceBalanceFor(ctx.companyId, e._id),
+    // CA sees neither; owners and managers see the bank account masked.
+    ...(ctx.role === 'ca' ? {} : { bank: bankView(e.bankDetailsEnc, e.bankUpdatedAt), emergencyContact: emergencyView(e) }),
+  };
 }
 
 export async function updateEmployee(ctx: Ctx, id: string, patch: Partial<EmployeeInput> & { effectiveFrom?: string; language?: 'en' | 'hi' }) {

@@ -28,6 +28,8 @@ const employeeSchema = new Schema(
     userId: { type: Schema.Types.ObjectId, ref: 'User', default: null },
     language: { type: String, enum: ['en', 'hi'], default: 'hi' },
     bankDetailsEnc: { type: String, default: null }, // field-level encrypted JSON
+    bankUpdatedAt: { type: Date, default: null },
+    emergencyContact: { name: String, phone: String, relation: String },
     importSessionId: { type: Schema.Types.ObjectId, ref: 'ImportSession', default: null },
     openingLastNetPaise: { type: Number, default: null }, // last salary from the previous app (import), used for anomaly checks
   },

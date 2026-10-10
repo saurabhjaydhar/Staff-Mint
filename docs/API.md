@@ -67,6 +67,13 @@ Phone: E.164 (`+919876543210`) or 10-digit Indian (`9876543210`, normalised serv
 | GET | /me | — | `{user, company:Company\|null, employee:Employee\|null}` |
 | PATCH | /me | `{name?, language?}` | `User` |
 | POST | /me/consent | `{location:true}` | `Employee` |
+| GET | /me/profile | — | `Profile {user:{id,name,phone,email,role,language,photoUrl,memberSince,lastLoginAt}, company:{id,name,businessType,planName}\|null, work:{employeeId,designation,joiningDate,wageType,ratePaise,branchName,shift}\|null, bank:BankMasked\|null, emergencyContact:{name,phone,relation}\|null, completeness:{percent, missing:string[]}}` |
+| PATCH | /me/profile | `{name?, email?\|null, language?, emergencyContact?\|null}` (emergency contact: staff only; name syncs to the staff record) | `Profile` |
+| PUT / DELETE | /me/photo | `{photoBase64}` / — | `Profile` |
+| PUT / DELETE | /me/bank | `{holderName, accountNumber?, ifsc?, upiId?}` (staff; account 9–18 digits + IFSC, or UPI) / — | `BankMasked {holderName, accountLast4, ifsc, upiId, updatedAt}`. The owner is notified of every self-change |
+| POST | /me/phone/request | `{phone}` (new number) | `{requestId, expiresInSec, devCode?}`; 409 if the number is taken |
+| POST | /me/phone/verify | `{phone, code}` | `Profile` (login moves to the new number) |
+| POST | /me/logout-all | — | `{ok}`; every refresh token is revoked |
 | GET | /me/face | — | `FaceInfo {status:'none'\|'pending'\|'approved', photoUrl, enrolledAt, approvedAt}` |
 | POST | /me/face | `{consent:true, photoBase64}` (explicit consent on every enrolment) | 201 `FaceInfo` (status `pending`); 422 `FACE_NOT_CLEAR` `{reason:'no_face'\|'many_faces'}` |
 | DELETE | /me/face | — (withdraw consent; photo deleted) | `FaceInfo` |
@@ -97,11 +104,12 @@ Phone: E.164 (`+919876543210`) or 10-digit Indian (`9876543210`, normalised serv
 | GET | /employees | `?search&status=active\|inactive\|all&branchId` | `Employee[]` |
 | POST | /employees | `{name, phone, wageType?, ratePaise?, branchId?, shiftId?, designation?, joiningDate?}` | `Employee` (402 `PLAN_LIMIT` when over plan staff limit) |
 | POST | /employees/bulk | `{employees: [...same as above]}` (contacts picker) | `{created: Employee[], skipped: {phone, reason}[]}` |
-| GET | /employees/:id | — | `Employee & {leaveBalance, advanceBalancePaise}` |
+| GET | /employees/:id | — | `Employee & {leaveBalance, advanceBalancePaise, bank: BankMasked\|null, emergencyContact}` (bank and emergency contact hidden from CA) |
 | PATCH | /employees/:id | partial + `effectiveFrom?` (for rate change → new salary structure version) | `Employee` |
 | POST | /employees/:id/deactivate | `{reason?}` | `Employee` |
 | POST | /employees/:id/reset-device | — | `Employee` |
 | GET | /employees/:id/face | — | `FaceInfo` |
+| PUT / DELETE | /employees/:id/bank | `{holderName, accountNumber?, ifsc?, upiId?}` / — (owner) | `BankMasked` |
 | POST | /employees/:id/face/approve | — | `FaceInfo`; 409 if nothing is pending |
 | DELETE | /employees/:id/face | — (reject / reset; photo deleted, staff asked to enrol again) | `FaceInfo` |
 | POST | /employees/:id/reactivate | — | `Employee` |

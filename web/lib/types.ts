@@ -12,6 +12,17 @@ export interface User {
   companyId: string | null;
   employeeId: string | null;
   language: Lang;
+  email?: string | null;
+}
+
+/** `GET /me/profile` (web shows the owner / manager / CA parts). */
+export interface Profile {
+  user: { id: string; name: string; phone: string; email: string | null; role: Role; language: Lang; photoUrl: string | null; memberSince: string | null; lastLoginAt: string | null };
+  company: { id: string; name: string; businessType: string; planName: string | null } | null;
+  work: unknown | null;
+  bank: { holderName: string; accountLast4: string | null; ifsc: string | null; upiId: string | null } | null;
+  emergencyContact: { name: string; phone: string | null; relation: string | null } | null;
+  completeness: { percent: number; missing: string[] };
 }
 
 export type PlanFeature =

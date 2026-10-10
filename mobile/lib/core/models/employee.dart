@@ -1,5 +1,6 @@
 import '../utils/json.dart';
 import 'leave.dart';
+import 'profile.dart';
 
 class Employee {
   const Employee({
@@ -20,6 +21,8 @@ class Employee {
     this.language = 'en',
     this.leaveBalance,
     this.advanceBalancePaise,
+    this.bank,
+    this.emergencyContact,
   });
 
   final String id;
@@ -43,6 +46,8 @@ class Employee {
   /// Present only on `GET /employees/:id`.
   final LeaveBalance? leaveBalance;
   final int? advanceBalancePaise;
+  final BankInfo? bank;
+  final EmergencyContact? emergencyContact;
 
   bool get isActive => status == 'active';
   bool get isDaily => wageType == 'daily';
@@ -67,6 +72,8 @@ class Employee {
       language: asString(j['language'], 'en'),
       leaveBalance: j['leaveBalance'] is Map ? LeaveBalance.fromJson(asMap(j['leaveBalance'])) : null,
       advanceBalancePaise: asIntOrNull(j['advanceBalancePaise']),
+      bank: BankInfo.fromJsonOrNull(j['bank']),
+      emergencyContact: EmergencyContact.fromJsonOrNull(j['emergencyContact']),
     );
   }
 }
