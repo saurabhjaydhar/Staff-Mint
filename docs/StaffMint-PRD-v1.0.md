@@ -272,7 +272,7 @@ Only for jobs easier on a big screen: Excel import, bulk edits, report downloads
 - One person can hold many memberships; at most one per business. Owner/CA access is never downgraded to staff by an import or "add staff".
 - Each **device** is open in exactly one business at a time; two devices of the same person can be in different businesses.
 - Every business keeps its own data, plan, rules, staff phone binding and audit log. Switching never mixes data.
-- Limits (dynamic config): up to 10 owned businesses per person by default; no limit on staff/CA accounts.
+- Limits (dynamic config): up to **10 owned businesses** per person (decided 10 Oct 2026); no limit on staff/CA accounts.
 
 **F14a. Choosing and switching** — *Done (PR #10)*
 - After OTP, a number with more than one account sees an **account chooser**: business name, type icon, role badge, "Open now" on the last used. One account → straight in.
@@ -300,8 +300,8 @@ Only for jobs easier on a big screen: Excel import, bulk edits, report downloads
 | 7 | Person wants to stop working with a business (staff/manager/CA) | No option | **Leave this business** in Profile → confirm → owner notified; staff record stays with the owner for payroll | Phase 2 |
 | 8 | Owner removes an accountant | No list exists | **Settings → Accountants**: list, add, remove | Phase 2 |
 | 9 | Owner sold the shop / family member takes over | No option | **Transfer ownership** to another number (OTP confirm by both); old owner can stay as manager or leave | Phase 3 |
-| 10 | Two partners run one shop | Only one owner | **Co-owner**: invite a second owner by phone; same rights except Close business and Transfer | Phase 3 |
-| 11 | Owner lost their number | Cannot log in; business locked | Co-owner changes it; otherwise **recovery**: email OTP (if on profile) + support check of business proof; audited | Phase 3 |
+| 10 | Two partners run one shop | Only one owner | **Co-owner**: invite a second owner by phone; same rights except Close business and Transfer. **Billing only if the main owner turns on "Can manage billing"** for that co-owner (off by default) | Phase 3 |
+| 11 | Owner lost their number | Cannot log in; business locked | Co-owner changes it; else email OTP (if on profile); else support recovery — see *Owner recovery* below | Phase 3 |
 | 12 | Old number recycled by the telecom to a new person | New person could see old businesses | **Recycled-number guard:** number unused > 6 months + new device → "Is this you, R*** S***?"; "No" detaches all accounts and alerts the owners | Phase 3 |
 | 13 | Notification for business B arrives while the app is in A | Opens A | **Tap opens B** (asks if offline check-ins are pending) | Phase 2 |
 | 14 | Staff at two shops opens the app to check in | May be in the wrong shop | **Business chip** on every home header ("Gupta Sweets ▾") for a one-tap switch | Phase 2 |
@@ -311,13 +311,23 @@ Only for jobs easier on a big screen: Excel import, bulk edits, report downloads
 | 18 | Owner wants to stop using StaffMint for one business | No option | **Close business**: export, 30-day restore window, all accounts of that business end and members are told | Phase 2 |
 | 19 | Owner adds staff who never installed the app | Staff doesn't know | **Invite** by WhatsApp/SMS with app link and their number when staff is added (resend from staff profile) | Phase 2 |
 | 20 | Hit the owned-business limit | Error | Message with support contact; limit is server config | Done |
+| 21 | Staff left the shop but needs old payslips (bank loan, ITR) | Cannot log in to that business | **Past payslips** (read-only, own payslips only) for 12 months after exit, if the owner allows it — see *Former staff* below | Phase 3 |
+
+**Decisions (10 Oct 2026)**
+- **Owned-business limit:** 10 per person. Decided.
+- **Co-owner billing:** a co-owner can manage billing only when the main owner switches on "Can manage billing" for them. Off by default; the main owner can switch it off any time; every billing action is audited. Decided.
+- **Former staff payslips** — *recommended, owner to confirm:* a business setting "Ex-staff can see their old payslips", **on by default**. When on, a removed staff member keeps a read-only "Past payslips" view for that business for 12 months after exit — their own payslips only, no attendance, no check-in, no other data. Owner can switch it off; existing payslip PDFs stay downloadable by the owner either way. Why default on: in India ex-staff often need payslips for loans, rent and tax returns, and today they call the owner for them; this saves the owner that work.
+- **Owner recovery when the number is lost** — *recommended, owner to confirm before Phase 3*. In order:
+  1. **Co-owner** changes the owner's number (instant, audited, old number notified by SMS).
+  2. **Email OTP** if the owner added an email to their profile (the app nudges owners to add one).
+  3. **Support recovery**, needs **2 of 3**: (a) the business's GSTIN / shop licence / Udyam certificate in the business name, (b) the transaction ID of a past StaffMint payment, (c) a selfie video saying the business name, matched to the owner's profile photo when one exists. Then a **7-day hold**: the old number, managers and the CA are told by SMS/WhatsApp and any of them can stop it. After 7 days the new number becomes owner. Every step is audited. No recovery by phone call alone.
 
 **Build phases**
 | Phase | Scope | Est. |
 |---|---|---|
 | 1 ✅ | Memberships, chooser, switching (app + web), own business from any account, per-business binding/removal (F14a–c) | Done |
 | 2 | Never-stuck basics: rows 1, 2/18, 4, 5, 6, 7, 8, 13, 14, 19 | ~2 weeks |
-| 3 | Shared ownership & recovery: rows 9, 10, 11, 12, 17 | ~2 weeks |
+| 3 | Shared ownership & recovery: rows 9, 10, 11, 12, 17, 21 | ~2 weeks |
 | 4 | Scale: rows 15, 16; one bill for several businesses (group billing); CA portal (V2 backlog) | V2 |
 
 **Acceptance**
@@ -615,7 +625,7 @@ Annual = 10× monthly. Price-lock for 24 months. Free export always. Cost per co
 4. WhatsApp BSP for launch?
 5. When to bring PF/ESI into scope?
 6. Confirm StaffMint domain + trademark.
-7. Accounts (F14): default limit of owned businesses (10?) · can former staff still see their old payslips after removal? · co-owner rights on billing · recovery proof we accept when an owner loses their number.
+7. Accounts (F14): ~~owned-business limit~~ → 10 · ~~co-owner billing~~ → only if the main owner allows · **still open:** confirm the recommended defaults for former-staff payslips (on, 12 months, owner can turn off) and owner recovery proof (2 of 3 + 7-day hold) — see F14 *Decisions*.
 
 ## 29. Backlog
 **V2:** photo/voice import · PF/ESI/PT · overtime · multi-shift & branches · QR/kiosk · face match/liveness · full & final · bank CSV · CA portal · regional languages · edit-salary via Mint · iOS app.
