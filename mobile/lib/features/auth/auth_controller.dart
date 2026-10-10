@@ -11,7 +11,15 @@ import '../../core/api/services/me_api.dart';
 import '../../core/i18n/locale_provider.dart';
 import '../../core/push/push_service.dart';
 import '../../core/storage/providers.dart';
+import '../employee/punch/punch_providers.dart';
 import 'session_state.dart';
+
+/// Offline check-ins belong to the business they were made in, so they have
+/// to reach the server before this phone moves to another account.
+class PendingPunchesException implements Exception {
+  const PendingPunchesException(this.count);
+  final int count;
+}
 
 class AuthController extends Notifier<SessionState> {
   @override
@@ -57,22 +65,75 @@ class AuthController extends Notifier<SessionState> {
         .verifyOtp(phone: phone, code: code, deviceId: deviceId, deviceName: _deviceName());
     await ref.read(tokenStorageProvider).saveTokens(accessToken: result.accessToken, refreshToken: result.refreshToken);
     try {
-      await refreshMe(needsCompanySetupHint: result.needsCompanySetup);
+      await refreshMe(needsCompanySetupHint: result.needsCompanySetup, needsAccountChoice: result.needsAccountChoice);
     } catch (_) {
-      state = SessionState(
-        status: SessionStatus.authenticated,
-        user: result.user,
-        needsCompanySetup: result.needsCompanySetup,
-      );
+      state = _fromAuth(result, needsAccountChoice: result.needsAccountChoice);
     }
     unawaited(_syncLanguage());
     unawaited(_registerPush());
   }
 
-  Future<void> refreshMe({bool? needsCompanySetupHint}) async {
+  Future<void> refreshMe({bool? needsCompanySetupHint, bool? needsAccountChoice}) async {
     final (me, json) = await ref.read(meApiProvider).me();
     await ref.read(tokenStorageProvider).writeSessionCache(json);
-    state = _fromMe(me, needsCompanySetupHint: needsCompanySetupHint);
+    state = _fromMe(
+      me,
+      needsCompanySetupHint: needsCompanySetupHint,
+      needsAccountChoice: needsAccountChoice ?? (state.isAuthenticated && state.needsAccountChoice),
+    );
+  }
+
+  /// The chooser after login: keep the account already open, or move to another.
+  Future<void> chooseAccount(String membershipId) async {
+    if (membershipId == state.activeMembershipId) {
+      state = state.copyWith(needsAccountChoice: false);
+      return;
+    }
+    await switchTo(membershipId);
+  }
+
+  /// Moves this phone into another of the person's businesses. Throws
+  /// [PendingPunchesException] while offline check-ins are still unsent.
+  Future<void> switchTo(String membershipId) async {
+    await _sendQueuedPunches();
+    final tokens = ref.read(tokenStorageProvider);
+    final deviceId = await ref.read(deviceIdServiceProvider).getDeviceId();
+    final res = await ref
+        .read(authApiProvider)
+        .switchAccount(membershipId: membershipId, deviceId: deviceId, refreshToken: await tokens.readRefreshToken());
+    await tokens.saveTokens(accessToken: res.accessToken, refreshToken: res.refreshToken);
+    _forgetBusinessData();
+    try {
+      await refreshMe(needsCompanySetupHint: res.needsCompanySetup, needsAccountChoice: false);
+    } catch (_) {
+      state = _fromAuth(res, needsAccountChoice: false);
+    }
+  }
+
+  Future<void> _sendQueuedPunches() async {
+    final int pending;
+    try {
+      pending = ref.read(punchQueueProvider).length;
+    } catch (_) {
+      return; // no offline queue on this platform
+    }
+    if (pending == 0) return;
+    try {
+      await ref.read(punchSyncProvider.notifier).syncNow();
+    } catch (_) {
+      /* counted below */
+    }
+    final left = ref.read(punchQueueProvider).length;
+    if (left > 0) throw PendingPunchesException(left);
+  }
+
+  /// Everything cached on screens belongs to the old business: rebuilding the
+  /// API client makes every data provider fetch again.
+  void _forgetBusinessData() {
+    ref.invalidate(apiClientProvider);
+    try {
+      ref.read(cacheBoxProvider).delete('today');
+    } catch (_) {}
   }
 
   /// "Check again" for staff waiting to be added: new tokens (the server links
@@ -89,13 +150,23 @@ class AuthController extends Notifier<SessionState> {
     return u != null && u.companyId != null && (u.isEmployee || u.role == 'manager');
   }
 
+  /// First business, or another one from any account (staff included). This
+  /// phone moves into the new business.
   Future<void> createCompany(CreateCompanyRequest req) async {
-    final res = await ref.read(companyApiProvider).create(req);
-    await ref.read(tokenStorageProvider).saveTokens(accessToken: res.accessToken, refreshToken: res.refreshToken);
-    state = state.copyWith(
+    final tokens = ref.read(tokenStorageProvider);
+    final hadBusiness = state.user?.companyId != null;
+    final deviceId = await ref.read(deviceIdServiceProvider).getDeviceId();
+    final res = await ref
+        .read(companyApiProvider)
+        .create(req.withSession(deviceId: deviceId, refreshToken: await tokens.readRefreshToken()));
+    await tokens.saveTokens(accessToken: res.accessToken, refreshToken: res.refreshToken);
+    if (hadBusiness) _forgetBusinessData();
+    state = SessionState(
+      status: SessionStatus.authenticated,
+      user: state.user?.copyWith(companyId: res.company.id, role: 'owner'),
       company: res.company,
-      user: state.user?.copyWith(companyId: res.company.id),
-      needsCompanySetup: false,
+      memberships: res.memberships.isEmpty ? state.memberships : res.memberships,
+      activeMembershipId: res.activeMembershipId,
     );
     try {
       await refreshMe(needsCompanySetupHint: false);
@@ -133,7 +204,7 @@ class AuthController extends Notifier<SessionState> {
     }
   }
 
-  SessionState _fromMe(MeResponse me, {bool? needsCompanySetupHint}) {
+  SessionState _fromMe(MeResponse me, {bool? needsCompanySetupHint, bool needsAccountChoice = false}) {
     final needsSetup = !me.user.isEmployee && me.company == null;
     return SessionState(
       status: SessionStatus.authenticated,
@@ -141,8 +212,20 @@ class AuthController extends Notifier<SessionState> {
       company: me.company,
       employee: me.employee,
       needsCompanySetup: me.company != null ? false : (needsCompanySetupHint ?? needsSetup),
+      memberships: me.memberships,
+      activeMembershipId: me.activeMembershipId,
+      needsAccountChoice: needsAccountChoice && me.memberships.length > 1,
     );
   }
+
+  SessionState _fromAuth(AuthResult r, {bool needsAccountChoice = false}) => SessionState(
+    status: SessionStatus.authenticated,
+    user: r.user,
+    needsCompanySetup: r.needsCompanySetup,
+    memberships: r.memberships,
+    activeMembershipId: r.activeMembershipId,
+    needsAccountChoice: needsAccountChoice && r.memberships.length > 1,
+  );
 
   Future<void> _syncLanguage() async {
     final lang = ref.read(localeProvider);

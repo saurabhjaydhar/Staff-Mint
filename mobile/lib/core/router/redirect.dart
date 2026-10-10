@@ -17,9 +17,17 @@ String? computeRedirect(SessionState session, String location) {
       break;
   }
 
+  // Several businesses on one number: pick one before anything else.
+  if (session.needsAccountChoice) {
+    return under(Routes.accounts) ? null : Routes.accounts;
+  }
+
   if (session.needsCompanySetup) {
     return at(Routes.setup) ? null : Routes.setup;
   }
+
+  // The chooser and "new business" are open to every role.
+  if (under(Routes.accounts)) return null;
 
   if (session.isEmployee) {
     if (session.needsConsent) {

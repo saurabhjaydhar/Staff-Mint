@@ -81,4 +81,27 @@ void main() {
       expect(computeRedirect(s, Routes.setup), Routes.employeeHome);
     });
   });
+
+  group('accounts', () {
+    test('several accounts after login: the chooser comes first', () {
+      final s = _auth(UserRole.owner).copyWith(needsAccountChoice: true);
+      expect(computeRedirect(s, Routes.ownerHome), Routes.accounts);
+      expect(computeRedirect(s, Routes.employeeHome), Routes.accounts);
+      expect(computeRedirect(s, Routes.accounts), isNull);
+      expect(computeRedirect(s, Routes.accountsNew), isNull);
+    });
+
+    test('the chooser and "new business" stay open to every role', () {
+      expect(computeRedirect(_auth(UserRole.owner), Routes.accounts), isNull);
+      expect(computeRedirect(_auth(UserRole.employee, consent: true), Routes.accountsNew), isNull);
+      // Even before staff accept the location notice.
+      expect(computeRedirect(_auth(UserRole.employee, consent: false), Routes.accounts), isNull);
+      expect(computeRedirect(_auth(UserRole.ca), Routes.accountsNew), isNull);
+    });
+
+    test('a number with no business still goes to setup, not the chooser', () {
+      final s = _auth(UserRole.owner, needsSetup: true);
+      expect(computeRedirect(s, Routes.accounts), Routes.setup);
+    });
+  });
 }

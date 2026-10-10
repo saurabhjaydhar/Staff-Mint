@@ -3,15 +3,25 @@ import '../../utils/json.dart';
 import '../api_client.dart';
 
 class MeResponse {
-  const MeResponse({required this.user, this.company, this.employee});
+  const MeResponse({
+    required this.user,
+    this.company,
+    this.employee,
+    this.memberships = const [],
+    this.activeMembershipId,
+  });
   final User user;
   final Company? company;
   final Employee? employee;
+  final List<Membership> memberships;
+  final String? activeMembershipId;
 
   factory MeResponse.fromJson(Json j) => MeResponse(
     user: User.fromJson(asMap(j['user'])),
     company: j['company'] is Map ? Company.fromJson(asMap(j['company'])) : null,
     employee: j['employee'] is Map ? Employee.fromJson(asMap(j['employee'])) : null,
+    memberships: asList(j['memberships'], Membership.fromJson),
+    activeMembershipId: asStringOrNull(j['activeMembershipId']),
   );
 }
 

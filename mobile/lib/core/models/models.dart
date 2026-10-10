@@ -4,6 +4,7 @@ export 'company.dart';
 export 'dashboard.dart';
 export 'employee.dart';
 export 'leave.dart';
+export 'membership.dart';
 export 'misc.dart';
 export 'money.dart';
 export 'payroll.dart';

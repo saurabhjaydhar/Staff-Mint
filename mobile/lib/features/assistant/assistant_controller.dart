@@ -71,8 +71,8 @@ class AssistantState {
 class AssistantController extends Notifier<AssistantState> {
   @override
   AssistantState build() {
-    // New user → new conversation.
-    ref.watch(authControllerProvider.select((s) => s.user?.id));
+    // New user or another business → new conversation.
+    ref.watch(authControllerProvider.select((s) => (s.user?.id, s.activeMembershipId)));
     return const AssistantState();
   }
 

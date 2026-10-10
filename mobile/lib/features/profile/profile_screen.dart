@@ -17,8 +17,10 @@ import '../../core/utils/money.dart';
 import '../../core/utils/phone.dart';
 import '../../core/widgets/bilingual.dart';
 import '../../core/widgets/common.dart';
+import '../accounts/accounts_screen.dart';
 import '../auth/auth_controller.dart';
 import '../employee/punch/punch_providers.dart';
+import '../setup/setup_screen.dart' show businessIcons;
 import 'profile_sheets.dart';
 
 final profileProvider = FutureProvider.autoDispose<Profile>((ref) => ref.watch(profileApiProvider).get());
@@ -351,6 +353,33 @@ class _ProfileBody extends ConsumerWidget {
                 ),
             ],
           ),
+        _Section(
+          title: s.accountsBi,
+          children: [
+            // Owner here, staff there: each business this number can open.
+            if (session.hasManyAccounts)
+              for (final m in session.memberships)
+                _Row(
+                  key: Key('profileAccount-${m.id}'),
+                  icon: businessIcons[m.businessType] ?? Icons.storefront_rounded,
+                  label: s.roleLabel(m.role),
+                  value: m.companyName,
+                  trailing: m.id == session.activeMembershipId
+                      ? const Icon(Icons.check_circle_rounded, color: AppColors.mint)
+                      : null,
+                  onTap: m.id == session.activeMembershipId ? null : () => openAccount(context, ref, m),
+                ),
+            _Row(
+              key: const Key('rowNewBusiness'),
+              icon: Icons.add_business_rounded,
+              label: session.memberships.any((m) => m.role == UserRole.owner)
+                  ? s.addAnotherBusiness
+                  : s.startOwnBusiness,
+              placeholder: s.ownBusinessHint,
+              onTap: () => context.push(Routes.accountsNew),
+            ),
+          ],
+        ),
         _Section(
           title: s.accountBi,
           children: [

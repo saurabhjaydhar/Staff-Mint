@@ -1049,6 +1049,29 @@ class S {
   String timingsPrefilled(String type) =>
       _t('Usual timings for a ${type.toLowerCase()}. Change if needed.', '$type का आम समय भरा है। ज़रूरत हो तो बदलें।');
 
+  // ------------------------------------------------------------- Accounts
+  String get chooseAccount => _t('Choose an account', 'खाता चुनें');
+  String chooseAccountHint(String phone) => _t(
+    '$phone is linked to more than one business. Which one do you want to open?',
+    '$phone एक से ज़्यादा बिज़नेस से जुड़ा है। कौन-सा खोलना है?',
+  );
+  Bi get accountsBi => _b('Your accounts', 'आपके खाते');
+  String get switchAccount => _t('Switch account', 'खाता बदलें');
+  String get openNow => _t('Open now', 'अभी खुला है');
+  String get startOwnBusiness => _t('Start my own business', 'अपना बिज़नेस शुरू करें');
+  String get addAnotherBusiness => _t('Add another business', 'एक और बिज़नेस जोड़ें');
+  String get ownBusinessHint => _t('Your other accounts stay as they are', 'आपके बाकी खाते जैसे हैं वैसे रहेंगे');
+  String get newBusiness => _t('New business', 'नया बिज़नेस');
+  String switchedTo(String name) => _t('Now in $name', 'अब $name में');
+  String pendingPunchesBlock(int n) => _t(
+    '$n check-in${n == 1 ? '' : 's'} not sent yet. Connect to the internet and try again, so they are saved in the right business.',
+    '$n हाज़िरी अभी भेजनी बाकी है। इंटरनेट चालू करके फिर कोशिश करें, ताकि ये सही बिज़नेस में सेव हों।',
+  );
+  String get accountsFooter => _t(
+    'One number can own a business, work at another and be an accountant for a third.',
+    'एक ही नंबर से अपना बिज़नेस, किसी और दुकान पर नौकरी और अकाउंटेंट का काम — सब चल सकता है।',
+  );
+
   // ---------------------------------------------------------------- Misc
   String get thisMonth => _t('This month', 'इस महीने');
   String get offlineNote => _t('Offline · showing saved data', 'ऑफ़लाइन · सेव डेटा दिखा रहे हैं');

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/accounts/accounts_screen.dart';
 import '../../features/auth/auth_controller.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/auth/otp_screen.dart';
@@ -77,6 +78,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [GoRoute(path: 'staff', builder: (_, _) => const SetupStaffScreen())],
       ),
       r(Routes.employeeConsent, (_) => const ConsentScreen()),
+      r(
+        Routes.accounts,
+        (_) => const AccountsScreen(),
+        routes: [GoRoute(path: 'new', builder: (_, _) => const SetupScreen(another: true))],
+      ),
 
       // ---------------------------------------------------------- Owner
       // आज · स्टाफ़ · [Mint] · सैलरी · और — attendance lives in Today.
