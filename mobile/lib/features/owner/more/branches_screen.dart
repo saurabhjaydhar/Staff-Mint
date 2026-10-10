@@ -18,8 +18,9 @@ class BranchesScreen extends ConsumerWidget {
     final s = context.s;
     final branches = ref.watch(branchesProvider);
     Future<void> edit([Branch? b]) async {
-      final changed = await Navigator.of(context)
-          .push<bool>(MaterialPageRoute(builder: (_) => BranchEditScreen(branch: b)));
+      final changed = await Navigator.of(
+        context,
+      ).push<bool>(MaterialPageRoute(builder: (_) => BranchEditScreen(branch: b)));
       if (changed == true) ref.invalidate(branchesProvider);
     }
 

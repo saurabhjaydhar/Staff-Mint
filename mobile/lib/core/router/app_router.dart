@@ -11,7 +11,7 @@ import '../../features/employee/consent/consent_screen.dart';
 import '../../features/employee/home/employee_home_screen.dart';
 import '../../features/employee/leave/employee_leave_screen.dart';
 import '../../features/employee/face/face_setup_screen.dart';
-import '../../features/employee/profile/employee_profile_screen.dart';
+import '../../features/profile/profile_screen.dart';
 import '../../features/employee/salary/employee_salary_screen.dart';
 import '../../features/employee/shell/employee_shell.dart';
 import '../../features/owner/more/audit_screen.dart';
@@ -120,6 +120,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                   GoRoute(path: 'billing', builder: (_, _) => const BillingScreen()),
                   GoRoute(path: 'audit', builder: (_, _) => const AuditScreen()),
                   GoRoute(path: 'help', builder: (_, _) => const HelpScreen()),
+                  GoRoute(path: 'profile', builder: (_, _) => const ProfileScreen(showBack: true)),
                 ],
               ),
             ],
@@ -139,7 +140,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               r(
                 Routes.employeeProfile,
-                (_) => const EmployeeProfileScreen(),
+                (_) => const ProfileScreen(),
                 routes: [GoRoute(path: 'face', builder: (_, _) => const FaceSetupScreen())],
               ),
             ],

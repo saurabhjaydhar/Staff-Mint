@@ -104,7 +104,7 @@ Phone: E.164 (`+919876543210`) or 10-digit Indian (`9876543210`, normalised serv
 | GET | /employees | `?search&status=active\|inactive\|all&branchId` | `Employee[]` |
 | POST | /employees | `{name, phone, wageType?, ratePaise?, branchId?, shiftId?, designation?, joiningDate?}` | `Employee` (402 `PLAN_LIMIT` when over plan staff limit) |
 | POST | /employees/bulk | `{employees: [...same as above]}` (contacts picker) | `{created: Employee[], skipped: {phone, reason}[]}` |
-| GET | /employees/:id | — | `Employee & {leaveBalance, advanceBalancePaise, bank: BankMasked|null, emergencyContact}` (bank and emergency contact hidden from CA) |
+| GET | /employees/:id | — | `Employee & {leaveBalance, advanceBalancePaise, bank: BankMasked\|null, emergencyContact}` (bank and emergency contact hidden from CA) |
 | PATCH | /employees/:id | partial + `effectiveFrom?` (for rate change → new salary structure version) | `Employee` |
 | POST | /employees/:id/deactivate | `{reason?}` | `Employee` |
 | POST | /employees/:id/reset-device | — | `Employee` |

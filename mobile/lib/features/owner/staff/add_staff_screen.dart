@@ -79,8 +79,9 @@ class _AddStaffScreenState extends ConsumerState<AddStaffScreen> {
   }
 
   Future<void> _fromContacts() async {
-    final picked = await Navigator.of(context)
-        .push<List<PickedContact>>(MaterialPageRoute(builder: (_) => const ContactsPickerScreen()));
+    final picked = await Navigator.of(
+      context,
+    ).push<List<PickedContact>>(MaterialPageRoute(builder: (_) => const ContactsPickerScreen()));
     if (picked == null || picked.isEmpty || !mounted) return;
     setState(() => _busy = true);
     final s = context.s;

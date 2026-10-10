@@ -812,6 +812,94 @@ class S {
       _t('Final salary may change after owner approval.', 'मालिक की मंज़ूरी के बाद आख़िरी सैलरी बदल सकती है।');
   String get noPayslips => _t('No payslips yet', 'अभी कोई पेस्लिप नहीं');
   String get myProfile => _t('My profile', 'मेरी प्रोफ़ाइल');
+
+  // ---- Profile ----
+  String roleLabel(String role) => switch (role) {
+    'owner' => _t('Owner', 'मालिक'),
+    'manager' => _t('Manager', 'मैनेजर'),
+    'ca' => _t('Accountant', 'अकाउंटेंट'),
+    _ => _t('Staff', 'स्टाफ़'),
+  };
+  String profileComplete(int p) => _t('Profile $p% complete', 'प्रोफ़ाइल $p% पूरी');
+  String get profileCompleteHint =>
+      _t('Finish these so salary and alerts reach you', 'ये भर दें ताकि सैलरी और सूचनाएँ सही पहुँचें');
+  String missingLabel(String k) => switch (k) {
+    'photo' => _t('Add photo', 'फ़ोटो लगाएँ'),
+    'name' => _t('Add name', 'नाम लिखें'),
+    'email' => _t('Add email', 'ईमेल जोड़ें'),
+    'bank' => _t('Salary account', 'सैलरी खाता'),
+    _ => _t('Emergency contact', 'आपात संपर्क'),
+  };
+  Bi get personalBi => _b('Personal details', 'निजी जानकारी');
+  Bi get workBi => _b('Work', 'काम');
+  Bi get salaryAccountBi => _b('Salary account', 'सैलरी खाता');
+  Bi get emergencyBi => _b('Emergency contact', 'आपात संपर्क');
+  Bi get businessBi => _b('Business', 'बिज़नेस');
+  Bi get accountBi => _b('Account & security', 'खाता और सुरक्षा');
+  String get fullName => _t('Name', 'नाम');
+  String get mobileLabel => _t('Mobile', 'मोबाइल');
+  String get emailLabel => _t('Email', 'ईमेल');
+  String get emailHint => _t('For reports and receipts (optional)', 'रिपोर्ट और रसीद के लिए (वैकल्पिक)');
+  String get notAdded => _t('Not added', 'नहीं जोड़ा');
+  String get removeLabel => _t('Remove', 'हटाएँ');
+  String get designationLabel => _t('Role', 'पद');
+  String get joinedOn => _t('Joined', 'जॉइन किया');
+  String get branchLabel => _t('Branch', 'ब्रांच');
+  String get salaryLabel => _t('Salary', 'सैलरी');
+  String get setByOwner =>
+      _t('Set by your owner. Ask them to change it.', 'मालिक तय करते हैं। बदलवाने के लिए उनसे कहें।');
+  String get addSalaryAccount => _t('Add salary account', 'सैलरी खाता जोड़ें');
+  String get salaryAccountHint =>
+      _t('Bank account or UPI where your salary is paid', 'बैंक खाता या UPI जहाँ सैलरी आती है');
+  String get accountHolder => _t('Account holder name', 'खाताधारक का नाम');
+  String get accountNumber => _t('Account number', 'खाता नंबर');
+  String get confirmAccountNumber => _t('Re-enter account number', 'खाता नंबर दोबारा लिखें');
+  String get accountsDontMatch => _t('Account numbers don\'t match', 'खाता नंबर मेल नहीं खाते');
+  String get ifscLabel => _t('IFSC code', 'IFSC कोड');
+  String get upiLabel => _t('UPI ID', 'UPI ID');
+  String get bankOrUpi => _t('Add a bank account or a UPI ID', 'बैंक खाता या UPI ID में से एक भरें');
+  String get invalidAccount => _t('9–18 digits', '9–18 अंक');
+  String get retypeAccount => _t('Type the full number again to keep it', 'रखने के लिए पूरा नंबर दोबारा लिखें');
+  String get invalidIfsc => _t('Like SBIN0001234', 'जैसे SBIN0001234');
+  String get invalidUpi => _t('Like name@okaxis', 'जैसे name@okaxis');
+  String get ownerNotifiedBank =>
+      _t('Your owner is told whenever this changes.', 'इसे बदलने पर मालिक को सूचना जाती है।');
+  String get salaryAccountSaved => _t('Salary account saved', 'सैलरी खाता सेव हुआ');
+  String get removeSalaryAccount => _t('Remove salary account?', 'सैलरी खाता हटाएँ?');
+  String get contactName => _t('Contact name', 'नाम');
+  String get contactPhone => _t('Phone', 'फ़ोन');
+  String get relationLabel => _t('Relation', 'रिश्ता');
+  List<String> get relations => isHindi
+      ? const ['पिता', 'माता', 'पति/पत्नी', 'भाई', 'बहन', 'दोस्त']
+      : const ['Father', 'Mother', 'Spouse', 'Brother', 'Sister', 'Friend'];
+  String get emergencyHint =>
+      _t('Who should we call if something happens at work?', 'काम पर कुछ हो तो किसे फ़ोन करें?');
+  String get planLabel => _t('Plan', 'प्लान');
+  String get manageBusiness => _t('Business settings', 'बिज़नेस सेटिंग्स');
+  String get logoutAll => _t('Log out of all devices', 'सभी फ़ोन से लॉग आउट');
+  String get logoutAllConfirm => _t(
+    'You will be logged out on every phone and computer, including this one.',
+    'आप हर फ़ोन और कंप्यूटर से लॉग आउट हो जाएँगे, इस फ़ोन से भी।',
+  );
+  String memberSince(String d) => _t('Member since $d', '$d से सदस्य');
+  String get changePhoto => _t('Profile photo', 'प्रोफ़ाइल फ़ोटो');
+  String get takePhoto => _t('Take photo', 'फ़ोटो खींचें');
+  String get chooseFromGallery => _t('Choose from gallery', 'गैलरी से चुनें');
+  String get removePhoto => _t('Remove photo', 'फ़ोटो हटाएँ');
+  String get changeMobile => _t('Change mobile number', 'मोबाइल नंबर बदलें');
+  String get newMobile => _t('New mobile number', 'नया मोबाइल नंबर');
+  String get changeMobileHint => _t(
+    'We will send a code to the new number. You will log in with it from now on.',
+    'नए नंबर पर कोड भेजेंगे। अब से उसी नंबर से लॉगिन होगा।',
+  );
+  String codeSentTo(String phone) => _t('Code sent to $phone', '$phone पर कोड भेजा');
+  String get sendCode => _t('Send code', 'कोड भेजें');
+  String get verifyAndChange => _t('Verify & change', 'जाँचें और बदलें');
+  String get mobileChanged => _t('Mobile number changed', 'मोबाइल नंबर बदल गया');
+  String get requiredField => _t('Required', 'ज़रूरी है');
+  String get invalidEmail => _t('Email looks wrong', 'ईमेल सही नहीं लगता');
+  String get viewProfile => _t('View profile', 'प्रोफ़ाइल देखें');
+  String get or => _t('or', 'या');
   String get hindi => 'हिन्दी';
   String get english => 'English';
 

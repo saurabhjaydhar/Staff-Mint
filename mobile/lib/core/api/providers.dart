@@ -13,6 +13,7 @@ import 'services/me_api.dart';
 import 'services/misc_api.dart';
 import 'services/money_api.dart';
 import 'services/payroll_api.dart';
+import 'services/profile_api.dart';
 
 final apiClientProvider = Provider<ApiClient>((ref) {
   return ApiClient.create(
@@ -24,6 +25,7 @@ final apiClientProvider = Provider<ApiClient>((ref) {
 
 final authApiProvider = Provider((ref) => AuthApi(ref.watch(apiClientProvider)));
 final meApiProvider = Provider((ref) => MeApi(ref.watch(apiClientProvider)));
+final profileApiProvider = Provider((ref) => ProfileApi(ref.watch(apiClientProvider)));
 final companyApiProvider = Provider((ref) => CompanyApi(ref.watch(apiClientProvider)));
 final employeesApiProvider = Provider((ref) => EmployeesApi(ref.watch(apiClientProvider)));
 final attendanceApiProvider = Provider((ref) => AttendanceApi(ref.watch(apiClientProvider)));

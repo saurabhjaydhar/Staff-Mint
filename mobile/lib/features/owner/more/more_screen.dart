@@ -75,32 +75,44 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
           children: [
             ScreenHeader(subtitle: s.appName, title: s.moreTitle),
             Container(
+              key: const Key('moreProfileCard'),
               margin: const EdgeInsets.fromLTRB(16, 10, 16, 6),
-              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(color: AppColors.ink, borderRadius: BorderRadius.circular(18)),
-              child: Row(
-                children: [
-                  InitialsAvatar(session.company?.name ?? s.appName),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          session.company?.name ?? s.appName,
-                          style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(18),
+                onTap: () => context.push(Routes.ownerProfile),
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Row(
+                    children: [
+                      InitialsAvatar(
+                        session.user?.name.isNotEmpty == true
+                            ? session.user!.name
+                            : (session.company?.name ?? s.appName),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              session.company?.name ?? s.appName,
+                              style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800),
+                            ),
+                            Text(
+                              [
+                                session.user?.name ?? '',
+                                Phones.display(session.user?.phone ?? ''),
+                              ].where((t) => t.isNotEmpty).join(' · '),
+                              style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 13.5),
+                            ),
+                          ],
                         ),
-                        Text(
-                          [
-                            session.user?.name ?? '',
-                            Phones.display(session.user?.phone ?? ''),
-                          ].where((t) => t.isNotEmpty).join(' · '),
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 13.5),
-                        ),
-                      ],
-                    ),
+                      ),
+                      const Icon(Icons.chevron_right_rounded, color: Colors.white70),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
             Card(
