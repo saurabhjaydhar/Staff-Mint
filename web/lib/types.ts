@@ -404,6 +404,8 @@ export interface Membership {
   lastUsedAt: string | null;
   /** Staff account bound to another phone. */
   lockedToOtherPhone?: boolean;
+  /** Pinned to the top of the chooser. */
+  pinned?: boolean;
 }
 
 /** "Your access to X ended on …" until dismissed. */
@@ -609,6 +611,37 @@ export interface SubscriptionInfo {
   subscription: Subscription;
   plan: Plan;
   staffCount: number;
+  /** Paid together with another business (one bill); its plan is managed there. */
+  billedTo?: { companyId: string; name: string } | null;
+}
+
+export interface BillingBusiness {
+  companyId: string;
+  name: string;
+  staffCount: number;
+}
+
+/** One bill for several businesses of the same main owner. */
+export interface BillingGroup {
+  payer: BillingBusiness;
+  isPayer: boolean;
+  members: BillingBusiness[];
+  candidates: BillingBusiness[];
+  totalStaff: number;
+  extraBusinessPricePaise: number;
+}
+
+/** An accountant's client, with last month's payroll state. */
+export interface CaClient {
+  membershipId: string;
+  companyId: string;
+  companyName: string;
+  businessType: string | null;
+  pinned: boolean;
+  staffCount: number;
+  month: string;
+  payrollStatus: "not_started" | "draft" | "approved" | "paid";
+  netPaise: number | null;
 }
 
 export interface SubscribeResult {

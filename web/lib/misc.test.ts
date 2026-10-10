@@ -5,10 +5,10 @@ import { defaultPayrollMonth, previousMonth } from "./format";
 
 describe("roles", () => {
   it("CA sees only payroll and reports", () => {
-    expect(navFor("ca").map((n) => n.href)).toEqual(["/payroll", "/reports"]);
+    expect(navFor("ca").map((n) => n.href)).toEqual(["/clients", "/payroll", "/reports"]);
     expect(canAccess("ca", "/staff")).toBe(false);
     expect(canAccess("ca", "/reports")).toBe(true);
-    expect(homeFor("ca")).toBe("/payroll");
+    expect(homeFor("ca")).toBe("/clients");
   });
   it("owner sees everything, employee nothing", () => {
     expect(navFor("owner").length).toBeGreaterThan(8);

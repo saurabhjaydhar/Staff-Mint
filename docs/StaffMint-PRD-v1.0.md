@@ -305,8 +305,8 @@ Only for jobs easier on a big screen: Excel import, bulk edits, report downloads
 | 12 | Old number recycled by the telecom to a new person | New person could see old businesses | **Recycled-number guard:** number unused > 6 months + new device → "Is this you, R*** S***?"; "No" detaches all accounts and alerts the owners | Done (Phase 3) |
 | 13 | Notification for business B arrives while the app is in A | Opens A | **Tap opens B** (asks if offline check-ins are pending) | Done (Phase 2) |
 | 14 | Staff at two shops opens the app to check in | May be in the wrong shop | **Business chip** on every home header ("Gupta Sweets ▾") for a one-tap switch | Done (Phase 2) |
-| 15 | CA with many clients | Long list | **Search + pin** in the chooser once there are more than 6 accounts | Phase 4 |
-| 16 | WhatsApp command from a multi-business owner | Uses last opened business | **Mint asks "Which business?"** when unclear; "switch to Verma Traders" command | Phase 4 |
+| 15 | CA with many clients | Long list | **Search + pin** in the chooser once there are more than 6 accounts | Done (Phase 4) |
+| 16 | WhatsApp command from a multi-business owner | Uses last opened business | **Mint asks "Which business?"** when unclear; "switch to Verma Traders" command | Done (Phase 4) |
 | 17 | Person wants to delete everything (DPDP right to erasure) | No option | **Delete my account**: export first; sole owners must transfer or close each business; payroll records kept as required by law | Done (Phase 3) |
 | 18 | Owner wants to stop using StaffMint for one business | No option | **Close business**: export, 30-day restore window, all accounts of that business end and members are told | Done (Phase 2) |
 | 19 | Owner adds staff who never installed the app | Staff doesn't know | **Invite** by WhatsApp/SMS with app link and their number when staff is added (resend from staff profile) | Done (Phase 2) |
@@ -328,7 +328,7 @@ Only for jobs easier on a big screen: Excel import, bulk edits, report downloads
 | 1 ✅ | Memberships, chooser, switching (app + web), own business from any account, per-business binding/removal (F14a–c) | Done |
 | 2 ✅ | Never-stuck basics: rows 1, 2/18, 4, 5, 6, 7, 8, 13, 14, 19 | Done |
 | 3 ✅ | Shared ownership & recovery: rows 9, 10, 11, 12, 17, 21 | Done |
-| 4 | Scale: rows 15, 16; one bill for several businesses (group billing); CA portal (V2 backlog) | V2 |
+| 4 ✅ | Scale: rows 15, 16; **one bill** for several businesses of the same main owner (payer's plan covers them; staff add up; ₹199/month per extra business, configurable); **accountant client overview** (`/clients`: every client with last month's salary status, pin, one-click open) | Done |
 
 **Acceptance**
 - A number with an owner, a staff and a CA account can open each in ≤ 2 taps from anywhere in the app, and data never leaks between them (cross-tenant tests).
