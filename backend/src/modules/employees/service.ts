@@ -72,7 +72,7 @@ async function defaults(companyId: Types.ObjectId) {
   return { branchId: branch?._id, shiftId };
 }
 
-export async function createEmployee(ctx: Ctx, input: EmployeeInput, opts: { skipCapacityCheck?: boolean; importSessionId?: Types.ObjectId } = {}) {
+export async function createEmployee(ctx: Ctx, input: EmployeeInput, opts: { skipCapacityCheck?: boolean; importSessionId?: Types.ObjectId; invite?: boolean } = {}) {
   const company = await Company.findById(ctx.companyId).lean();
   const phone = normalizePhone(input.phone, company?.country ?? 'IN');
   if (!phone) throw new AppError('VALIDATION_ERROR', `Invalid phone number for ${input.name}`);
@@ -105,6 +105,15 @@ export async function createEmployee(ctx: Ctx, input: EmployeeInput, opts: { ski
   });
   await audit(ctx, { action: 'employee.create', entity: 'employee', entityId: e._id, after: e });
   await attachLogin(ctx, e, login);
+  // New staff get the app link on WhatsApp right away (not for bulk imports; the owner can invite later).
+  if (opts.invite && !login) {
+    try {
+      await (await import('../accounts/service.js')).inviteStaff(ctx, e._id, { auto: true });
+      e.invitedAt = new Date();
+    } catch {
+      /* invite is best effort; adding the staff member already worked */
+    }
+  }
   return e;
 }
 
@@ -130,10 +139,22 @@ async function assertPhoneCanBeStaff(ctx: Ctx, phone: string, name: string) {
 /** Give a waiting login its membership for this staff record right away. */
 async function attachLogin(ctx: Ctx, e: any, login: any) {
   if (!login) return;
-  if (await attachStaffMemberships(login)) {
+  // The owner is adding this person on purpose, so even someone who left earlier comes back.
+  if (await attachStaffMemberships(login, { force: [e._id] })) {
     if (!login.companyId) await activate(login, await Membership.findOne({ userId: login._id, companyId: ctx.companyId }));
     else await login.save();
     await audit(ctx, { action: 'employee.login.attach', entity: 'employee', entityId: e._id });
+    // Someone waiting on "Ask your employer to add you" hears about it straight away.
+    const company = await Company.findById(ctx.companyId).select('name').lean();
+    const { notifyEmployee } = await import('../notifications/service.js');
+    await notifyEmployee(ctx.companyId, e._id, {
+      template: 'staff_added',
+      title: `You've been added to ${company?.name ?? 'a business'}`,
+      titleHi: `आपको ${company?.name ?? 'एक बिज़नेस'} में जोड़ा गया है`,
+      body: 'Open StaffMint to check in.',
+      bodyHi: 'हाज़िरी लगाने के लिए StaffMint खोलें।',
+      data: { kind: 'staff_added' },
+    });
   }
 }
 
@@ -142,7 +163,7 @@ export async function bulkCreate(ctx: Ctx, list: EmployeeInput[]) {
   const skipped: { phone: string; reason: string }[] = [];
   for (const item of list) {
     try {
-      created.push(employeeView(await createEmployee(ctx, item)));
+      created.push(employeeView(await createEmployee(ctx, item, { invite: true })));
     } catch (e: any) {
       skipped.push({ phone: item.phone, reason: e?.message ?? 'failed' });
       if (e?.code === 'PLAN_LIMIT') break;
@@ -179,7 +200,7 @@ export async function updateEmployee(ctx: Ctx, id: string, patch: Partial<Employ
     if (waiting) newLogin = waiting;
     if (phone !== e.phone && e.userId) {
       // The old number loses access to this business only; that person's other businesses are untouched.
-      await deactivateStaffMemberships(ctx.companyId, [e._id]);
+      await deactivateStaffMemberships(ctx.companyId, [e._id], 'phone_changed');
       e.userId = null;
     }
     e.phone = phone;
@@ -238,7 +259,7 @@ export async function reactivateEmployee(ctx: Ctx, id: string) {
   await e.save();
   if (e.userId) {
     const user = await User.findOne({ _id: e.userId, deletedAt: null });
-    if (user) await attachStaffMemberships(user);
+    if (user) await attachStaffMemberships(user, { force: [e._id] });
   }
   await audit(ctx, { action: 'employee.reactivate', entity: 'employee', entityId: e._id, before, after: e });
   return e;
@@ -264,10 +285,8 @@ export async function setAppRole(ctx: Ctx, id: string, appRole: 'employee' | 'ma
   await e.save();
   const branchIds = appRole === 'manager' && e.branchId ? [e.branchId] : [];
   const ms = await Membership.find({ companyId: ctx.companyId, employeeId: e._id, role: { $in: ['employee', 'manager'] } }).select('_id').lean();
-  if (ms.length) {
-    await Membership.updateMany({ _id: { $in: ms.map((m) => m._id) } }, { role: appRole, branchIds });
-    await revokeMembershipSessions(ms.map((m) => m._id));
-  }
+  // Applies at once: open sessions are told their access changed and refresh into the new role.
+  if (ms.length) await Membership.updateMany({ _id: { $in: ms.map((m) => m._id) } }, { role: appRole, branchIds });
   if (e.userId) await User.updateOne({ _id: e.userId, companyId: ctx.companyId, employeeId: e._id }, { role: appRole, branchIds });
   await audit(ctx, { action: 'employee.role', entity: 'employee', entityId: e._id, before, after: { appRole } });
   return e;

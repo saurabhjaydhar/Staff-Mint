@@ -48,6 +48,9 @@ const companySchema = new Schema(
     },
     cancelledAt: { type: Date, default: null },
     exportAvailableUntil: { type: Date, default: null },
+    /** Owner closed the business; it can be restored until restoreUntil. deletedAt is set too so jobs skip it. */
+    closedAt: { type: Date, default: null },
+    restoreUntil: { type: Date, default: null },
     deletedAt: { type: Date, default: null },
   },
   { timestamps: true },
@@ -95,6 +98,10 @@ const membershipSchema = new Schema(
     deviceIds: { type: [String], default: [] },
     status: { type: String, enum: ['active', 'inactive'], default: 'active' },
     lastUsedAt: { type: Date, default: null },
+    /** Why and when access ended; shown once to the person ("Your access to X ended on …"). */
+    endedAt: { type: Date, default: null },
+    endedReason: { type: String, enum: ['removed', 'left', 'closed', 'phone_changed', 'import_rollback', null], default: null },
+    noticeDismissedAt: { type: Date, default: null },
   },
   { timestamps: true },
 );
@@ -109,6 +116,8 @@ const refreshTokenSchema = new Schema(
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     /** The business this device session is open in; null before any business exists. */
     membershipId: { type: Schema.Types.ObjectId, ref: 'Membership', default: null },
+    /** Role when issued, so a refresh can tell the app its access changed. */
+    role: { type: String, default: null },
     tokenHash: { type: String, required: true, unique: true },
     family: { type: String, required: true, index: true },
     deviceId: String,

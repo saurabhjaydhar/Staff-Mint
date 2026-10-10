@@ -62,8 +62,10 @@ describe('auth', () => {
     const emp = await addEmployee(owner, { phone, name: 'Suresh' });
     const s = await employeeSession(phone, 'device-A-1');
     expect(s.user).toMatchObject({ role: 'employee', employeeId: emp.id, companyId: owner.companyId });
+    // Another phone gets in, but with no business open: the staff account is offered as "locked to another phone".
     const other = await otpLogin(phone, 'device-B-1');
-    expect(other.res.body.error.code).toBe('DEVICE_NOT_BOUND');
+    expect(other).toMatchObject({ needsCompanySetup: true, activeMembershipId: null });
+    expect(other.blockedAccounts).toHaveLength(1);
     // Web login never binds/blocks
     const web = await otpLogin(phone, 'web-abc123');
     expect(web.res.status).toBe(200);

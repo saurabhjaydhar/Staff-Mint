@@ -181,3 +181,23 @@ const webhookEventSchema = new Schema(
   { timestamps: true },
 );
 export const WebhookEvent = model('WebhookEvent', webhookEventSchema);
+
+/** Staff asks to move their staff account to a new phone; the owner approves in one tap (F14 row 4). */
+const deviceRequestSchema = new Schema(
+  {
+    companyId: { type: Schema.Types.ObjectId, ref: 'Company', required: true },
+    membershipId: { type: Schema.Types.ObjectId, ref: 'Membership', required: true },
+    employeeId: { type: Schema.Types.ObjectId, ref: 'Employee', default: null },
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    deviceId: { type: String, required: true },
+    deviceName: { type: String, default: null },
+    status: { type: String, enum: ['pending', 'approved', 'rejected', 'cancelled'], default: 'pending' },
+    decidedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+    decidedAt: { type: Date, default: null },
+  },
+  { timestamps: true },
+);
+deviceRequestSchema.plugin(tenantPlugin);
+deviceRequestSchema.index({ companyId: 1, status: 1, createdAt: -1 });
+deviceRequestSchema.index({ membershipId: 1, status: 1 });
+export const DeviceRequest = model('DeviceRequest', deviceRequestSchema);

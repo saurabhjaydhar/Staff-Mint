@@ -561,6 +561,7 @@ export async function dashboardToday(ctx: Ctx) {
       leaveRequests,
       punchApprovals,
       faceEnrollments,
+      deviceRequests: await (await import('../accounts/service.js')).listDeviceRequests(ctx),
       flags: flagged.map((r) => ({ attendanceId: String(r._id), employeeName: (r.employeeId as any)?.name, date: r.date, flags: r.flags })),
     },
     plan: { code: plan.code, staffCount: await activeStaffCount(ctx.companyId), staffLimit: plan.staffLimit },

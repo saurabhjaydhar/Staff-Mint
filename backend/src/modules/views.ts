@@ -29,6 +29,9 @@ export const employeeView = (e: any, extra: Record<string, unknown> = {}) => ({
   consent: { location: !!e.consent?.location, at: e.consent?.at ?? null },
   face: { status: e.face?.status ?? 'none', enrolledAt: e.face?.enrolledAt ?? null, approvedAt: e.face?.approvedAt ?? null },
   hasDevice: !!extra.hasDevice,
+  /** Has this number opened StaffMint for this business yet; when the app invite was last sent. */
+  linked: !!e.userId,
+  invitedAt: e.invitedAt ?? null,
   language: e.language ?? 'hi',
   ...Object.fromEntries(Object.entries(extra).filter(([k]) => k !== 'hasDevice')),
 });

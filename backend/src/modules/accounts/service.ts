@@ -1,0 +1,233 @@
+import { Types } from 'mongoose';
+import { AppError, notFound } from '../../lib/errors.js';
+import type { Ctx, Role } from '../../lib/context.js';
+import { Company, DeviceRequest, Employee, Membership, User, type UserDoc } from '../../models/index.js';
+import { audit } from '../audit/service.js';
+import { getConfig } from '../config/service.js';
+import { attachStaffMemberships, deviceAllowed, endMemberships, isStaffMembership, revokeMembershipSessions } from '../auth/memberships.js';
+import { currentOrDefault, openSession } from '../auth/service.js';
+import { notifyEmployee, notifyOwners, notifyUser, sendWhatsApp } from '../notifications/service.js';
+import { assertEmployeeInScope, employeeScope } from '../employees/service.js';
+
+type Session = { deviceId: string; refreshToken?: string };
+
+async function loadUser(userId: Types.ObjectId | string): Promise<UserDoc> {
+  const user = await User.findOne({ _id: userId, deletedAt: null });
+  if (!user) throw new AppError('UNAUTHORIZED', 'User not found');
+  return user;
+}
+
+/** Audit context for an action a person takes on one of their own accounts. */
+const actorCtx = (user: UserDoc, companyId: Types.ObjectId, role: string): Ctx => ({
+  userId: user._id,
+  companyId,
+  role: role as Role,
+  employeeId: null,
+  branchIds: [],
+  actorName: user.name || user.phone,
+  channel: 'app',
+  language: (user.language as 'en' | 'hi') ?? 'hi',
+});
+
+// ---------------------------------------------------------------- notices
+
+/** "Your access to X ended" has been seen. */
+export async function dismissNotice(userId: Types.ObjectId | string, membershipId: string) {
+  await Membership.updateOne({ _id: membershipId, userId, status: 'inactive' }, { noticeDismissedAt: new Date() });
+}
+
+/** Businesses this person closed that can still be restored. */
+export async function closedBusinesses(userId: Types.ObjectId | string) {
+  const list = await Company.find({ ownerUserId: userId, closedAt: { $ne: null }, restoreUntil: { $gt: new Date() } }).select('name businessType closedAt restoreUntil').lean();
+  return list.map((c) => ({ companyId: String(c._id), companyName: c.name, businessType: c.businessType, closedAt: c.closedAt, restoreUntil: c.restoreUntil }));
+}
+
+// ------------------------------------------------------------------ leave
+
+/** Staff, manager or accountant stops working with a business. Owners close or (later) transfer instead. */
+export async function leaveAccount(userId: Types.ObjectId | string, membershipId: string, session: Session) {
+  const user = await loadUser(userId);
+  const m = await Membership.findOne({ _id: membershipId, userId: user._id, status: 'active' });
+  if (!m) throw notFound('Account');
+  if (m.role === 'owner') throw new AppError('CONFLICT', 'An owner cannot leave their own business. Close it from Settings instead.', { reason: 'owner_cannot_leave' });
+  await endMemberships({ _id: m._id }, 'left');
+  const who = user.name || user.phone;
+  await notifyOwners(m.companyId, {
+    template: 'member_left',
+    title: `${who} left your business on StaffMint`,
+    titleHi: `${who} ने StaffMint पर आपका बिज़नेस छोड़ दिया`,
+    body: m.role === 'ca' ? 'Their accountant access has ended.' : 'They can no longer check in. Mark their exit from the staff profile when you are ready.',
+    bodyHi: m.role === 'ca' ? 'उनकी अकाउंटेंट पहुँच ख़त्म हो गई है।' : 'वे अब हाज़िरी नहीं लगा सकते। स्टाफ़ प्रोफ़ाइल से उनकी छुट्टी दर्ज करें।',
+    data: { kind: 'member_left', ...(m.employeeId ? { employeeId: String(m.employeeId) } : {}) },
+  });
+  await audit(actorCtx(user, m.companyId, m.role), { action: 'account.leave', entity: 'membership', entityId: m._id, after: { role: m.role } });
+  return openSession(user, await currentOrDefault(user, session.deviceId, session.refreshToken), session.deviceId, session.refreshToken);
+}
+
+// ------------------------------------------------------- close / restore
+
+/** Owner closes a business: everyone's access ends, data is kept for the restore window. */
+export async function closeBusiness(ctx: Ctx, confirmName: string, session: Session) {
+  const company = await Company.findById(ctx.companyId);
+  if (!company || company.closedAt) throw notFound('Business');
+  if (String(company.ownerUserId) !== String(ctx.userId)) throw new AppError('FORBIDDEN', 'Only the main owner can close the business');
+  if (confirmName.trim().toLowerCase() !== company.name.trim().toLowerCase()) {
+    throw new AppError('VALIDATION_ERROR', 'Type the business name exactly to confirm', { field: 'confirmName' });
+  }
+  const days = await getConfig<number>('accounts.restoreDays');
+  const now = new Date();
+  // Tell everyone else first, while their accounts still point at this business.
+  const others = await Membership.find({ companyId: company._id, status: 'active', userId: { $ne: ctx.userId } }).select('userId').lean();
+  const users = others.length ? await User.find({ _id: { $in: others.map((m) => m.userId) } }).lean() : [];
+  for (const u of users) {
+    await notifyUser(company._id, u, {
+      template: 'business_closed',
+      title: `${company.name} has closed its StaffMint account`,
+      titleHi: `${company.name} ने अपना StaffMint खाता बंद कर दिया है`,
+      body: 'Your access to this business has ended.',
+      bodyHi: 'इस बिज़नेस तक आपकी पहुँच ख़त्म हो गई है।',
+      data: { kind: 'business_closed' },
+    });
+  }
+  try {
+    const { cancel } = await import('../billing/service.js');
+    await cancel(ctx);
+  } catch {
+    /* no paid subscription */
+  }
+  company.closedAt = now;
+  company.restoreUntil = new Date(now.getTime() + days * 86400_000);
+  company.deletedAt = now; // background jobs skip it
+  await company.save();
+  await endMemberships({ companyId: company._id }, 'closed');
+  await audit(ctx, { action: 'company.close', entity: 'company', entityId: company._id, after: { restoreUntil: company.restoreUntil } });
+  const user = await loadUser(ctx.userId!);
+  return openSession(user, await currentOrDefault(user, session.deviceId), session.deviceId, session.refreshToken);
+}
+
+/** Undo a close within the restore window: everyone who had access gets it back. */
+export async function restoreBusiness(userId: Types.ObjectId | string, companyId: string, session: Session) {
+  const user = await loadUser(userId);
+  const company = await Company.findOne({ _id: companyId, ownerUserId: user._id, closedAt: { $ne: null } });
+  if (!company) throw notFound('Business');
+  if (!company.restoreUntil || company.restoreUntil < new Date()) throw new AppError('CONFLICT', 'The restore window for this business has passed');
+  const closedAt = company.closedAt!;
+  company.closedAt = null;
+  company.restoreUntil = null;
+  company.deletedAt = null;
+  company.cancelledAt = null;
+  await company.save();
+  await Membership.updateMany(
+    { companyId: company._id, status: 'inactive', endedReason: 'closed', endedAt: { $gte: new Date(closedAt.getTime() - 60_000) } },
+    { status: 'active', endedAt: null, endedReason: null, noticeDismissedAt: null },
+  );
+  const owner = await Membership.findOne({ companyId: company._id, userId: user._id, status: 'active' });
+  await audit(actorCtx(user, company._id, 'owner'), { action: 'company.restore', entity: 'company', entityId: company._id });
+  return openSession(user, owner, session.deviceId, session.refreshToken);
+}
+
+// --------------------------------------------------------- device change
+
+const requestView = (r: any, name?: string | null) => ({
+  id: String(r._id),
+  employeeId: r.employeeId ? String(r.employeeId) : null,
+  employeeName: name ?? null,
+  deviceName: r.deviceName ?? null,
+  status: r.status,
+  createdAt: r.createdAt,
+});
+
+/** Staff whose account is locked to an old phone asks the owner to approve this one. */
+export async function requestDeviceChange(userId: Types.ObjectId | string, input: { membershipId: string; deviceId: string; deviceName?: string }) {
+  const user = await loadUser(userId);
+  const m = await Membership.findOne({ _id: input.membershipId, userId: user._id, status: 'active' });
+  if (!m || !isStaffMembership(m)) throw notFound('Staff account');
+  if (deviceAllowed(m, input.deviceId)) return { status: 'not_needed' as const };
+  await DeviceRequest.updateMany({ companyId: m.companyId, membershipId: m._id, status: 'pending' }, { status: 'cancelled' });
+  const r = await DeviceRequest.create({ companyId: m.companyId, membershipId: m._id, employeeId: m.employeeId, userId: user._id, deviceId: input.deviceId, deviceName: input.deviceName ?? null });
+  const emp = m.employeeId ? await Employee.findOne({ _id: m.employeeId, companyId: m.companyId }).select('name').lean() : null;
+  const who = emp?.name || user.name || user.phone;
+  await notifyOwners(m.companyId, {
+    template: 'device_request',
+    title: `${who} wants to use a new phone`,
+    titleHi: `${who} नया फ़ोन इस्तेमाल करना चाहते हैं`,
+    body: 'Approve it from Needs you so they can check in.',
+    bodyHi: '“आपके लिए” से मंज़ूरी दें ताकि वे हाज़िरी लगा सकें।',
+    data: { kind: 'device_request', requestId: String(r._id) },
+  });
+  await audit(actorCtx(user, m.companyId, m.role), { action: 'device.request', entity: 'employee', entityId: m.employeeId ?? m._id, after: { deviceName: input.deviceName ?? null } });
+  return { status: 'pending' as const, request: requestView(r, who) };
+}
+
+export async function listDeviceRequests(ctx: Ctx) {
+  const scope = await Employee.find(employeeScope(ctx)).select('_id name').lean();
+  const names = new Map(scope.map((e) => [String(e._id), e.name]));
+  const list = await DeviceRequest.find({ companyId: ctx.companyId, status: 'pending', employeeId: { $in: scope.map((e) => e._id) } }).sort({ createdAt: 1 }).lean();
+  return list.map((r) => requestView(r, names.get(String(r.employeeId))));
+}
+
+export async function decideDeviceRequest(ctx: Ctx, id: string, approve: boolean) {
+  const r = await DeviceRequest.findOne({ _id: id, companyId: ctx.companyId, status: 'pending' });
+  if (!r) throw notFound('Request');
+  const emp = await assertEmployeeInScope(ctx, r.employeeId!);
+  r.status = approve ? 'approved' : 'rejected';
+  r.decidedBy = ctx.userId;
+  r.decidedAt = new Date();
+  await r.save();
+  if (approve) {
+    await Membership.updateOne({ _id: r.membershipId, companyId: ctx.companyId }, { deviceIds: [r.deviceId] });
+    await revokeMembershipSessions([r.membershipId]); // the old phone leaves this staff account
+  }
+  await notifyEmployee(ctx.companyId, emp._id, {
+    template: approve ? 'device_approved' : 'device_rejected',
+    title: approve ? 'Your new phone is approved' : 'New phone not approved',
+    titleHi: approve ? 'आपका नया फ़ोन मंज़ूर हो गया' : 'नया फ़ोन मंज़ूर नहीं हुआ',
+    body: approve ? 'Open StaffMint on it to check in.' : 'Talk to your employer.',
+    bodyHi: approve ? 'हाज़िरी के लिए उस पर StaffMint खोलें।' : 'अपने मालिक से बात करें।',
+    data: { kind: approve ? 'device_approved' : 'device_rejected' },
+  });
+  await audit(ctx, { action: approve ? 'device.approve' : 'device.reject', entity: 'employee', entityId: emp._id, after: { deviceName: r.deviceName } });
+  return requestView(r, emp.name);
+}
+
+// ------------------------------------------------------------ accountants
+
+export async function listAccountants(ctx: Ctx) {
+  const ms = await Membership.find({ companyId: ctx.companyId, role: 'ca', status: 'active' }).sort({ createdAt: 1 }).lean();
+  const users = await User.find({ _id: { $in: ms.map((m) => m.userId) } }).select('name phone').lean();
+  const byId = new Map(users.map((u) => [String(u._id), u]));
+  return ms.map((m) => ({ id: String(m._id), name: byId.get(String(m.userId))?.name ?? '', phone: byId.get(String(m.userId))?.phone ?? '', addedAt: (m as any).createdAt }));
+}
+
+export async function removeAccountant(ctx: Ctx, membershipId: string) {
+  const m = await Membership.findOne({ _id: membershipId, companyId: ctx.companyId, role: 'ca', status: 'active' });
+  if (!m) throw notFound('Accountant');
+  await endMemberships({ _id: m._id }, 'removed');
+  await audit(ctx, { action: 'user.ca.remove', entity: 'membership', entityId: m._id });
+}
+
+// ---------------------------------------------------------------- invite
+
+const INVITE_GAP_MS = 10 * 60_000;
+
+/**
+ * WhatsApp the staff member their invite: business name, their number and the
+ * app link. Re-inviting also lets back in someone who had left.
+ */
+export async function inviteStaff(ctx: Ctx, employeeId: string | Types.ObjectId, opts: { auto?: boolean } = {}) {
+  const emp = await assertEmployeeInScope(ctx, employeeId);
+  if (emp.status !== 'active') throw new AppError('CONFLICT', 'Reactivate this staff member before inviting them');
+  if (!opts.auto && emp.invitedAt && Date.now() - emp.invitedAt.getTime() < INVITE_GAP_MS) {
+    throw new AppError('RATE_LIMITED', 'Invite already sent. You can send it again in a few minutes.');
+  }
+  const company = await Company.findById(ctx.companyId).select('name').lean();
+  const link = await getConfig<string>('app.downloadUrl', ctx.companyId);
+  await sendWhatsApp(ctx.companyId, emp.phone, { template: 'staff_invite', params: [emp.name, company?.name ?? '', emp.phone, link] }, { employeeId: emp._id, language: emp.language as 'en' | 'hi' });
+  emp.invitedAt = new Date();
+  await emp.save();
+  const login = await User.findOne({ phone: emp.phone, deletedAt: null });
+  if (login) await attachStaffMemberships(login, { force: [emp._id] });
+  if (!opts.auto) await audit(ctx, { action: 'employee.invite', entity: 'employee', entityId: emp._id });
+  return { invitedAt: emp.invitedAt };
+}
+

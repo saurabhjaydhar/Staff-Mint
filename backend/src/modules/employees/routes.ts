@@ -26,7 +26,8 @@ employeesRouter.get('/', requireRole('owner', 'manager', 'ca'), async (req, res)
 });
 
 employeesRouter.post('/', requireRole('owner', 'manager'), async (req, res) => {
-  res.status(201).json({ data: employeeView(await svc.createEmployee(ctxOf(req), body(req, employeeSchema))) });
+  const { invite, ...input } = body(req, employeeSchema.extend({ invite: z.boolean().default(true) }));
+  res.status(201).json({ data: employeeView(await svc.createEmployee(ctxOf(req), input, { invite })) });
 });
 
 employeesRouter.post('/bulk', requireRole('owner', 'manager'), async (req, res) => {

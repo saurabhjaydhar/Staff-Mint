@@ -52,6 +52,11 @@ export async function sendWhatsApp(companyId: Types.ObjectId, to: string, wa: No
 }
 
 /** Owner alerts: push first, WhatsApp only when the owner turned it on (PRD §11). */
+/** Push + in-app message to one person about one business (account changes, approvals). */
+export async function notifyUser(companyId: Types.ObjectId, user: { _id: Types.ObjectId; language?: string | null; pushTokens?: unknown }, msg: NotifyMessage) {
+  await pushToUser(companyId, user, msg);
+}
+
 export async function notifyOwners(companyId: Types.ObjectId, msg: NotifyMessage, opts: { includeManagers?: boolean } = {}) {
   const company = await Company.findById(companyId).lean();
   const roles: ('owner' | 'manager')[] = opts.includeManagers === false ? ['owner'] : ['owner', 'manager'];

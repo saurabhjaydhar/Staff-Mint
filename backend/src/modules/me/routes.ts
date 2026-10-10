@@ -6,7 +6,8 @@ import { authenticate, ctxOf, requireRole } from '../../middleware/auth.js';
 import { AppError } from '../../lib/errors.js';
 import { Company, Employee, User } from '../../models/index.js';
 import { userView } from '../auth/service.js';
-import { activeMemberships, membershipViews } from '../auth/memberships.js';
+import { activeMemberships, endedNotices, membershipViews } from '../auth/memberships.js';
+import { closedBusinesses } from '../accounts/service.js';
 import { companyView } from '../company/service.js';
 import { employeeView } from '../views.js';
 import { audit } from '../audit/service.js';
@@ -26,7 +27,8 @@ meRouter.get('/', async (req, res) => {
   const a = req.auth!;
   const company = a.companyId ? await Company.findById(a.companyId).lean() : null;
   const employee = a.employeeId ? await Employee.findOne({ _id: a.employeeId, companyId: a.companyId }).lean() : null;
-  const memberships = await membershipViews(await activeMemberships(new Types.ObjectId(a.userId)));
+  const uid = new Types.ObjectId(a.userId);
+  const memberships = await membershipViews(await activeMemberships(uid), a.deviceId);
   const activeMembershipId = a.membershipId ?? (a.companyId ? memberships.find((m) => m.companyId === a.companyId)?.id ?? null : null);
   res.json({
     data: {
@@ -35,6 +37,12 @@ meRouter.get('/', async (req, res) => {
       employee: employee ? employeeView(employee, { hasDevice: true }) : null,
       activeMembershipId,
       memberships,
+      /** Staff accounts locked to another phone (offer "Request device change"). */
+      blockedAccounts: memberships.filter((m) => m.lockedToOtherPhone),
+      /** "Your access to X ended on …" — shown until dismissed. */
+      endedNotices: await endedNotices(uid),
+      /** Businesses this person closed that can still be restored. */
+      closedBusinesses: await closedBusinesses(uid),
     },
   });
 });

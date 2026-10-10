@@ -207,6 +207,24 @@ Fields: `name, phone, ratePaise, wageType, designation, joiningDate, branch, adv
 - The reference photo is deleted when the staff member withdraws consent, when the owner resets it, and when the staff member is deactivated.
 - `FACE_PROVIDER=mock` refuses to decide in production, so a missing key cannot approve anyone.
 
+### Accounts: never stuck (F14 Phase 2)
+| Method | Path | Body | Returns |
+|---|---|---|---|
+| POST | /me/accounts/:membershipId/leave | `{deviceId, refreshToken?}` | `Session` on the next account (or none). Staff/manager/CA only; owners get 409 `owner_cannot_leave` |
+| POST | /me/notices/:membershipId/dismiss | — | `{ok}` hides an "access ended" notice |
+| POST | /me/device-requests | `{membershipId, deviceId, deviceName?}` | 201 `{status:'pending', request}` (or `{status:'not_needed'}`); owner/managers are notified |
+| GET | /device-requests | — | pending requests in scope (owner/manager) |
+| POST | /device-requests/:id/approve · /reject | — | approve binds the new phone and ends the old phone's session in that account |
+| POST | /company/close | `{confirmName, deviceId, refreshToken?}` (main owner) | `Session` on the owner's next account. Everyone's access ends (reason `closed`), paid plan cancelled, restorable for `accounts.restoreDays` (30) |
+| POST | /me/businesses/:companyId/restore | `{deviceId, refreshToken?}` | `Session` in the restored business; everyone who had access gets it back |
+| GET | /company/accountants · DELETE /company/accountants/:membershipId | — | list / remove accountants (owner) |
+| POST | /employees/:id/invite | — | `{invitedAt}`; WhatsApp `staff_invite` with the app link; at most once per 10 min. `POST /employees` sends it automatically unless `invite:false` |
+
+- **Soft landing:** when an account ends or its role changes, the next request with that token gets `401 TOKEN_EXPIRED` with `details.reason:'account_changed'`. Apps refresh as usual; `POST /auth/refresh` then returns `accountChange: {kind:'ended'|'role_changed', reason, companyName, role, activeMembershipId}` and the new tokens open the next account (or none). Nobody is logged out of their other businesses.
+- `GET /me` adds `blockedAccounts` (staff accounts locked to another phone), `endedNotices` (`{id, companyName, endedAt, endedReason}`, last 30 days) and `closedBusinesses` (restorable). Login with only phone-locked staff accounts succeeds with no business open and `blockedAccounts` filled, instead of `DEVICE_NOT_BOUND`.
+- `GET /dashboard/today` → `needsAction.deviceRequests`. Employee views add `linked` and `invitedAt`.
+- Someone who left stays out until the owner re-invites or reactivates them. Staff of a closed business are not re-attached at login.
+
 ### Staff logins and accounts
 - Each person (phone) is one user; each business they can open is a membership. Every active staff record with their number becomes a staff membership: at OTP login, on `POST /auth/refresh` (the app's "Check again" when they had no business), and as soon as the owner adds the staff or edits the staff phone.
 - `POST /employees` and a phone change in `PATCH /employees/:id` return 409 with `details.reason` only for this business's own people:

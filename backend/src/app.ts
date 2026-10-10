@@ -28,6 +28,7 @@ import { messagingWebhookRouter } from './modules/messaging/routes.js';
 import { dashboardRouter } from './modules/dashboard/routes.js';
 import { adminRouter } from './modules/admin/routes.js';
 import { filesRouter } from './modules/files/routes.js';
+import { accountsRouter } from './modules/accounts/routes.js';
 import { enabledFlags } from './modules/config/service.js';
 import { providerName } from './providers/registry.js';
 
@@ -62,6 +63,7 @@ export function createApp() {
   api.get('/config/public', async (_req, res) => {
     res.json({ data: { minAppVersion: env.MIN_APP_VERSION, features: await enabledFlags(), supportWhatsApp: env.SUPPORT_WHATSAPP, otpProvider: providerName('otp'), environment: env.NODE_ENV } });
   });
+  api.use('/', accountsRouter);
   api.use('/', faceRouter);
   api.use('/', profileRouter);
   api.use('/me', meRouter);
