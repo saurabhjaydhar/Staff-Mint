@@ -1,5 +1,5 @@
 # StaffMint — Product Requirements Document (A to Z)
-**Version:** 1.0 · **Owner:** Saurabh / Scaleroot · **Date:** 9 Oct 2026 · **Status:** Approved for MVP build
+**Version:** 1.0 · **Owner:** Saurabh / Scaleroot · **Date:** 9 Oct 2026 (updated 10 Oct 2026: F14 accounts) · **Status:** Approved for MVP build
 **Product:** AI-powered staff attendance & salary app for small businesses (India-first, global-ready)
 
 ---
@@ -13,7 +13,7 @@
 6. Positioning & differentiators
 7. Goals, non-goals & success metrics
 8. Product principles
-9. MVP feature requirements (F1–F13)
+9. MVP feature requirements (F1–F14)
 10. AI assistant "Mint" — use cases
 11. WhatsApp strategy
 12. UX — screens & flows
@@ -139,7 +139,7 @@ PF/ESI/PT/TDS filing, biometric devices, live GPS tracking, performance/OKRs, re
 5. **Customer owns the data.** Free export, always.
 6. **Swap anything external.** Every vendor sits behind an adapter.
 
-## 9. MVP feature requirements (F1–F13)
+## 9. MVP feature requirements (F1–F14)
 
 ### F1. Signup & company setup
 - Owner signs up with phone OTP (WhatsApp or SMS).
@@ -166,7 +166,7 @@ PF/ESI/PT/TDS filing, biometric devices, live GPS tracking, performance/OKRs, re
 **Acceptance:** a 30-row Excel with non-standard headers imports with ≤ 3 owner corrections; no existing data overwritten without confirmation.
 
 ### F3. Mobile app — one app, two modes (Flutter, Android first)
-**App model:** single app; role decided at login (Owner / Manager / Employee). Mirrors SalaryBox's mobile-first approach so owners never need a computer.
+**App model:** single app; role decided by the account opened at login (Owner / Manager / Employee). One number can hold several accounts — see F14. Mirrors SalaryBox's mobile-first approach so owners never need a computer.
 
 **F3a. Owner mode (primary admin surface)**
 | Tab | Contents |
@@ -264,6 +264,68 @@ Only for jobs easier on a big screen: Excel import, bulk edits, report downloads
 - Audit log (who/what/before/after/channel) visible to owner.
 - One-click full export (Excel + PDFs).
 
+### F14. Accounts — one number, many businesses (never stuck)
+**Why:** In small-business India one phone often wears several hats: a pharmacist owns his shop, works evenings at his cousin's clinic, and his CA handles 40 shops. SalaryBox lets an owner manage several companies; StaffMint goes further and lets **any** role hold several businesses on one number. The second goal is just as important: **no one should ever hit a dead end** — a wrong tap, a lost phone, a removed job or an owner who changed numbers must always have a way forward that does not need our support team.
+
+**Model**
+- **Person = phone number** (one `user`). **Account = membership** in one business with a role: owner, manager, staff (employee) or accountant (CA).
+- One person can hold many memberships; at most one per business. Owner/CA access is never downgraded to staff by an import or "add staff".
+- Each **device** is open in exactly one business at a time; two devices of the same person can be in different businesses.
+- Every business keeps its own data, plan, rules, staff phone binding and audit log. Switching never mixes data.
+- Limits (dynamic config): up to 10 owned businesses per person by default; no limit on staff/CA accounts.
+
+**F14a. Choosing and switching** — *Done (PR #10)*
+- After OTP, a number with more than one account sees an **account chooser**: business name, type icon, role badge, "Open now" on the last used. One account → straight in.
+- Switch any time: mobile **Profile → Your accounts**; web **sidebar → Switch business**. Web lists staff accounts as "use the mobile app".
+- Before switching, unsent offline check-ins are sent; if any are left, switching is refused with a clear message (they must land in the right business).
+- After a switch every screen reloads for the new business; Mint starts a fresh conversation.
+
+**F14b. Own business from any account** — *Done (PR #10)*
+- "Start my own business" (or "Add another business" for owners) from the chooser, Profile or web. Same 4-step setup; the device moves into the new business; other accounts are untouched.
+- A number already used elsewhere can be added as staff or accountant; only this business's own owner/CA number is refused.
+
+**F14c. Per-business control** — *Done (PR #10)*
+- Staff phone binding, deactivation, reactivation, device reset, manager promotion, import rollback and staff phone change affect **only that business's** account.
+- Owner alerts reach every owner/manager of the business; push messages carry the business so a tap can open it (F14e).
+
+**F14d. "Never stuck" scenarios**
+| # | Situation | What the person sees | Way forward | Status |
+|---|---|---|---|---|
+| 1 | Staff logs in before the owner added them | "Ask your employer to add you" with their number | "Check again"; app re-checks on open; **push/SMS "You've been added to Gupta Sweets"** when added | Partly done — notify + auto re-check: Phase 2 |
+| 2 | Staff tapped "I own a business" and created a business by mistake | Owner home of the accidental business | Switch to the staff account; **Close business** (owner) removes the mistake | Switch done; Close: Phase 2 |
+| 3 | Owner tapped "I'm staff" by mistake | Waiting screen | Back → "I own a business" | Done |
+| 4 | Staff changed or lost phone | "Linked to another phone" | **"Request device change"** button → owner gets a one-tap approve in Needs-you + push/WhatsApp | Phase 2 (today only owner-initiated reset) |
+| 5 | Staff removed from their only business | Lands on "owner or staff?" with no context | **"Your access to Gupta Sweets ended on 3 Oct"** notice, then options: wait for another employer, start own business, log out | Phase 2 |
+| 6 | Access to the open business is removed while the app is in use | Logged out completely | **Soft landing:** move to the next account with a notice; log out only when none is left | Phase 2 |
+| 7 | Person wants to stop working with a business (staff/manager/CA) | No option | **Leave this business** in Profile → confirm → owner notified; staff record stays with the owner for payroll | Phase 2 |
+| 8 | Owner removes an accountant | No list exists | **Settings → Accountants**: list, add, remove | Phase 2 |
+| 9 | Owner sold the shop / family member takes over | No option | **Transfer ownership** to another number (OTP confirm by both); old owner can stay as manager or leave | Phase 3 |
+| 10 | Two partners run one shop | Only one owner | **Co-owner**: invite a second owner by phone; same rights except Close business and Transfer | Phase 3 |
+| 11 | Owner lost their number | Cannot log in; business locked | Co-owner changes it; otherwise **recovery**: email OTP (if on profile) + support check of business proof; audited | Phase 3 |
+| 12 | Old number recycled by the telecom to a new person | New person could see old businesses | **Recycled-number guard:** number unused > 6 months + new device → "Is this you, R*** S***?"; "No" detaches all accounts and alerts the owners | Phase 3 |
+| 13 | Notification for business B arrives while the app is in A | Opens A | **Tap opens B** (asks if offline check-ins are pending) | Phase 2 |
+| 14 | Staff at two shops opens the app to check in | May be in the wrong shop | **Business chip** on every home header ("Gupta Sweets ▾") for a one-tap switch | Phase 2 |
+| 15 | CA with many clients | Long list | **Search + pin** in the chooser once there are more than 6 accounts | Phase 4 |
+| 16 | WhatsApp command from a multi-business owner | Uses last opened business | **Mint asks "Which business?"** when unclear; "switch to Verma Traders" command | Phase 4 |
+| 17 | Person wants to delete everything (DPDP right to erasure) | No option | **Delete my account**: export first; sole owners must transfer or close each business; payroll records kept as required by law | Phase 3 |
+| 18 | Owner wants to stop using StaffMint for one business | No option | **Close business**: export, 30-day restore window, all accounts of that business end and members are told | Phase 2 |
+| 19 | Owner adds staff who never installed the app | Staff doesn't know | **Invite** by WhatsApp/SMS with app link and their number when staff is added (resend from staff profile) | Phase 2 |
+| 20 | Hit the owned-business limit | Error | Message with support contact; limit is server config | Done |
+
+**Build phases**
+| Phase | Scope | Est. |
+|---|---|---|
+| 1 ✅ | Memberships, chooser, switching (app + web), own business from any account, per-business binding/removal (F14a–c) | Done |
+| 2 | Never-stuck basics: rows 1, 2/18, 4, 5, 6, 7, 8, 13, 14, 19 | ~2 weeks |
+| 3 | Shared ownership & recovery: rows 9, 10, 11, 12, 17 | ~2 weeks |
+| 4 | Scale: rows 15, 16; one bill for several businesses (group billing); CA portal (V2 backlog) | V2 |
+
+**Acceptance**
+- A number with an owner, a staff and a CA account can open each in ≤ 2 taps from anywhere in the app, and data never leaks between them (cross-tenant tests).
+- Every row in F14d has a visible way forward on screen; no situation requires calling support except row 11 without email or co-owner.
+- Removing a person from one business never affects their other accounts or logs them out of those.
+- Every account change (switch, leave, close, transfer, recovery, device change) is in the audit log of the business it touches.
+
 ## 10. AI assistant "Mint" — use cases (ranked)
 **Design rule:** the LLM only extracts intent + entities; backend tools execute; every write needs confirmation; ambiguous names → buttons; low confidence → ask.
 
@@ -326,6 +388,7 @@ WhatsApp is a **companion channel**, not the main interface.
 2. Daily: notification digest → open Home → approve leave → done.
 3. Month end: "Salary ready" → preview → fix flags → approve → payslips sent.
 4. Switching: import file → review flagged rows → import history → parallel-run month.
+5. Many businesses: OTP → account chooser → open one → switch from Profile/sidebar → "Start my own business" from any account (F14).
 
 
 ## 13. Non-functional requirements
@@ -406,7 +469,8 @@ All tenant collections carry `companyId`, `createdAt`, `updatedAt`, `deletedAt?`
 | Collection | Key fields |
 |---|---|
 | companies | name, ownerUserId, country, currency, timezone, settings{graceMinutes, halfDayHours, monthDivisor, language}, plan |
-| users | phone (unique), role (owner/manager/employee/ca), employeeId, deviceIds |
+| users | phone (unique), name, language, email?, photoKey — the person; role/companyId mirror the last opened account for old clients |
+| memberships | userId, companyId (unique together), role (owner/manager/employee/ca), employeeId, branchIds, deviceIds (staff phone binding per business), status, lastUsedAt — one per business a person can open |
 | branches | name, geo point, radiusM, shiftId |
 | employees | name, phone, branchId, wageType, ratePaise, shift, status, consent{location} |
 | shifts | start, end, graceMinutes, weeklyOff |
@@ -422,10 +486,11 @@ All tenant collections carry `companyId`, `createdAt`, `updatedAt`, `deletedAt?`
 | assistantSessions | pending AI confirmations |
 | auditLogs | actorId, channel, action, entity, before, after, at (append-only) |
 
-## 18. API design (v1, JWT bearer, companyId from token)
+## 18. API design (v1, JWT bearer, companyId from the token's account)
 | Method | Path | Role |
 |---|---|---|
 | POST | /auth/otp/request · /auth/otp/verify · /auth/refresh | public/any |
+| POST | /auth/switch (open another account on this device) · /company (first or another business) | any signed-in person |
 | GET/POST/PATCH | /employees(/:id) · POST /employees/import | owner/manager |
 | POST | /attendance/check-in · /check-out · /sync | employee |
 | GET/PATCH | /attendance · /attendance/:id | scoped |
@@ -443,7 +508,8 @@ All tenant collections carry `companyId`, `createdAt`, `updatedAt`, `deletedAt?`
 | Area | Requirement |
 |---|---|
 | Tenant isolation | companyId injected server-side; cross-tenant tests |
-| RBAC | owner / manager (branch scope) / employee (own data) / CA (read reports) |
+| RBAC | owner / manager (branch scope) / employee (own data) / CA (read reports) — per account (membership); one person can hold different roles in different businesses |
+| Accounts | access token names the account; removed access stops at the next request; recycled-number guard (F14 row 12); account changes audited per business |
 | Anti-tamper | server time authoritative; device-time delta check; mock-location/root flags; device binding; audited overrides |
 | Location privacy | capture only at punch; consent screen; retention policy (default 12 months) |
 | Files | private bucket; short-lived signed URLs; selfie auto-purge (default 90 days) |
@@ -549,6 +615,7 @@ Annual = 10× monthly. Price-lock for 24 months. Free export always. Cost per co
 4. WhatsApp BSP for launch?
 5. When to bring PF/ESI into scope?
 6. Confirm StaffMint domain + trademark.
+7. Accounts (F14): default limit of owned businesses (10?) · can former staff still see their old payslips after removal? · co-owner rights on billing · recovery proof we accept when an owner loses their number.
 
 ## 29. Backlog
 **V2:** photo/voice import · PF/ESI/PT · overtime · multi-shift & branches · QR/kiosk · face match/liveness · full & final · bank CSV · CA portal · regional languages · edit-salary via Mint · iOS app.
@@ -558,7 +625,9 @@ Annual = 10× monthly. Price-lock for 24 months. Free export always. Cost per co
 ## 30. Glossary
 | Term | Meaning |
 |---|---|
-| Owner mode / Employee mode | Two experiences in the same app, chosen by role at login |
+| Owner mode / Employee mode | Two experiences in the same app, chosen by the role of the account opened |
+| Account (membership) | One person's access to one business with one role; a number can hold several |
+| Account chooser | Screen after login listing every business the number can open |
 | Mint | StaffMint's AI assistant |
 | Paise | ₹1 = 100 paise; all money stored as integers |
 | Parallel run | First month: compare our salary with the old app's, line by line |
