@@ -196,6 +196,7 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
                 ('selfieRequired', s.selfieRequired),
                 ('roundToRupee', s.roundToRupee),
                 ('whatsappAlerts', s.whatsappAlerts),
+                ('exStaffPayslips', s.exStaffPayslips),
               ])
                 SwitchListTile(value: _settings[key] == true, title: Text(label), onChanged: (v) => _set(key, v)),
             ],
@@ -226,6 +227,14 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
                 title: Text(s.holidays),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () => context.push(Routes.ownerHolidays),
+              ),
+              ListTile(
+                key: const Key('settingsOwners'),
+                leading: const Icon(Icons.groups_rounded),
+                title: Text(s.ownersBi.text),
+                subtitle: Text(s.ownersHint),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => context.push(Routes.ownerOwners),
               ),
               ListTile(
                 key: const Key('settingsAccountants'),

@@ -50,3 +50,18 @@ adminRouter.put('/configs/:key', async (req, res) => {
   const b = body(req, z.object({ value: z.unknown(), companyId: z.string().nullable().optional() }));
   res.json({ data: await setConfig(String(req.params.key), b.value, b.companyId ?? null) });
 });
+
+// Support recovery for a lost number (PRD F14 row 11): review proofs, then approve (7-day hold) or reject.
+adminRouter.get('/recovery-requests', async (req, res) => {
+  const { adminListRecoveries } = await import('../accounts/identity.js');
+  res.json({ data: await adminListRecoveries(typeof req.query.status === 'string' ? req.query.status : undefined) });
+});
+adminRouter.post('/recovery-requests/:id/approve', async (req, res) => {
+  const { adminApproveRecovery } = await import('../accounts/identity.js');
+  res.json({ data: await adminApproveRecovery(String(req.params.id)) });
+});
+adminRouter.post('/recovery-requests/:id/reject', async (req, res) => {
+  const b = body(req, z.object({ note: z.string().max(500).optional() }));
+  const { adminRejectRecovery } = await import('../accounts/identity.js');
+  res.json({ data: await adminRejectRecovery(String(req.params.id), b.note) });
+});

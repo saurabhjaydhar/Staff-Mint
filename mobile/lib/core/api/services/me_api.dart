@@ -12,6 +12,8 @@ class MeResponse {
     this.blockedAccounts = const [],
     this.endedNotices = const [],
     this.closedBusinesses = const [],
+    this.pendingTransfers = const [],
+    this.recoveryHolds = const [],
   });
   final User user;
   final Company? company;
@@ -21,6 +23,8 @@ class MeResponse {
   final List<Membership> blockedAccounts;
   final List<EndedNotice> endedNotices;
   final List<ClosedBusiness> closedBusinesses;
+  final List<TransferOffer> pendingTransfers;
+  final List<RecoveryHold> recoveryHolds;
 
   factory MeResponse.fromJson(Json j) => MeResponse(
     user: User.fromJson(asMap(j['user'])),
@@ -31,6 +35,8 @@ class MeResponse {
     blockedAccounts: asList(j['blockedAccounts'], Membership.fromJson),
     endedNotices: asList(j['endedNotices'], EndedNotice.fromJson),
     closedBusinesses: asList(j['closedBusinesses'], ClosedBusiness.fromJson),
+    pendingTransfers: asList(j['pendingTransfers'], TransferOffer.fromJson),
+    recoveryHolds: asList(j['recoveryHolds'], RecoveryHold.fromJson),
   );
 }
 

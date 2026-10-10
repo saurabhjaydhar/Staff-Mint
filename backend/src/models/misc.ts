@@ -201,3 +201,50 @@ deviceRequestSchema.plugin(tenantPlugin);
 deviceRequestSchema.index({ companyId: 1, status: 1, createdAt: -1 });
 deviceRequestSchema.index({ membershipId: 1, status: 1 });
 export const DeviceRequest = model('DeviceRequest', deviceRequestSchema);
+
+/**
+ * Main ownership moving to another number: a sale/handover by the main owner,
+ * or a co-owner recovering a business whose owner lost their number (F14 rows 9, 11).
+ * The receiving number accepts after logging in with its own OTP.
+ */
+const ownershipTransferSchema = new Schema(
+  {
+    companyId: { type: Schema.Types.ObjectId, ref: 'Company', required: true, index: true },
+    kind: { type: String, enum: ['transfer', 'recovery'], default: 'transfer' },
+    fromUserId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    toPhone: { type: String, required: true, index: true },
+    /** What the previous main owner becomes: co-owner, or out of the business. */
+    keepAs: { type: String, enum: ['co_owner', 'leave'], default: 'co_owner' },
+    initiatedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    status: { type: String, enum: ['pending', 'accepted', 'declined', 'cancelled'], default: 'pending' },
+    expiresAt: { type: Date, required: true },
+    decidedAt: { type: Date, default: null },
+  },
+  { timestamps: true },
+);
+export const OwnershipTransfer = model('OwnershipTransfer', ownershipTransferSchema);
+
+/**
+ * Support recovery for someone who lost their number with no co-owner or email (F14 row 11):
+ * 2 of 3 proofs, support approval, then a 7-day hold anyone close to the business can stop.
+ */
+const recoveryRequestSchema = new Schema(
+  {
+    requesterUserId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    oldUserId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    oldPhone: { type: String, required: true },
+    businessName: { type: String, required: true },
+    gstin: { type: String, default: null },
+    paymentTxnId: { type: String, default: null },
+    selfieVideoKey: { type: String, default: null },
+    /** Businesses the old number owns; their managers/CA are told and can stop the hold. */
+    companyIds: [{ type: Schema.Types.ObjectId, ref: 'Company' }],
+    status: { type: String, enum: ['submitted', 'hold', 'completed', 'rejected', 'stopped'], default: 'submitted', index: true },
+    holdUntil: { type: Date, default: null },
+    note: { type: String, default: null },
+    stoppedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+    decidedAt: { type: Date, default: null },
+  },
+  { timestamps: true },
+);
+export const RecoveryRequest = model('RecoveryRequest', recoveryRequestSchema);

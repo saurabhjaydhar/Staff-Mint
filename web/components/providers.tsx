@@ -114,6 +114,9 @@ interface AuthCtx {
   closeBusiness: (confirmName: string) => Promise<MeResult | null>;
   restoreBusiness: (companyId: string) => Promise<MeResult | null>;
   dismissNotice: (membershipId: string) => Promise<void>;
+  /** Become main owner (accept an ownership offer) / recover an account by email. */
+  acceptTransfer: (transferId: string) => Promise<MeResult | null>;
+  recoverByEmail: (email: string, code: string) => Promise<MeResult | null>;
   logout: () => Promise<void>;
 }
 const AuthContext = createContext<AuthCtx | null>(null);
@@ -201,6 +204,8 @@ function AuthProvider({ children }: { children: ReactNode }) {
   const leaveAccount = useCallback((membershipId: string) => sessionAction(`/me/accounts/${membershipId}/leave`), [sessionAction]);
   const closeBusiness = useCallback((confirmName: string) => sessionAction("/company/close", { confirmName }), [sessionAction]);
   const restoreBusiness = useCallback((companyId: string) => sessionAction(`/me/businesses/${companyId}/restore`), [sessionAction]);
+  const acceptTransfer = useCallback((id: string) => sessionAction(`/me/transfers/${id}/accept`), [sessionAction]);
+  const recoverByEmail = useCallback((email: string, code: string) => sessionAction("/me/recovery/email/verify", { email, code }), [sessionAction]);
   const dismissNotice = useCallback(
     async (membershipId: string) => {
       setMe((m) => (m ? { ...m, endedNotices: (m.endedNotices ?? []).filter((n) => n.id !== membershipId) } : m));
@@ -225,8 +230,8 @@ function AuthProvider({ children }: { children: ReactNode }) {
   }, [router]);
 
   const value = useMemo<AuthCtx>(
-    () => ({ status, me, error, signIn, refreshMe, switchAccount, leaveAccount, closeBusiness, restoreBusiness, dismissNotice, logout }),
-    [status, me, error, signIn, refreshMe, switchAccount, leaveAccount, closeBusiness, restoreBusiness, dismissNotice, logout],
+    () => ({ status, me, error, signIn, refreshMe, switchAccount, leaveAccount, closeBusiness, restoreBusiness, dismissNotice, acceptTransfer, recoverByEmail, logout }),
+    [status, me, error, signIn, refreshMe, switchAccount, leaveAccount, closeBusiness, restoreBusiness, dismissNotice, acceptTransfer, recoverByEmail, logout],
   );
   return (
     <AuthContext.Provider value={value}>

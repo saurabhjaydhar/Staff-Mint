@@ -64,4 +64,106 @@ class AccountsApi {
 
   Future<DateTime?> invite(String employeeId) async =>
       asDateTimeOrNull(asMap(await _c.post('/employees/$employeeId/invite'))['invitedAt']);
+
+  // ---------------------------------------------------------------- Phase 3
+
+  /// "Is this you?" answer after a paused login (public endpoint).
+  Future<AuthResult> answerIdentity(String token, {required bool isMe}) async => AuthResult.fromJson(
+    asMap(await _c.post('/auth/identity/${isMe ? 'confirm' : 'reject'}', body: {'token': token}, auth: false)),
+  );
+
+  Future<List<OwnerItem>> owners() async => asList(await _c.get('/company/owners'), OwnerItem.fromJson);
+
+  Future<List<OwnerItem>> addOwner({
+    required String phone,
+    required String name,
+    bool canManageBilling = false,
+  }) async => asList(
+    await _c.post('/company/owners', body: {'phone': phone, 'name': name, 'canManageBilling': canManageBilling}),
+    OwnerItem.fromJson,
+  );
+
+  Future<List<OwnerItem>> setOwnerBilling(String id, bool allowed) async =>
+      asList(await _c.patch('/company/owners/$id', body: {'canManageBilling': allowed}), OwnerItem.fromJson);
+
+  Future<List<OwnerItem>> removeOwner(String id) async =>
+      asList(await _c.delete('/company/owners/$id'), OwnerItem.fromJson);
+
+  Future<TransferOffer> startTransfer({required String phone, required String keepAs, required String code}) async =>
+      TransferOffer.fromJson(
+        asMap(await _c.post('/company/transfer', body: {'phone': phone, 'keepAs': keepAs, 'code': code})),
+      );
+
+  Future<TransferOffer?> currentTransfer() async {
+    final d = await _c.get('/company/transfer');
+    return d is Map ? TransferOffer.fromJson(asMap(d)) : null;
+  }
+
+  Future<void> cancelTransfer() async => _c.delete('/company/transfer');
+
+  Future<TransferOffer> startOwnerRecovery(String newPhone) async =>
+      TransferOffer.fromJson(asMap(await _c.post('/company/owner-recovery', body: {'newPhone': newPhone})));
+
+  /// Accept returns a session as main owner; decline returns null.
+  Future<AuthResult?> decideTransfer(
+    String id, {
+    required bool accept,
+    required String deviceId,
+    String? refreshToken,
+  }) async {
+    final d = await _c.post(
+      '/me/transfers/$id/${accept ? 'accept' : 'decline'}',
+      body: {'deviceId': deviceId, 'refreshToken': ?refreshToken},
+    );
+    return d is Map ? AuthResult.fromJson(asMap(d)) : null;
+  }
+
+  /// Returns the test code when the email provider is a mock.
+  Future<String?> requestEmailRecovery(String email) async =>
+      asStringOrNull(asMap(await _c.post('/me/recovery/email', body: {'email': email}))['devCode']);
+
+  Future<AuthResult> verifyEmailRecovery({
+    required String email,
+    required String code,
+    required String deviceId,
+    String? refreshToken,
+  }) async => AuthResult.fromJson(
+    asMap(
+      await _c.post(
+        '/me/recovery/email/verify',
+        body: {'email': email, 'code': code, 'deviceId': deviceId, 'refreshToken': ?refreshToken},
+      ),
+    ),
+  );
+
+  Future<RecoveryHold> submitRecovery({
+    required String oldPhone,
+    required String businessName,
+    String? gstin,
+    String? paymentTxnId,
+    String? selfieVideoBase64,
+  }) async => RecoveryHold.fromJson(
+    asMap(
+      await _c.post(
+        '/me/recovery-requests',
+        body: {
+          'oldPhone': oldPhone,
+          'businessName': businessName,
+          'gstin': ?gstin,
+          'paymentTxnId': ?paymentTxnId,
+          'selfieVideoBase64': ?selfieVideoBase64,
+        },
+      ),
+    ),
+  );
+
+  Future<List<RecoveryHold>> myRecoveries() async =>
+      asList(await _c.get('/me/recovery-requests'), RecoveryHold.fromJson);
+
+  Future<void> stopRecovery(String id) async => _c.post('/me/recovery-holds/$id/stop');
+
+  Future<void> deleteAccount(String code) async => _c.post('/me/delete', body: {'code': code});
+
+  Future<List<PastPayslipGroup>> pastPayslips() async =>
+      asList(await _c.get('/me/past-payslips'), PastPayslipGroup.fromJson);
 }

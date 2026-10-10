@@ -6,6 +6,7 @@ import { AppError } from '../../lib/errors.js';
 import { isProd } from '../../config/env.js';
 import { provider } from '../../providers/registry.js';
 import { listPlans } from './plans.js';
+import { requireBillingAccess } from '../accounts/owners.js';
 import * as svc from './service.js';
 
 export const billingRouter = Router();
@@ -13,14 +14,14 @@ export const billingRouter = Router();
 billingRouter.get('/plans', async (req, res) => {
   res.json({ data: await listPlans(String(req.query.country ?? 'IN')) });
 });
-billingRouter.get('/subscription', authenticate, requireRole('owner'), async (req, res) => {
+billingRouter.get('/subscription', authenticate, requireRole('owner'), requireBillingAccess, async (req, res) => {
   res.json({ data: await svc.subscriptionSummary(ctxOf(req)) });
 });
-billingRouter.post('/subscribe', authenticate, requireRole('owner'), async (req, res) => {
+billingRouter.post('/subscribe', authenticate, requireRole('owner'), requireBillingAccess, async (req, res) => {
   const b = body(req, z.object({ planCode: z.string(), interval: z.enum(['monthly', 'yearly']).default('monthly') }));
   res.json({ data: await svc.subscribe(ctxOf(req), b.planCode, b.interval) });
 });
-billingRouter.post('/cancel', authenticate, requireRole('owner'), async (req, res) => {
+billingRouter.post('/cancel', authenticate, requireRole('owner'), requireBillingAccess, async (req, res) => {
   const sub = await svc.cancel(ctxOf(req));
   res.json({ data: { subscription: { status: sub.status, planCode: sub.planCode, currentPeriodEnd: sub.currentPeriodEnd ?? null } } });
 });

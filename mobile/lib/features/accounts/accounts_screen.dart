@@ -6,6 +6,7 @@ import '../../core/i18n/strings.dart';
 import '../../core/models/models.dart';
 import '../../core/router/routes.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/dates.dart';
 import '../../core/utils/phone.dart';
 import '../../core/widgets/bilingual.dart';
 import '../../core/widgets/common.dart';
@@ -123,6 +124,7 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
               style: const TextStyle(color: AppColors.muted, fontSize: 15),
             ),
             const SizedBox(height: 20),
+            const AccountAlerts(padding: EdgeInsets.zero),
             for (final m in session.memberships) ...[
               AccountCard(
                 key: Key('account-${m.id}'),
@@ -381,6 +383,133 @@ class BusinessSwitchChip extends ConsumerWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Things only this person can act on, shown at the top of home screens:
+/// offers to become an owner, and recoveries they may stop.
+class AccountAlerts extends ConsumerStatefulWidget {
+  const AccountAlerts({super.key, this.padding = const EdgeInsets.fromLTRB(14, 6, 14, 6)});
+  final EdgeInsets padding;
+
+  @override
+  ConsumerState<AccountAlerts> createState() => _AccountAlertsState();
+}
+
+class _AccountAlertsState extends ConsumerState<AccountAlerts> {
+  String? _busy;
+
+  Future<void> _run(String id, Future<void> Function() action, {String? done}) async {
+    setState(() => _busy = id);
+    try {
+      await action();
+      if (mounted && done != null) showSnack(context, done);
+    } catch (e) {
+      if (mounted) showError(context, e);
+    } finally {
+      if (mounted) setState(() => _busy = null);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.s;
+    final session = ref.watch(authControllerProvider);
+    final ctrl = ref.read(authControllerProvider.notifier);
+    if (session.pendingTransfers.isEmpty && session.recoveryHolds.isEmpty) return const SizedBox.shrink();
+    Widget card({
+      required Key key,
+      required IconData icon,
+      required Color color,
+      required Color bg,
+      required String title,
+      required String body,
+      required List<Widget> actions,
+    }) => Container(
+      key: key,
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, color: color),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+                    const SizedBox(height: 2),
+                    Text(body, style: const TextStyle(color: AppColors.muted, fontSize: 13.5)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          Row(mainAxisAlignment: MainAxisAlignment.end, children: actions),
+        ],
+      ),
+    );
+    return Padding(
+      padding: widget.padding,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final t in session.pendingTransfers)
+            card(
+              key: Key('offer-${t.id}'),
+              icon: Icons.workspace_premium_rounded,
+              color: AppColors.mintDark,
+              bg: AppColors.mintFaint,
+              title: s.offerTitle(t.companyName),
+              body: s.offerBody(t.fromName),
+              actions: [
+                TextButton(
+                  onPressed: _busy == null ? () => _run(t.id, () => ctrl.decideTransfer(t.id, accept: false)) : null,
+                  child: Text(s.decline),
+                ),
+                const SizedBox(width: 6),
+                FilledButton(
+                  key: Key('acceptOffer-${t.id}'),
+                  onPressed: _busy == null ? () => _run(t.id, () => ctrl.decideTransfer(t.id, accept: true)) : null,
+                  child: _busy == t.id
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.white),
+                        )
+                      : Text(s.accept),
+                ),
+              ],
+            ),
+          for (final h in session.recoveryHolds)
+            card(
+              key: Key('hold-${h.id}'),
+              icon: Icons.gpp_maybe_rounded,
+              color: AppColors.red,
+              bg: AppColors.redLight,
+              title: s.holdTitle(h.businessName),
+              body: s.holdBody(h.holdUntil == null ? '' : Dates.dayMonth(h.holdUntil!.toLocal(), s.languageCode)),
+              actions: [
+                FilledButton(
+                  key: Key('stopHold-${h.id}'),
+                  style: FilledButton.styleFrom(backgroundColor: AppColors.red),
+                  onPressed: _busy == null ? () => _run(h.id, () => ctrl.stopRecovery(h.id), done: s.stopped) : null,
+                  child: Text(s.stop),
+                ),
+              ],
+            ),
+        ],
       ),
     );
   }

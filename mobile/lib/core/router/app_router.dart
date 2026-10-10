@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/accounts/accounts_screen.dart';
+import '../../features/accounts/past_payslips_screen.dart';
+import '../../features/accounts/recover_screen.dart';
 import '../../features/auth/auth_controller.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/auth/otp_screen.dart';
@@ -17,6 +19,7 @@ import '../../features/employee/salary/employee_salary_screen.dart';
 import '../../features/employee/shell/employee_shell.dart';
 import '../../features/owner/more/accountants_screen.dart';
 import '../../features/owner/more/audit_screen.dart';
+import '../../features/owner/more/owners_screen.dart';
 import '../../features/owner/more/billing_screen.dart';
 import '../../features/owner/more/branches_screen.dart';
 import '../../features/owner/more/help_screen.dart';
@@ -82,7 +85,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       r(
         Routes.accounts,
         (_) => const AccountsScreen(),
-        routes: [GoRoute(path: 'new', builder: (_, _) => const SetupScreen(another: true))],
+        routes: [
+          GoRoute(path: 'new', builder: (_, _) => const SetupScreen(another: true)),
+          GoRoute(path: 'recover', builder: (_, _) => const RecoverScreen()),
+          GoRoute(path: 'payslips', builder: (_, _) => const PastPayslipsScreen()),
+        ],
       ),
 
       // ---------------------------------------------------------- Owner
@@ -123,6 +130,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                       GoRoute(path: 'branches', builder: (_, _) => const BranchesScreen()),
                       GoRoute(path: 'holidays', builder: (_, _) => const HolidaysScreen()),
                       GoRoute(path: 'accountants', builder: (_, _) => const AccountantsScreen()),
+                      GoRoute(path: 'owners', builder: (_, _) => const OwnersScreen()),
                     ],
                   ),
                   GoRoute(path: 'billing', builder: (_, _) => const BillingScreen()),

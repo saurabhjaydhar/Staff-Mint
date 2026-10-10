@@ -77,6 +77,11 @@ export const DEFAULT_CONFIG: Record<string, unknown> = {
   'app.downloadUrl': 'https://play.google.com/store/apps/details?id=app.staffmint',
   /** Days an owner can restore a business they closed. */
   'accounts.restoreDays': 30,
+  /** A login after this many idle days from an unknown phone asks "Is this you?" (recycled numbers). */
+  'accounts.recycleDays': 180,
+  /** Hold before a support recovery completes; the old number and the business's people can stop it. */
+  'accounts.recoveryHoldDays': 7,
+  'accounts.transferDays': 7,
 };
 
 /** India national + major holidays template (editable per company). Dates for 2026–2027. */

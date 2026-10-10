@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRef, useState, type FormEvent } from "react";
-import { LeaveBusinessCard } from "@/components/AccountCards";
+import { DataCard, LeaveBusinessCard } from "@/components/AccountCards";
 import { useAuth, useI18n, useToast } from "@/components/providers";
 import { Alert, Badge, Button, Card, Field, Input, Loading, Modal, PageHeader, Segmented, cx } from "@/components/ui";
 import { useAsync } from "@/hooks/useAsync";
@@ -34,6 +34,7 @@ export default function ProfilePage() {
             {profile.data.company && <BusinessCard profile={profile.data} />}
             <LeaveBusinessCard />
             <SecurityCard />
+            <DataCard />
           </div>
         </div>
       )}

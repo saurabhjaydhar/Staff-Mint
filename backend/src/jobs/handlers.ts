@@ -113,5 +113,12 @@ export async function schedulerTick(now = new Date()) {
       logger.error({ err, companyId: String(c._id) }, 'scheduler tick failed for company');
     }
   }
+  // Support recoveries whose 7-day hold ran out with nobody stopping them.
+  try {
+    const { completeRecoveries } = await import('../modules/accounts/identity.js');
+    await completeRecoveries(now);
+  } catch (err) {
+    logger.error({ err }, 'recovery completion failed');
+  }
   return summary;
 }

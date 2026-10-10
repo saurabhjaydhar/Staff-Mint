@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:staffmint/core/api/api_exception.dart';
 import 'package:staffmint/core/api/providers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:staffmint/core/api/services/accounts_api.dart';
 import 'package:staffmint/core/api/services/auth_api.dart';
 import 'package:staffmint/core/api/services/me_api.dart';
 import 'package:staffmint/core/storage/key_value_store.dart';
@@ -24,6 +25,15 @@ Json _membership(String id, String company, String role) => {
 
 class _FakeAuthApi implements AuthApi {
   final switched = <({String membershipId, String deviceId, String? refreshToken})>[];
+  Map<String, dynamic>? verifyResponse;
+
+  @override
+  Future<AuthResult> verifyOtp({
+    required String phone,
+    required String code,
+    required String deviceId,
+    String? deviceName,
+  }) async => AuthResult.fromJson(verifyResponse!);
 
   @override
   Future<AuthResult> switchAccount({
@@ -39,6 +49,24 @@ class _FakeAuthApi implements AuthApi {
       'needsCompanySetup': false,
       'activeMembershipId': membershipId,
       'memberships': [_membership('m1', 'Sharma Medical', 'employee'), _membership('m2', 'Sita Boutique', 'owner')],
+    });
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _FakeAccountsApi implements AccountsApi {
+  final answers = <bool>[];
+
+  @override
+  Future<AuthResult> answerIdentity(String token, {required bool isMe}) async {
+    answers.add(isMe);
+    return AuthResult.fromJson({
+      'accessToken': 'a3',
+      'refreshToken': 'r3',
+      'user': {'id': 'u9', 'phone': '9876543210', 'name': '', 'role': 'owner', 'companyId': null},
+      'needsCompanySetup': true,
     });
   }
 
@@ -89,6 +117,7 @@ void main() {
   late MemoryKeyValueStore store;
   late _FakeMeApi meApi;
   late _FakeAuthApi authApi;
+  late _FakeAccountsApi accountsApi;
   late PunchQueue queue;
   late SharedPreferences prefs;
 
@@ -98,6 +127,7 @@ void main() {
       secureStoreProvider.overrideWithValue(store),
       meApiProvider.overrideWithValue(meApi),
       authApiProvider.overrideWithValue(authApi),
+      accountsApiProvider.overrideWithValue(accountsApi),
       sharedPreferencesProvider.overrideWithValue(prefs),
       punchQueueProvider.overrideWithValue(queue),
       punchSyncProvider.overrideWith(_OfflineSync.new),
@@ -117,6 +147,7 @@ void main() {
     store = MemoryKeyValueStore();
     meApi = _FakeMeApi();
     authApi = _FakeAuthApi();
+    accountsApi = _FakeAccountsApi();
     queue = PunchQueue(MemoryPunchQueueStore());
     SharedPreferences.setMockInitialValues({});
     prefs = await SharedPreferences.getInstance();
@@ -299,5 +330,26 @@ void main() {
       expect(s.blockedAccounts.single.companyName, 'Shop');
       expect(s.memberships.single.lockedToOtherPhone, isTrue);
     });
+  });
+
+  test('a long-idle number on a new phone pauses login with "Is this you?"', () async {
+    final c = make();
+    addTearDown(c.dispose);
+    await settle(c);
+    authApi.verifyResponse = {
+      'identityCheck': {'token': 'tok-123456789012345678901', 'maskedName': 'R*** K***'},
+    };
+    final check = await c.read(authControllerProvider.notifier).verifyOtp('9876543210', '123456');
+    expect(check?.maskedName, 'R*** K***');
+    expect(await TokenStorage(store).readAccessToken(), isNull);
+    meApi.response = {
+      'user': {'id': 'u9', 'phone': '9876543210', 'name': '', 'role': 'owner', 'companyId': null},
+      'company': null,
+      'employee': null,
+    };
+    await c.read(authControllerProvider.notifier).answerIdentity(check!.token, isMe: false);
+    expect(accountsApi.answers, [false]);
+    expect(await TokenStorage(store).readAccessToken(), 'a3');
+    expect(c.read(authControllerProvider).needsCompanySetup, isTrue);
   });
 }

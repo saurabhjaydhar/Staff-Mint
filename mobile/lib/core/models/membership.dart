@@ -1,4 +1,5 @@
 import '../utils/json.dart';
+import 'payroll.dart';
 
 /// One business this person can open: owner of one, staff at another,
 /// accountant of a third. Each device is in one membership at a time.
@@ -112,4 +113,101 @@ class Accountant {
 
   factory Accountant.fromJson(Json j) =>
       Accountant(id: asString(j['id']), name: asString(j['name']), phone: asString(j['phone']));
+}
+
+/// Login paused: "Is this you, R*** K***?" (number may have been recycled).
+class IdentityCheck {
+  const IdentityCheck({required this.token, required this.maskedName});
+  final String token;
+  final String maskedName;
+
+  static IdentityCheck? fromJsonOrNull(Object? v) {
+    if (v is! Map) return null;
+    final j = asMap(v);
+    return IdentityCheck(token: asString(j['token']), maskedName: asString(j['maskedName']));
+  }
+}
+
+/// An owner of the open business (main owner or co-owner).
+class OwnerItem {
+  const OwnerItem({
+    required this.id,
+    required this.name,
+    required this.phone,
+    this.isMain = false,
+    this.canManageBilling = false,
+    this.isYou = false,
+  });
+  final String id;
+  final String name;
+  final String phone;
+  final bool isMain;
+  final bool canManageBilling;
+  final bool isYou;
+
+  factory OwnerItem.fromJson(Json j) => OwnerItem(
+    id: asString(j['id']),
+    name: asString(j['name']),
+    phone: asString(j['phone']),
+    isMain: asBool(j['isMain']),
+    canManageBilling: asBool(j['canManageBilling']),
+    isYou: asBool(j['isYou']),
+  );
+}
+
+/// Main ownership moving to a number: a handover, or a co-owner's recovery.
+class TransferOffer {
+  const TransferOffer({
+    required this.id,
+    required this.companyName,
+    required this.kind,
+    this.fromName,
+    this.toPhoneMasked = '',
+    this.keepAs = 'co_owner',
+  });
+  final String id;
+  final String companyName;
+  final String kind; // transfer | recovery
+  final String? fromName;
+  final String toPhoneMasked;
+  final String keepAs;
+
+  factory TransferOffer.fromJson(Json j) => TransferOffer(
+    id: asString(j['id']),
+    companyName: asString(j['companyName']),
+    kind: asString(j['kind'], 'transfer'),
+    fromName: asStringOrNull(j['fromName']),
+    toPhoneMasked: asString(j['toPhoneMasked']),
+    keepAs: asString(j['keepAs'], 'co_owner'),
+  );
+}
+
+/// A support recovery in its 7-day hold that this person may stop.
+class RecoveryHold {
+  const RecoveryHold({required this.id, required this.businessName, this.holdUntil, this.status = 'hold'});
+  final String id;
+  final String businessName;
+  final DateTime? holdUntil;
+  final String status;
+
+  factory RecoveryHold.fromJson(Json j) => RecoveryHold(
+    id: asString(j['id']),
+    businessName: asString(j['businessName']),
+    holdUntil: asDateTimeOrNull(j['holdUntil']),
+    status: asString(j['status'], 'hold'),
+  );
+}
+
+/// Own payslips from a business this person no longer works at.
+class PastPayslipGroup {
+  const PastPayslipGroup({required this.companyId, required this.companyName, this.payslips = const []});
+  final String companyId;
+  final String companyName;
+  final List<Payslip> payslips;
+
+  factory PastPayslipGroup.fromJson(Json j) => PastPayslipGroup(
+    companyId: asString(j['companyId']),
+    companyName: asString(j['companyName']),
+    payslips: asList(j['payslips'], Payslip.fromJson),
+  );
 }

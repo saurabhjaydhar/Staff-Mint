@@ -77,6 +77,8 @@ export interface CompanySettings {
   maxDeviceTimeDriftMin: number;
   selfieRetentionDays: number;
   whatsappAlerts: boolean;
+  /** Ex-staff can see their own payslips for 12 months. */
+  exStaffPayslips?: boolean;
 }
 
 export type SubscriptionStatus = "trialing" | "active" | "past_due" | "cancelled" | "free";
@@ -451,6 +453,45 @@ export interface OtpVerifyResult extends Tokens {
   memberships: Membership[];
   /** More than one account: ask which one to open. */
   needsAccountChoice: boolean;
+  /** Set instead of a session when the app must first ask "Is this you?". */
+  identityCheck?: IdentityCheck;
+}
+
+/** Login paused: "Is this you, R*** K***?" (the number may have been recycled). */
+export interface IdentityCheck {
+  token: string;
+  maskedName: string;
+}
+
+export interface OwnerItem {
+  id: string;
+  userId: string;
+  name: string;
+  phone: string;
+  isMain: boolean;
+  canManageBilling: boolean;
+  isYou: boolean;
+}
+
+export interface TransferOffer {
+  id: string;
+  companyId: string;
+  companyName: string | null;
+  fromName: string | null;
+  kind: "transfer" | "recovery";
+  toPhoneMasked: string;
+  keepAs: "co_owner" | "leave";
+  status: string;
+  expiresAt: string;
+}
+
+export interface RecoveryHold {
+  id: string;
+  oldPhoneMasked: string;
+  businessName: string;
+  status: "submitted" | "hold" | "completed" | "rejected" | "stopped";
+  holdUntil: string | null;
+  note: string | null;
 }
 
 /** `POST /auth/switch` */
@@ -465,6 +506,8 @@ export interface MeResult {
   blockedAccounts?: Membership[];
   endedNotices?: EndedNotice[];
   closedBusinesses?: ClosedBusiness[];
+  pendingTransfers?: TransferOffer[];
+  recoveryHolds?: RecoveryHold[];
 }
 
 export interface CompanySetupInput {
