@@ -16,6 +16,7 @@ class AuthInterceptor extends Interceptor {
     required this.refreshDio,
     this.languageCode,
     this.onSessionExpired,
+    this.onAccountChanged,
   });
 
   /// Request option `extra` keys.
@@ -31,6 +32,10 @@ class AuthInterceptor extends Interceptor {
   final Dio refreshDio;
   final String Function()? languageCode;
   final void Function()? onSessionExpired;
+
+  /// The refresh moved this phone to another account (access ended or role
+  /// changed): the app reloads the session and says why.
+  final void Function(Json change)? onAccountChanged;
 
   Future<String?>? _refreshing;
 
@@ -107,6 +112,8 @@ class AuthInterceptor extends Interceptor {
         return null;
       }
       await tokens.saveTokens(accessToken: access, refreshToken: refresh);
+      final change = data['accountChange'];
+      if (change is Map) onAccountChanged?.call(asMap(change));
       return access;
     } on DioException catch (e) {
       final status = e.response?.statusCode;

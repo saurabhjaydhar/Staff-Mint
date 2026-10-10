@@ -12,6 +12,7 @@ import '../../../core/widgets/ledger_sheet.dart';
 import '../../../core/widgets/pickers.dart';
 import '../../../core/widgets/skeleton.dart';
 import '../../../core/widgets/status_pill.dart';
+import '../../accounts/accounts_screen.dart' show BusinessSwitchChip;
 import '../../auth/auth_controller.dart';
 import '../attendance/attendance_detail_sheet.dart';
 import '../attendance/month_grid.dart';
@@ -152,6 +153,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
                 ),
               ],
             ),
+            const BusinessSwitchChip(),
             if (_monthMode) ...[
               MonthSwitcher(month: _month, onChanged: (m) => setState(() => _month = m)),
               Expanded(child: MonthGridView(month: Dates.toApiMonth(_month))),

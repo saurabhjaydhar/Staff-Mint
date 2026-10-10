@@ -14,6 +14,10 @@ class SessionState {
     this.memberships = const [],
     this.activeMembershipId,
     this.needsAccountChoice = false,
+    this.blockedAccounts = const [],
+    this.endedNotices = const [],
+    this.closedBusinesses = const [],
+    this.notice,
   });
 
   const SessionState.unknown({this.restoreFailed = false})
@@ -24,7 +28,11 @@ class SessionState {
       needsCompanySetup = false,
       memberships = const [],
       activeMembershipId = null,
-      needsAccountChoice = false;
+      needsAccountChoice = false,
+      blockedAccounts = const [],
+      endedNotices = const [],
+      closedBusinesses = const [],
+      notice = null;
 
   const SessionState.unauthenticated()
     : status = SessionStatus.unauthenticated,
@@ -35,7 +43,11 @@ class SessionState {
       restoreFailed = false,
       memberships = const [],
       activeMembershipId = null,
-      needsAccountChoice = false;
+      needsAccountChoice = false,
+      blockedAccounts = const [],
+      endedNotices = const [],
+      closedBusinesses = const [],
+      notice = null;
 
   final SessionStatus status;
   final User? user;
@@ -55,6 +67,18 @@ class SessionState {
 
   /// Just logged in with more than one account: show the chooser first.
   final bool needsAccountChoice;
+
+  /// Staff accounts locked to another phone (offer "Request this phone").
+  final List<Membership> blockedAccounts;
+
+  /// "Your access to X ended" notices not yet dismissed.
+  final List<EndedNotice> endedNotices;
+
+  /// Businesses this person closed that can still be restored.
+  final List<ClosedBusiness> closedBusinesses;
+
+  /// Shown once as a snackbar after the account changed under this phone.
+  final AccountChange? notice;
 
   bool get hasManyAccounts => memberships.length > 1;
   Membership? get activeMembership {
@@ -80,6 +104,11 @@ class SessionState {
     List<Membership>? memberships,
     String? activeMembershipId,
     bool? needsAccountChoice,
+    List<Membership>? blockedAccounts,
+    List<EndedNotice>? endedNotices,
+    List<ClosedBusiness>? closedBusinesses,
+    AccountChange? notice,
+    bool clearNotice = false,
   }) => SessionState(
     status: status,
     user: user ?? this.user,
@@ -89,5 +118,9 @@ class SessionState {
     memberships: memberships ?? this.memberships,
     activeMembershipId: activeMembershipId ?? this.activeMembershipId,
     needsAccountChoice: needsAccountChoice ?? this.needsAccountChoice,
+    blockedAccounts: blockedAccounts ?? this.blockedAccounts,
+    endedNotices: endedNotices ?? this.endedNotices,
+    closedBusinesses: closedBusinesses ?? this.closedBusinesses,
+    notice: clearNotice ? null : (notice ?? this.notice),
   );
 }

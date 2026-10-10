@@ -3,8 +3,13 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/i18n/locale_provider.dart';
+import 'core/i18n/strings.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'features/auth/auth_controller.dart';
+
+/// App-wide snackbars that are not tied to one screen (account changes).
+final appMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
 class StaffMintApp extends ConsumerWidget {
   const StaffMintApp({super.key});
@@ -13,8 +18,21 @@ class StaffMintApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
     final lang = ref.watch(localeProvider);
+    // "Your access to Gupta Sweets has ended" / "Your role is now Manager", once.
+    ref.listen(authControllerProvider.select((s) => s.notice), (_, change) {
+      if (change == null) return;
+      final s = S.forCode(lang);
+      final text = change.ended
+          ? s.accessEnded(change.companyName)
+          : s.roleChangedTo(s.roleLabel(change.role ?? 'employee'));
+      appMessengerKey.currentState?.showSnackBar(
+        SnackBar(content: Text(text), duration: const Duration(seconds: 6), behavior: SnackBarBehavior.floating),
+      );
+      ref.read(authControllerProvider.notifier).clearNotice();
+    });
     return MaterialApp.router(
       title: 'StaffMint',
+      scaffoldMessengerKey: appMessengerKey,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       routerConfig: router,

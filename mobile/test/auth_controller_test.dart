@@ -248,4 +248,56 @@ void main() {
       expect(authApi.switched, isEmpty);
     });
   });
+
+  group('never stuck', () {
+    test('an account change from a refresh reloads the session and leaves a notice', () async {
+      await TokenStorage(store).saveTokens(accessToken: 'a', refreshToken: 'r');
+      final c = make();
+      addTearDown(c.dispose);
+      await settle(c);
+      meApi.response = {
+        'user': {'id': 'u1', 'phone': '9876543210', 'name': 'Sita', 'role': 'owner', 'companyId': 'c9'},
+        'company': {'id': 'c9', 'name': 'Sita Boutique'},
+        'employee': null,
+        'endedNotices': [
+          {'id': 'm1', 'companyName': 'Shop', 'endedReason': 'removed', 'endedAt': '2026-10-03T10:00:00Z'},
+        ],
+      };
+      c.read(authControllerProvider.notifier).onAccountChanged({
+        'kind': 'ended',
+        'companyName': 'Shop',
+        'role': 'owner',
+      });
+      for (var i = 0; i < 10; i++) {
+        await Future<void>.delayed(Duration.zero);
+      }
+      final s = c.read(authControllerProvider);
+      expect(s.company?.name, 'Sita Boutique');
+      expect(s.notice?.companyName, 'Shop');
+      expect(s.endedNotices.single.reason, 'removed');
+      c.read(authControllerProvider.notifier).clearNotice();
+      expect(c.read(authControllerProvider).notice, isNull);
+    });
+
+    test('phone-locked staff accounts come through /me', () async {
+      await TokenStorage(store).saveTokens(accessToken: 'a', refreshToken: 'r');
+      meApi.response = {
+        'user': {'id': 'u1', 'phone': '9876543210', 'name': 'Sita', 'role': 'owner', 'companyId': null},
+        'company': null,
+        'employee': null,
+        'memberships': [
+          {..._membership('m1', 'Shop', 'employee'), 'lockedToOtherPhone': true},
+        ],
+        'blockedAccounts': [
+          {..._membership('m1', 'Shop', 'employee'), 'lockedToOtherPhone': true},
+        ],
+      };
+      final c = make();
+      addTearDown(c.dispose);
+      final s = await settle(c);
+      expect(s.needsCompanySetup, isTrue);
+      expect(s.blockedAccounts.single.companyName, 'Shop');
+      expect(s.memberships.single.lockedToOtherPhone, isTrue);
+    });
+  });
 }

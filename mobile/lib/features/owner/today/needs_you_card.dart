@@ -48,6 +48,9 @@ class _NeedsYouCardState extends ConsumerState<NeedsYouCard> {
         : ref.read(employeesApiProvider).resetFace(f.employeeId),
   );
 
+  Future<bool> _decideDevice(DeviceRequestItem r, bool approve) =>
+      _run('device_${r.id}', approve, () => ref.read(accountsApiProvider).decideDevice(r.id, approve: approve));
+
   Future<bool> _decidePunch(PunchApprovalItem p, bool approve) =>
       _run(p.punch.id, approve, () => ref.read(attendanceApiProvider).decidePunch(p.attendanceId, p.punch.id, approve));
 
@@ -58,12 +61,14 @@ class _NeedsYouCardState extends ConsumerState<NeedsYouCard> {
     final leaves = d.leaveRequests.where((l) => !_handled.contains(l.id)).toList();
     final punches = d.punchApprovals.where((p) => !_handled.contains(p.punch.id)).toList();
     final faces = d.faceEnrollments.where((f) => !_handled.contains('face_${f.employeeId}')).toList();
-    final count = leaves.length + punches.length + faces.length + d.flags.length;
+    final devices = d.deviceRequests.where((r) => !_handled.contains('device_${r.id}')).toList();
+    final count = leaves.length + punches.length + faces.length + devices.length + d.flags.length;
     if (count == 0) return const SizedBox.shrink();
     final names = [
       for (final l in leaves) s.needsYouLeave(l.employeeName),
       for (final p in punches) s.needsYouPunch(p.employeeName),
       for (final f in faces) s.needsYouFace(f.employeeName),
+      for (final r in devices) s.needsYouDevice(r.employeeName),
       for (final f in d.flags) s.needsYouFlag(f.employeeName),
     ];
     return Column(
@@ -164,6 +169,48 @@ class _NeedsYouCardState extends ConsumerState<NeedsYouCard> {
                         onDecide: (a) async {
                           if (await _decideFace(f, a) && mounted) setState(() => _handled.add('face_${f.employeeId}'));
                         },
+                      ),
+                    for (final r in devices)
+                      Card(
+                        key: Key('deviceRequest_${r.id}'),
+                        child: Padding(
+                          padding: const EdgeInsets.all(14),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const CircleAvatar(
+                                    backgroundColor: AppColors.indigoLight,
+                                    child: Icon(Icons.phonelink_setup_rounded, color: AppColors.indigo),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(r.employeeName, style: Theme.of(context).textTheme.titleMedium),
+                                        Text(
+                                          s.deviceRequestBody(r.deviceName),
+                                          style: const TextStyle(color: AppColors.muted),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              DecisionButtons(
+                                busy: _busy.contains('device_${r.id}'),
+                                onDecide: (a) async {
+                                  if (await _decideDevice(r, a) && mounted) {
+                                    setState(() => _handled.add('device_${r.id}'));
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     for (final f in d.flags)
                       Card(

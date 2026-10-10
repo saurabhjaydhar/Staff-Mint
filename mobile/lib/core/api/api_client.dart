@@ -18,6 +18,7 @@ class ApiClient {
     String baseUrl = Env.apiBaseUrl,
     String Function()? languageCode,
     void Function()? onSessionExpired,
+    void Function(Map<String, dynamic> change)? onAccountChanged,
     HttpClientAdapter? adapter,
   }) {
     BaseOptions options() => BaseOptions(
@@ -41,6 +42,7 @@ class ApiClient {
         refreshDio: refreshDio,
         languageCode: languageCode,
         onSessionExpired: onSessionExpired,
+        onAccountChanged: onAccountChanged,
       ),
     );
     return ApiClient(dio);

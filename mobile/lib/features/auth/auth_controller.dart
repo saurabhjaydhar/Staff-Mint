@@ -9,6 +9,7 @@ import '../../core/api/services/auth_api.dart';
 import '../../core/api/services/company_api.dart';
 import '../../core/api/services/me_api.dart';
 import '../../core/i18n/locale_provider.dart';
+import '../../core/models/models.dart';
 import '../../core/push/push_service.dart';
 import '../../core/storage/providers.dart';
 import '../employee/punch/punch_providers.dart';
@@ -22,9 +23,17 @@ class PendingPunchesException implements Exception {
 }
 
 class AuthController extends Notifier<SessionState> {
+  StreamSubscription<Map<String, dynamic>>? _pushOpens;
+
   @override
   SessionState build() {
     Future.microtask(restore);
+    // A tapped notification about another business opens that business.
+    _pushOpens = ref.read(pushServiceProvider).openedMessages.listen((data) {
+      final companyId = data['companyId'];
+      if (companyId is String) unawaited(openBusiness(companyId).catchError((_) {}));
+    });
+    ref.onDispose(() => _pushOpens?.cancel());
     return const SessionState.unknown();
   }
 
@@ -101,7 +110,13 @@ class AuthController extends Notifier<SessionState> {
     final res = await ref
         .read(authApiProvider)
         .switchAccount(membershipId: membershipId, deviceId: deviceId, refreshToken: await tokens.readRefreshToken());
-    await tokens.saveTokens(accessToken: res.accessToken, refreshToken: res.refreshToken);
+    await _applySession(res);
+  }
+
+  /// New tokens for this phone (switch, leave, close, restore): drop the old
+  /// business's data and load the new session.
+  Future<void> _applySession(AuthResult res) async {
+    await ref.read(tokenStorageProvider).saveTokens(accessToken: res.accessToken, refreshToken: res.refreshToken);
     _forgetBusinessData();
     try {
       await refreshMe(needsCompanySetupHint: res.needsCompanySetup, needsAccountChoice: false);
@@ -109,6 +124,77 @@ class AuthController extends Notifier<SessionState> {
       state = _fromAuth(res, needsAccountChoice: false);
     }
   }
+
+  Future<({String deviceId, String? refreshToken})> _deviceSession() async => (
+    deviceId: await ref.read(deviceIdServiceProvider).getDeviceId(),
+    refreshToken: await ref.read(tokenStorageProvider).readRefreshToken(),
+  );
+
+  /// Stop working with a business (staff, manager or accountant).
+  Future<void> leaveAccount(String membershipId) async {
+    final d = await _deviceSession();
+    final res = await ref
+        .read(accountsApiProvider)
+        .leave(membershipId, deviceId: d.deviceId, refreshToken: d.refreshToken);
+    await _applySession(res);
+  }
+
+  /// Main owner closes the open business (restorable for 30 days).
+  Future<void> closeBusiness(String confirmName) async {
+    await _sendQueuedPunches();
+    final d = await _deviceSession();
+    final res = await ref
+        .read(accountsApiProvider)
+        .closeBusiness(confirmName, deviceId: d.deviceId, refreshToken: d.refreshToken);
+    await _applySession(res);
+  }
+
+  Future<void> restoreBusiness(String companyId) async {
+    final d = await _deviceSession();
+    final res = await ref
+        .read(accountsApiProvider)
+        .restore(companyId, deviceId: d.deviceId, refreshToken: d.refreshToken);
+    await _applySession(res);
+  }
+
+  /// Ask the owner to approve this phone for a staff account locked to another one.
+  Future<String> requestDeviceChange(String membershipId) async {
+    final deviceId = await ref.read(deviceIdServiceProvider).getDeviceId();
+    return ref.read(accountsApiProvider).requestDevice(membershipId, deviceId: deviceId, deviceName: _deviceName());
+  }
+
+  Future<void> dismissNotice(String membershipId) async {
+    state = state.copyWith(endedNotices: [...state.endedNotices.where((n) => n.id != membershipId)]);
+    try {
+      await ref.read(accountsApiProvider).dismissNotice(membershipId);
+    } catch (_) {
+      /* shown again next time; harmless */
+    }
+  }
+
+  /// Open the account for [companyId] (e.g. from a notification) if it isn't open already.
+  Future<void> openBusiness(String companyId) async {
+    if (!state.isAuthenticated || state.company?.id == companyId) return;
+    for (final m in state.memberships) {
+      if (m.companyId == companyId && !m.lockedToOtherPhone) return switchTo(m.id);
+    }
+  }
+
+  /// The server moved this phone to another account during a token refresh.
+  void onAccountChanged(Map<String, dynamic> json) {
+    final change = AccountChange.fromJson(json);
+    Future.microtask(() async {
+      _forgetBusinessData();
+      try {
+        await refreshMe(needsAccountChoice: false);
+      } catch (_) {
+        /* the next screen load retries */
+      }
+      state = state.copyWith(notice: change);
+    });
+  }
+
+  void clearNotice() => state = state.copyWith(clearNotice: true);
 
   Future<void> _sendQueuedPunches() async {
     final int pending;
@@ -215,6 +301,10 @@ class AuthController extends Notifier<SessionState> {
       memberships: me.memberships,
       activeMembershipId: me.activeMembershipId,
       needsAccountChoice: needsAccountChoice && me.memberships.length > 1,
+      blockedAccounts: me.blockedAccounts,
+      endedNotices: me.endedNotices,
+      closedBusinesses: me.closedBusinesses,
+      notice: state.notice,
     );
   }
 
@@ -225,6 +315,7 @@ class AuthController extends Notifier<SessionState> {
     memberships: r.memberships,
     activeMembershipId: r.activeMembershipId,
     needsAccountChoice: needsAccountChoice && r.memberships.length > 1,
+    blockedAccounts: r.memberships.where((m) => m.lockedToOtherPhone).toList(),
   );
 
   Future<void> _syncLanguage() async {
