@@ -389,15 +389,34 @@ export interface Tokens {
   refreshToken: string;
 }
 
+/** One business this number can open (owner here, staff there, CA elsewhere). */
+export interface Membership {
+  id: string;
+  companyId: string;
+  companyName: string;
+  businessType: string | null;
+  role: Role;
+  lastUsedAt: string | null;
+}
+
 export interface OtpVerifyResult extends Tokens {
   user: User;
   needsCompanySetup: boolean;
+  activeMembershipId: string | null;
+  memberships: Membership[];
+  /** More than one account: ask which one to open. */
+  needsAccountChoice: boolean;
 }
+
+/** `POST /auth/switch` */
+export type SwitchResult = OtpVerifyResult;
 
 export interface MeResult {
   user: User;
   company: Company | null;
   employee: Employee | null;
+  activeMembershipId?: string | null;
+  memberships?: Membership[];
 }
 
 export interface CompanySetupInput {
@@ -414,6 +433,8 @@ export interface CompanySetupInput {
 
 export interface CompanySetupResult extends Tokens {
   company: Company;
+  activeMembershipId?: string;
+  memberships?: Membership[];
 }
 
 // ---- Dashboard ----

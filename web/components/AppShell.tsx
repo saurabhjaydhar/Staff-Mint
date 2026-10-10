@@ -9,10 +9,12 @@ import { canAccess, canExport, homeFor, navFor } from "@/lib/roles";
 import type { Role } from "@/lib/types";
 import type { DictKey } from "@/lib/i18n";
 import { initials } from "@/lib/profile";
+import { businessIcon } from "@/lib/accounts";
+import { AccountChooser } from "./AccountChooser";
 import { useAuth, useI18n, useToast } from "./providers";
+import { Alert, Button, Loading, cx } from "./ui";
 
 const ROLE_KEY: Record<string, DictKey> = { owner: "role_owner", manager: "role_manager", ca: "role_ca", employee: "role_employee" };
-import { Alert, Button, Loading, cx } from "./ui";
 
 export function Logo({ className }: { className?: string }) {
   return (
@@ -87,6 +89,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [accountsOpen, setAccountsOpen] = useState(false);
 
   const role = me?.user.role;
   const needsSetup = status === "authenticated" && role === "owner" && !me?.company;
@@ -118,6 +121,10 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="max-w-md rounded-xl bg-white p-6 text-center shadow-sm ring-1 ring-slate-200">
           <h1 className="text-xl font-semibold">{t("employee_use_app")}</h1>
           <p className="mt-2 text-sm text-slate-600">{t("employee_use_app_body")}</p>
+          {/* Staff here may own or manage another business: open it, or start one. */}
+          <div className="mt-5 text-left">
+            <AccountChooser memberships={me.memberships ?? []} activeId={me.activeMembershipId} onChosen={(m, switched) => switched && router.replace(homeFor(m.role))} />
+          </div>
           <div className="mt-5 flex justify-center gap-2">
             <LanguageToggle />
             <Button variant="secondary" size="sm" onClick={() => void logout()}>
@@ -177,6 +184,39 @@ export function AppShell({ children }: { children: ReactNode }) {
           ›
         </span>
       </Link>
+      <div className="relative">
+        <button
+          type="button"
+          data-switcher
+          aria-expanded={accountsOpen}
+          onClick={() => setAccountsOpen((v) => !v)}
+          className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left ring-1 ring-slate-200 transition-colors hover:bg-slate-50"
+        >
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-mint-50 text-base text-mint-700" aria-hidden>
+            {businessIcon(me.company?.businessType)}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[11px] font-medium uppercase tracking-wide text-slate-400">{t("acc_switch")}</span>
+            <span className="block truncate text-sm font-medium text-slate-900">{me.company?.name}</span>
+          </span>
+          <span className="text-slate-400" aria-hidden>
+            {accountsOpen ? "▴" : "▾"}
+          </span>
+        </button>
+        {accountsOpen && (
+          <div className="absolute left-0 z-50 mt-1 w-72 rounded-xl bg-white p-2 shadow-lg ring-1 ring-slate-200">
+            <AccountChooser
+              memberships={me.memberships ?? []}
+              activeId={me.activeMembershipId}
+              onChosen={(m, switched) => {
+                setAccountsOpen(false);
+                setMenuOpen(false);
+                if (switched) router.replace(homeFor(m.role));
+              }}
+            />
+          </div>
+        )}
+      </div>
       {nav}
       <div className="space-y-2 border-t border-slate-100 pt-3">
         {canExport(role) && <ExportButton variant="ghost" className="w-full justify-start" />}
@@ -205,7 +245,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             ☰
           </Button>
         </header>
-        <main className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-6">
+        {/* Keyed by account: switching remounts every page so nothing from the old business lingers. */}
+        <main key={me.activeMembershipId ?? me.company?.id ?? "none"} className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-6">
           {allowed ? (
             children
           ) : (

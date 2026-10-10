@@ -4,7 +4,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useRouter } from "next/navigation";
 import { api, isApiError, setApiLanguage } from "@/lib/api";
 import { translate, type DictKey } from "@/lib/i18n";
-import type { Lang, MeResult, Tokens } from "@/lib/types";
+import { getDeviceId } from "@/lib/tokens";
+import type { Lang, MeResult, SwitchResult, Tokens } from "@/lib/types";
 
 // ---------------- i18n ----------------
 const LANG_KEY = "staffmint.lang";
@@ -105,6 +106,8 @@ interface AuthCtx {
   /** Store tokens (after OTP verify / company setup) and load /me. */
   signIn: (tokens: Tokens) => Promise<MeResult | null>;
   refreshMe: () => Promise<MeResult | null>;
+  /** Open another of this person's businesses in this browser. */
+  switchAccount: (membershipId: string) => Promise<MeResult | null>;
   logout: () => Promise<void>;
 }
 const AuthContext = createContext<AuthCtx | null>(null);
@@ -168,6 +171,15 @@ function AuthProvider({ children }: { children: ReactNode }) {
     [refreshMe],
   );
 
+  const switchAccount = useCallback(
+    async (membershipId: string) => {
+      const res = await api.post<SwitchResult>("/auth/switch", { membershipId, deviceId: getDeviceId(), refreshToken: api.tokens.get()?.refreshToken });
+      api.tokens.set({ accessToken: res.accessToken, refreshToken: res.refreshToken });
+      return refreshMe();
+    },
+    [refreshMe],
+  );
+
   const logout = useCallback(async () => {
     const t = api.tokens.get();
     if (t) {
@@ -183,7 +195,10 @@ function AuthProvider({ children }: { children: ReactNode }) {
     router.replace("/login");
   }, [router]);
 
-  const value = useMemo<AuthCtx>(() => ({ status, me, error, signIn, refreshMe, logout }), [status, me, error, signIn, refreshMe, logout]);
+  const value = useMemo<AuthCtx>(
+    () => ({ status, me, error, signIn, refreshMe, switchAccount, logout }),
+    [status, me, error, signIn, refreshMe, switchAccount, logout],
+  );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
