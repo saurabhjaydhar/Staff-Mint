@@ -211,7 +211,7 @@ const addEmployeeTool: ToolDef<{ name: string; phone: string; salary?: number; w
     ],
   }),
   execute: async (ctx, a) => {
-    const e = await createEmployee(ctx, { name: a.name, phone: a.phone, ratePaise: a.salary ? rupeesToPaise(a.salary) : 0, wageType: a.wageType ?? 'monthly' });
+    const e = await createEmployee(ctx, { name: a.name, phone: a.phone, ratePaise: a.salary ? rupeesToPaise(a.salary) : 0, wageType: a.wageType ?? 'monthly' }, { invite: true });
     return { text: L(ctx.language, `${e.name} added. They can now log in to the StaffMint app with ${e.phone}.`, `${e.name} जुड़ गए। वे ${e.phone} से StaffMint ऐप में लॉगिन कर सकते हैं।`), data: { employeeId: String(e._id) } };
   },
 };

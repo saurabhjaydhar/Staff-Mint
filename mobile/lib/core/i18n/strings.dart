@@ -1072,6 +1072,70 @@ class S {
     'एक ही नंबर से अपना बिज़नेस, किसी और दुकान पर नौकरी और अकाउंटेंट का काम — सब चल सकता है।',
   );
 
+  // ------------------------------------------------------ Never stuck (F14)
+  String accessEnded(String company) =>
+      _t('Your access to $company has ended', '$company तक आपकी पहुँच ख़त्म हो गई है');
+  String accessEndedOn(String company, String date) =>
+      _t('Your access to $company ended on $date', '$company तक आपकी पहुँच $date को ख़त्म हुई');
+  String endedReasonLabel(String? r) => switch (r) {
+    'closed' => _t('The business closed its StaffMint account.', 'बिज़नेस ने अपना StaffMint खाता बंद कर दिया।'),
+    'phone_changed' => _t('Your employer changed your number.', 'आपके मालिक ने आपका नंबर बदल दिया।'),
+    'import_rollback' => _t('Your employer undid a staff import.', 'आपके मालिक ने स्टाफ़ इम्पोर्ट वापस लिया।'),
+    _ => _t('Your employer removed you from their staff.', 'आपके मालिक ने आपको स्टाफ़ से हटा दिया।'),
+  };
+  String roleChangedTo(String role) => _t('Your role is now $role', 'अब आपकी भूमिका: $role');
+  String get okGotIt => _t('OK, got it', 'ठीक है');
+  String get leaveBusiness => _t('Leave this business', 'यह बिज़नेस छोड़ें');
+  String leaveBusinessConfirm(String company) => _t('Leave $company?', '$company छोड़ें?');
+  String get leaveBusinessBody => _t(
+    'You will no longer see this business. The owner will be told. They can add you again later.',
+    'यह बिज़नेस आपको नहीं दिखेगा। मालिक को बताया जाएगा। वे बाद में आपको फिर जोड़ सकते हैं।',
+  );
+  String leftBusiness(String company) => _t('You left $company', 'आपने $company छोड़ दिया');
+  String get closeBusiness => _t('Close this business', 'यह बिज़नेस बंद करें');
+  String get closeBusinessHint => _t(
+    'Everyone loses access. You can restore it within 30 days. Export your data first if you need it.',
+    'सबकी पहुँच ख़त्म हो जाएगी। 30 दिन के अंदर वापस चालू कर सकते हैं। ज़रूरत हो तो पहले डेटा एक्सपोर्ट कर लें।',
+  );
+  String typeNameToConfirm(String name) => _t('Type "$name" to confirm', 'पक्का करने के लिए "$name" लिखें');
+  String get closeForever => _t('Close business', 'बिज़नेस बंद करें');
+  String businessClosed(String name) =>
+      _t('$name is closed. You can restore it for 30 days.', '$name बंद हो गया। 30 दिन तक वापस चालू कर सकते हैं।');
+  String get dangerZone => _t('Careful', 'ध्यान से');
+  Bi get closedBusinessesBi => _b('Closed businesses', 'बंद बिज़नेस');
+  String restoreUntil(String date) => _t('Restore until $date', '$date तक वापस चालू करें');
+  String get restore => _t('Restore', 'वापस चालू करें');
+  String restored(String name) => _t('$name is back', '$name वापस चालू हो गया');
+  String get lockedToOtherPhone => _t('Linked to another phone', 'दूसरे फ़ोन से जुड़ा है');
+  String lockedTitle(String company) =>
+      _t('Your staff account at $company is on another phone', '$company का आपका स्टाफ़ खाता दूसरे फ़ोन पर है');
+  String get lockedBody => _t(
+    'For safety, a staff account works on one phone. Ask your employer to approve this phone — they get the request on their phone.',
+    'सुरक्षा के लिए स्टाफ़ खाता एक ही फ़ोन पर चलता है। मालिक से यह फ़ोन मंज़ूर करवाएँ — अनुरोध उनके फ़ोन पर पहुँच जाएगा।',
+  );
+  String get requestThisPhone => _t('Request this phone', 'यह फ़ोन मंज़ूर करवाएँ');
+  String get requestSent =>
+      _t('Request sent. We will tell you when it is approved.', 'अनुरोध भेज दिया। मंज़ूर होते ही बताएँगे।');
+  String get iOwnBusinessInstead => _t('I want my own business', 'मुझे अपना बिज़नेस बनाना है');
+  String get newPhoneRequest => _t('New phone', 'नया फ़ोन');
+  String needsYouDevice(String name) => _t('$name’s new phone', '$name का नया फ़ोन');
+  String deviceRequestBody(String? device) =>
+      _t('Wants to check in from ${device ?? 'a new phone'}', '${device ?? 'नए फ़ोन'} से हाज़िरी लगाना चाहते हैं');
+  Bi get accountantsBi => _b('Accountants', 'अकाउंटेंट');
+  String get accountantsHint => _t(
+    'Read-only access to reports, payroll and export.',
+    'रिपोर्ट, सैलरी और एक्सपोर्ट देख सकते हैं, बदल नहीं सकते।',
+  );
+  String get addAccountant => _t('Add accountant', 'अकाउंटेंट जोड़ें');
+  String get noAccountants => _t('No accountant added yet', 'अभी कोई अकाउंटेंट नहीं');
+  String removeAccountantConfirm(String name) => _t('Remove $name?', '$name को हटाएँ?');
+  String get remove => _t('Remove', 'हटाएँ');
+  String get appNotJoined => _t('Not on the app yet', 'अभी ऐप पर नहीं');
+  String invitedAgo(String when) => _t('Invite sent $when', 'आमंत्रण भेजा: $when');
+  String get sendInvite => _t('Send app invite', 'ऐप का आमंत्रण भेजें');
+  String get resendInvite => _t('Resend invite', 'आमंत्रण फिर भेजें');
+  String get inviteSent => _t('Invite sent on WhatsApp', 'WhatsApp पर आमंत्रण भेज दिया');
+
   // ---------------------------------------------------------------- Misc
   String get thisMonth => _t('This month', 'इस महीने');
   String get offlineNote => _t('Offline · showing saved data', 'ऑफ़लाइन · सेव डेटा दिखा रहे हैं');

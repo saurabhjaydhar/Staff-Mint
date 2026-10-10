@@ -291,25 +291,25 @@ Only for jobs easier on a big screen: Excel import, bulk edits, report downloads
 **F14d. "Never stuck" scenarios**
 | # | Situation | What the person sees | Way forward | Status |
 |---|---|---|---|---|
-| 1 | Staff logs in before the owner added them | "Ask your employer to add you" with their number | "Check again"; app re-checks on open; **push/SMS "You've been added to Gupta Sweets"** when added | Partly done — notify + auto re-check: Phase 2 |
-| 2 | Staff tapped "I own a business" and created a business by mistake | Owner home of the accidental business | Switch to the staff account; **Close business** (owner) removes the mistake | Switch done; Close: Phase 2 |
+| 1 | Staff logs in before the owner added them | "Ask your employer to add you" with their number | "Check again"; app re-checks on open; **push/SMS "You've been added to Gupta Sweets"** when added | Done (Phase 2) |
+| 2 | Staff tapped "I own a business" and created a business by mistake | Owner home of the accidental business | Switch to the staff account; **Close business** (owner) removes the mistake | Done (Phase 2) |
 | 3 | Owner tapped "I'm staff" by mistake | Waiting screen | Back → "I own a business" | Done |
-| 4 | Staff changed or lost phone | "Linked to another phone" | **"Request device change"** button → owner gets a one-tap approve in Needs-you + push/WhatsApp | Phase 2 (today only owner-initiated reset) |
-| 5 | Staff removed from their only business | Lands on "owner or staff?" with no context | **"Your access to Gupta Sweets ended on 3 Oct"** notice, then options: wait for another employer, start own business, log out | Phase 2 |
-| 6 | Access to the open business is removed while the app is in use | Logged out completely | **Soft landing:** move to the next account with a notice; log out only when none is left | Phase 2 |
-| 7 | Person wants to stop working with a business (staff/manager/CA) | No option | **Leave this business** in Profile → confirm → owner notified; staff record stays with the owner for payroll | Phase 2 |
-| 8 | Owner removes an accountant | No list exists | **Settings → Accountants**: list, add, remove | Phase 2 |
+| 4 | Staff changed or lost phone | "Linked to another phone" | **"Request device change"** button → owner gets a one-tap approve in Needs-you + push/WhatsApp | Done (Phase 2) |
+| 5 | Staff removed from their only business | Lands on "owner or staff?" with no context | **"Your access to Gupta Sweets ended on 3 Oct"** notice, then options: wait for another employer, start own business, log out | Done (Phase 2) |
+| 6 | Access to the open business is removed while the app is in use | Logged out completely | **Soft landing:** move to the next account with a notice; log out only when none is left | Done (Phase 2) |
+| 7 | Person wants to stop working with a business (staff/manager/CA) | No option | **Leave this business** in Profile → confirm → owner notified; staff record stays with the owner for payroll | Done (Phase 2) |
+| 8 | Owner removes an accountant | No list exists | **Settings → Accountants**: list, add, remove | Done (Phase 2) |
 | 9 | Owner sold the shop / family member takes over | No option | **Transfer ownership** to another number (OTP confirm by both); old owner can stay as manager or leave | Phase 3 |
 | 10 | Two partners run one shop | Only one owner | **Co-owner**: invite a second owner by phone; same rights except Close business and Transfer. **Billing only if the main owner turns on "Can manage billing"** for that co-owner (off by default) | Phase 3 |
 | 11 | Owner lost their number | Cannot log in; business locked | Co-owner changes it; else email OTP (if on profile); else support recovery — see *Owner recovery* below | Phase 3 |
 | 12 | Old number recycled by the telecom to a new person | New person could see old businesses | **Recycled-number guard:** number unused > 6 months + new device → "Is this you, R*** S***?"; "No" detaches all accounts and alerts the owners | Phase 3 |
-| 13 | Notification for business B arrives while the app is in A | Opens A | **Tap opens B** (asks if offline check-ins are pending) | Phase 2 |
-| 14 | Staff at two shops opens the app to check in | May be in the wrong shop | **Business chip** on every home header ("Gupta Sweets ▾") for a one-tap switch | Phase 2 |
+| 13 | Notification for business B arrives while the app is in A | Opens A | **Tap opens B** (asks if offline check-ins are pending) | Done (Phase 2) |
+| 14 | Staff at two shops opens the app to check in | May be in the wrong shop | **Business chip** on every home header ("Gupta Sweets ▾") for a one-tap switch | Done (Phase 2) |
 | 15 | CA with many clients | Long list | **Search + pin** in the chooser once there are more than 6 accounts | Phase 4 |
 | 16 | WhatsApp command from a multi-business owner | Uses last opened business | **Mint asks "Which business?"** when unclear; "switch to Verma Traders" command | Phase 4 |
 | 17 | Person wants to delete everything (DPDP right to erasure) | No option | **Delete my account**: export first; sole owners must transfer or close each business; payroll records kept as required by law | Phase 3 |
-| 18 | Owner wants to stop using StaffMint for one business | No option | **Close business**: export, 30-day restore window, all accounts of that business end and members are told | Phase 2 |
-| 19 | Owner adds staff who never installed the app | Staff doesn't know | **Invite** by WhatsApp/SMS with app link and their number when staff is added (resend from staff profile) | Phase 2 |
+| 18 | Owner wants to stop using StaffMint for one business | No option | **Close business**: export, 30-day restore window, all accounts of that business end and members are told | Done (Phase 2) |
+| 19 | Owner adds staff who never installed the app | Staff doesn't know | **Invite** by WhatsApp/SMS with app link and their number when staff is added (resend from staff profile) | Done (Phase 2) |
 | 20 | Hit the owned-business limit | Error | Message with support contact; limit is server config | Done |
 | 21 | Staff left the shop but needs old payslips (bank loan, ITR) | Cannot log in to that business | **Past payslips** (read-only, own payslips only) for 12 months after exit, if the owner allows it — see *Former staff* below | Phase 3 |
 
@@ -326,7 +326,7 @@ Only for jobs easier on a big screen: Excel import, bulk edits, report downloads
 | Phase | Scope | Est. |
 |---|---|---|
 | 1 ✅ | Memberships, chooser, switching (app + web), own business from any account, per-business binding/removal (F14a–c) | Done |
-| 2 | Never-stuck basics: rows 1, 2/18, 4, 5, 6, 7, 8, 13, 14, 19 | ~2 weeks |
+| 2 ✅ | Never-stuck basics: rows 1, 2/18, 4, 5, 6, 7, 8, 13, 14, 19 | Done |
 | 3 | Shared ownership & recovery: rows 9, 10, 11, 12, 17, 21 | ~2 weeks |
 | 4 | Scale: rows 15, 16; one bill for several businesses (group billing); CA portal (V2 backlog) | V2 |
 

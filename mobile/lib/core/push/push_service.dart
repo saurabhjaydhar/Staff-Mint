@@ -15,6 +15,10 @@ class PushService {
   bool _initialized = false;
   bool get available => _initialized;
   StreamSubscription<String>? _refreshSub;
+  final _opened = StreamController<Map<String, dynamic>>.broadcast();
+
+  /// Data of notifications the user tapped (carries `companyId`).
+  Stream<Map<String, dynamic>> get openedMessages => _opened.stream;
 
   /// Call once from `main()`. Never throws.
   Future<void> init() async {
@@ -22,6 +26,10 @@ class PushService {
       // Bounded: push must never block app start (missing Play Services, offline, placeholder config).
       await Firebase.initializeApp().timeout(const Duration(seconds: 5));
       _initialized = true;
+      FirebaseMessaging.onMessageOpenedApp.listen((m) => _opened.add(m.data));
+      final initial = await FirebaseMessaging.instance.getInitialMessage();
+      // Delivered after the session restores (the auth controller listens).
+      if (initial != null) Future.delayed(const Duration(seconds: 2), () => _opened.add(initial.data));
     } catch (e) {
       debugPrint('Push disabled (Firebase init failed): $e');
       _initialized = false;

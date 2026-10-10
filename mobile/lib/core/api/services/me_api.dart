@@ -9,12 +9,18 @@ class MeResponse {
     this.employee,
     this.memberships = const [],
     this.activeMembershipId,
+    this.blockedAccounts = const [],
+    this.endedNotices = const [],
+    this.closedBusinesses = const [],
   });
   final User user;
   final Company? company;
   final Employee? employee;
   final List<Membership> memberships;
   final String? activeMembershipId;
+  final List<Membership> blockedAccounts;
+  final List<EndedNotice> endedNotices;
+  final List<ClosedBusiness> closedBusinesses;
 
   factory MeResponse.fromJson(Json j) => MeResponse(
     user: User.fromJson(asMap(j['user'])),
@@ -22,6 +28,9 @@ class MeResponse {
     employee: j['employee'] is Map ? Employee.fromJson(asMap(j['employee'])) : null,
     memberships: asList(j['memberships'], Membership.fromJson),
     activeMembershipId: asStringOrNull(j['activeMembershipId']),
+    blockedAccounts: asList(j['blockedAccounts'], Membership.fromJson),
+    endedNotices: asList(j['endedNotices'], EndedNotice.fromJson),
+    closedBusinesses: asList(j['closedBusinesses'], ClosedBusiness.fromJson),
   );
 }
 

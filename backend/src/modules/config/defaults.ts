@@ -73,6 +73,10 @@ export const DEFAULT_CONFIG: Record<string, unknown> = {
   'leave.types': ['paid', 'sick', 'unpaid'],
   'assistant.pendingTtlMinutes': 15,
   'attendance.offlineLateSyncHours': 12,
+  /** Sent in staff invites. Replace with the real Play Store link at launch. */
+  'app.downloadUrl': 'https://play.google.com/store/apps/details?id=app.staffmint',
+  /** Days an owner can restore a business they closed. */
+  'accounts.restoreDays': 30,
 };
 
 /** India national + major holidays template (editable per company). Dates for 2026–2027. */

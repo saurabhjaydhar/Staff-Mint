@@ -123,16 +123,19 @@ describe('one number, many businesses', () => {
     expect(back.memberships).toHaveLength(2);
   });
 
-  it('promoting staff to manager updates that business only and ends its sessions', async () => {
+  it('promoting staff to manager applies at once without logging them out', async () => {
     const owner = await createOwner();
     const phone = nextPhone();
     const emp = await addEmployee(owner, { phone });
     const login = await otpLogin(phone, 'phone-m');
     await api().post(`${V}/employees/${emp.id}/role`).set(auth(owner.token)).send({ role: 'manager' }).expect(200);
-    await api().post(`${V}/auth/refresh`).send({ refreshToken: login.refreshToken }).expect(401);
-    const again = await otpLogin(phone, 'phone-m');
-    expect(again.user.role).toBe('manager');
-    expect((await api().get(`${V}/employees`).set(auth(again.accessToken))).status).toBe(200);
+    // The old token is told to refresh; the refresh says what changed.
+    const stale = await api().get(`${V}/me`).set(auth(login.accessToken));
+    expect(stale.status).toBe(401);
+    expect(stale.body.error).toMatchObject({ code: 'TOKEN_EXPIRED', details: { reason: 'account_changed' } });
+    const r = await api().post(`${V}/auth/refresh`).send({ refreshToken: login.refreshToken }).expect(200);
+    expect(r.body.data.accountChange).toMatchObject({ kind: 'role_changed', role: 'manager' });
+    expect((await api().get(`${V}/employees`).set(auth(r.body.data.accessToken))).status).toBe(200);
   });
 
   it('an existing user can be added as accountant and gets one more account', async () => {

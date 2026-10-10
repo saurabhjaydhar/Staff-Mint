@@ -116,4 +116,40 @@ void main() {
     await client(adapter).post('/auth/otp/request', body: {'phone': '9876543210'}, auth: false);
     expect(adapter.requests.single.headers.containsKey('Authorization'), isFalse);
   });
+
+  test('a refresh that moved the phone to another account reports why', () async {
+    Map<String, dynamic>? change;
+    final adapter = FakeAdapter((o) async {
+      if (o.path.endsWith('/auth/refresh')) {
+        return const FakeResponse(200, {
+          'data': {
+            'accessToken': 'new-access',
+            'refreshToken': 'refresh-2',
+            'accountChange': {'kind': 'ended', 'reason': 'removed', 'companyName': 'Gupta Sweets', 'role': 'owner'},
+          },
+        });
+      }
+      if (o.headers['Authorization'] == 'Bearer old-access') {
+        return const FakeResponse(401, {
+          'error': {
+            'code': 'TOKEN_EXPIRED',
+            'message': 'Your access to this business changed',
+            'details': {'reason': 'account_changed'},
+          },
+        });
+      }
+      return const FakeResponse(200, {'data': 'next account'});
+    });
+    final c = ApiClient.create(
+      tokens: tokens,
+      baseUrl: 'http://test/api/v1',
+      adapter: adapter,
+      onSessionExpired: () => expired = true,
+      onAccountChanged: (j) => change = j,
+    );
+    expect(await c.get('/me'), 'next account');
+    expect(change?['companyName'], 'Gupta Sweets');
+    expect(expired, isFalse);
+    expect(await tokens.readRefreshToken(), 'refresh-2');
+  });
 }

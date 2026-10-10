@@ -369,6 +369,15 @@ class _ProfileBody extends ConsumerWidget {
                       : null,
                   onTap: m.id == session.activeMembershipId ? null : () => openAccount(context, ref, m),
                 ),
+            // Staff, managers and accountants can step away from a business themselves.
+            if (session.activeMembership != null && session.activeMembership!.role != UserRole.owner)
+              _Row(
+                key: const Key('rowLeaveBusiness'),
+                icon: Icons.exit_to_app_rounded,
+                label: s.leaveBusiness,
+                danger: true,
+                onTap: () => _confirmLeave(context, ref, session.activeMembership!),
+              ),
             _Row(
               key: const Key('rowNewBusiness'),
               icon: Icons.add_business_rounded,
@@ -414,6 +423,24 @@ class _ProfileBody extends ConsumerWidget {
           const SizedBox(height: 32),
       ],
     );
+  }
+}
+
+Future<void> _confirmLeave(BuildContext context, WidgetRef ref, Membership m) async {
+  final s = context.s;
+  final ok = await confirmDialog(
+    context,
+    title: s.leaveBusinessConfirm(m.companyName),
+    message: s.leaveBusinessBody,
+    confirmLabel: s.leaveBusiness,
+    destructive: true,
+  );
+  if (!ok || !context.mounted) return;
+  try {
+    await ref.read(authControllerProvider.notifier).leaveAccount(m.id);
+    if (context.mounted) showSnack(context, s.leftBusiness(m.companyName));
+  } catch (e) {
+    if (context.mounted) showError(context, e);
   }
 }
 

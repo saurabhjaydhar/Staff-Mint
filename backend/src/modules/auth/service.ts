@@ -77,15 +77,38 @@ async function resolveUser(phone: string): Promise<UserDoc> {
 }
 
 /** Login result: the session opens in the most recent business; the app asks when there is more than one. */
-async function sessionResult(user: UserDoc, membership: MembershipDoc | null, list: MembershipDoc[], tokens: { accessToken: string; refreshToken: string }) {
+async function sessionResult(user: UserDoc, membership: MembershipDoc | null, list: MembershipDoc[], tokens: { accessToken: string; refreshToken: string }, deviceId?: string | null) {
+  const views = await membershipViews(list, deviceId);
   return {
     ...tokens,
     user: userView(user),
     needsCompanySetup: !membership,
     activeMembershipId: membership ? String(membership._id) : null,
-    memberships: await membershipViews(list),
+    memberships: views,
     needsAccountChoice: list.length > 1,
+    /** Staff accounts locked to another phone; with no business open the app offers "Request device change". */
+    blockedAccounts: views.filter((v) => v.lockedToOtherPhone),
   };
+}
+
+/**
+ * Open [m] (or no business) on this device: bind the staff phone, mirror it on
+ * the user, retire the device's previous token and issue new ones. Used by
+ * switch, leave, close and restore.
+ */
+export async function openSession(user: UserDoc, m: MembershipDoc | null, deviceId?: string | null, oldRefreshToken?: string) {
+  if (m) await bindDevice(m, deviceId);
+  await activate(user, m);
+  if (oldRefreshToken) await RefreshToken.updateOne({ tokenHash: sha256(oldRefreshToken), userId: user._id }, { revokedAt: new Date() });
+  const tokens = await issueTokens(user, deviceId ?? undefined, undefined, m);
+  return sessionResult(user, m, await activeMemberships(user._id), tokens, deviceId);
+}
+
+/** The device's current account if it is still open, else the best one left. */
+export async function currentOrDefault(user: UserDoc, deviceId?: string | null, refreshToken?: string) {
+  const doc = refreshToken ? await RefreshToken.findOne({ tokenHash: sha256(refreshToken), userId: user._id }).lean() : null;
+  const cur = doc?.membershipId ? await Membership.findOne({ _id: doc.membershipId, userId: user._id, status: 'active' }) : null;
+  return cur ?? (await defaultMembership(user, deviceId)).chosen;
 }
 
 export async function verifyOtp(input: { phone: string; code: string; deviceId: string; deviceName?: string }) {
@@ -97,7 +120,7 @@ export async function verifyOtp(input: { phone: string; code: string; deviceId: 
   user.lastLoginAt = new Date();
   await activate(user, chosen);
   const tokens = await issueTokens(user, input.deviceId, undefined, chosen);
-  return sessionResult(user, chosen, list, tokens);
+  return sessionResult(user, chosen, list, tokens, input.deviceId);
 }
 
 /** Open another of the person's businesses on this device. */
@@ -107,13 +130,9 @@ export async function switchMembership(userId: Types.ObjectId | string, input: {
   const m = await Membership.findOne({ _id: input.membershipId, userId: user._id, status: 'active' });
   if (!m) throw new AppError('NOT_FOUND', 'This account is not available any more');
   if (!deviceAllowed(m, input.deviceId)) {
-    throw new AppError('DEVICE_NOT_BOUND', 'This staff account is linked to another phone. Ask your employer to reset your device.');
+    throw new AppError('DEVICE_NOT_BOUND', 'This staff account is linked to another phone. Ask your employer to approve this phone.', { membershipId: String(m._id), reason: 'device_locked' });
   }
-  await bindDevice(m, input.deviceId);
-  await activate(user, m);
-  if (input.refreshToken) await RefreshToken.updateOne({ tokenHash: sha256(input.refreshToken), userId: user._id }, { revokedAt: new Date() });
-  const tokens = await issueTokens(user, input.deviceId, undefined, m);
-  return sessionResult(user, m, await activeMemberships(user._id), tokens);
+  return openSession(user, m, input.deviceId, input.refreshToken);
 }
 
 export function userView(u: any) {
@@ -141,6 +160,7 @@ export async function issueTokens(
     cid: membership ? String(membership.companyId) : user.companyId ? String(user.companyId) : null,
     eid: membership?.employeeId ? String(membership.employeeId) : membership ? null : user.employeeId ? String(user.employeeId) : null,
     mid: membership ? String(membership._id) : null,
+    did: deviceId ?? null,
   });
   const refreshToken = randomToken(48);
   await RefreshToken.create({
@@ -148,6 +168,7 @@ export async function issueTokens(
     tokenHash: sha256(refreshToken),
     family: family ?? randomToken(12),
     membershipId: membership?._id ?? null,
+    role: membership?.role ?? null,
     deviceId,
     expiresAt: new Date(Date.now() + env.JWT_REFRESH_TTL_DAYS * 86400_000),
   });
@@ -167,7 +188,8 @@ export async function refresh(refreshToken: string) {
   if (!user || user.deletedAt) throw new AppError('UNAUTHORIZED', 'User not found');
   await ensureLegacyMembership(user);
   // Stay in the same business on this device while that access lasts.
-  let m = doc.membershipId ? await Membership.findOne({ _id: doc.membershipId, userId: user._id, status: 'active' }) : null;
+  const was = doc.membershipId ? await Membership.findOne({ _id: doc.membershipId, userId: user._id }) : null;
+  let m = was?.status === 'active' ? was : null;
   if (!m && !doc.membershipId && user.companyId) m = await Membership.findOne({ userId: user._id, companyId: user.companyId, status: 'active' });
   if (!m) {
     // No business yet ("Check again" on the waiting screen) or access was removed: pick what is available now.
@@ -180,7 +202,25 @@ export async function refresh(refreshToken: string) {
   doc.revokedAt = new Date();
   doc.replacedBy = sha256(tokens.refreshToken);
   await doc.save();
-  return tokens;
+  return { ...tokens, accountChange: await describeChange(was, doc.role ?? null, m) };
+}
+
+/**
+ * Tells the app why its business or role changed on refresh, so it can reload
+ * and say so ("Your access to Gupta Sweets ended"). Null when nothing changed.
+ */
+async function describeChange(was: MembershipDoc | null, oldRole: string | null, now: MembershipDoc | null) {
+  if (!was) return null;
+  const sameAccount = now && String(now._id) === String(was._id);
+  if (sameAccount && (!oldRole || oldRole === now.role)) return null;
+  const [view] = await membershipViews([was]);
+  return {
+    kind: sameAccount ? ('role_changed' as const) : ('ended' as const),
+    reason: sameAccount ? null : (was.endedReason ?? 'removed'),
+    companyName: view?.companyName ?? '',
+    role: now?.role ?? null,
+    activeMembershipId: now ? String(now._id) : null,
+  };
 }
 
 export async function logout(refreshToken: string) {

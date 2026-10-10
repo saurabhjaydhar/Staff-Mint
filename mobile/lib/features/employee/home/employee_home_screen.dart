@@ -17,6 +17,7 @@ import '../../../core/widgets/common.dart';
 import '../../../core/widgets/month_dots.dart';
 import '../../../core/widgets/skeleton.dart';
 import '../../../core/widgets/success_screen.dart';
+import '../../accounts/accounts_screen.dart' show BusinessSwitchChip;
 import '../../auth/auth_controller.dart';
 import '../employee_providers.dart';
 import '../punch/punch_capture.dart';
@@ -289,6 +290,7 @@ class _EmployeeHomeScreenState extends ConsumerState<EmployeeHomeScreen> {
           padding: const EdgeInsets.only(bottom: 24),
           children: [
             ScreenHeader(subtitle: subtitle, title: s.hello(session.employee?.name ?? session.user?.name ?? '')),
+            const BusinessSwitchChip(),
             if (session.company?.settings.faceMatchPolicy == 'review' && session.employee?.faceStatus == 'none')
               Card(
                 key: const Key('faceSetupBanner'),

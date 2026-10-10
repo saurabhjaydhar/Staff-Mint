@@ -34,6 +34,9 @@ class Dates {
 
   static bool isSameDay(DateTime a, DateTime b) => a.year == b.year && a.month == b.month && a.day == b.day;
 
+  /// `14 Oct` (or Hindi month names when [locale] is `hi`).
+  static String dayMonth(DateTime d, [String locale = 'en']) => _fmt('d MMM', locale).format(d);
+
   /// `14 Oct 2026` (or Hindi month names when [locale] is `hi`).
   static String pretty(DateTime d, [String locale = 'en']) => _fmt('d MMM yyyy', locale).format(d);
 

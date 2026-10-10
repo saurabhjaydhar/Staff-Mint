@@ -81,6 +81,14 @@ export default function StaffPage() {
     });
   }
 
+  async function invite(emp: Employee) {
+    const res = await action.run(`invite:${emp.id}`, () => api.post<{ invitedAt: string }>(`/employees/${emp.id}/invite`));
+    if (res.ok) {
+      employees.setData((prev) => (prev ?? []).map((e) => (e.id === emp.id ? { ...e, invitedAt: res.value.invitedAt } : e)));
+      toast(t("acc_invite_sent"));
+    }
+  }
+
   async function resetDevice(emp: Employee) {
     if (!window.confirm(`Reset the registered phone for ${emp.name}? They can then log in from a new phone.`)) return;
     const res = await action.run(`reset:${emp.id}`, () => api.post<Employee>(`/employees/${emp.id}/reset-device`));
@@ -222,13 +230,18 @@ export default function StaffPage() {
                       </Select>
                     </Td>
                     <Td>
-                      {emp.hasDevice ? <Badge tone="mint">Registered</Badge> : <Badge>Not yet</Badge>}
+                      {emp.hasDevice ? <Badge tone="mint">Registered</Badge> : emp.linked === false && !inactive ? <Badge tone="amber">{t("acc_not_joined")}</Badge> : <Badge>Not yet</Badge>}
                       {inactive && <Badge className="ml-1">Inactive</Badge>}
                     </Td>
                     <Td className="text-right whitespace-nowrap">
                       {emp.hasDevice && !inactive && (
                         <Button size="sm" variant="ghost" loading={action.busy === `reset:${emp.id}`} onClick={() => resetDevice(emp)}>
                           Reset device
+                        </Button>
+                      )}
+                      {emp.linked === false && !inactive && (
+                        <Button size="sm" variant="ghost" data-invite={emp.id} loading={action.busy === `invite:${emp.id}`} onClick={() => invite(emp)}>
+                          {emp.invitedAt ? t("acc_resend") : t("acc_invite")}
                         </Button>
                       )}
                       {!inactive && (

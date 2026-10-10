@@ -25,7 +25,11 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
   };
   if (claims.mid) {
     const m = await Membership.findOne({ _id: claims.mid, userId: user._id }).lean();
-    if (!m || m.status !== 'active') throw new AppError('UNAUTHORIZED', 'Your access to this business has changed. Please sign in again.');
+    // Access ended or the role changed: the app refreshes (as for an expired token) and the
+    // refresh moves this device to what the person can open now. Nobody is logged out.
+    if (!m || m.status !== 'active' || m.role !== claims.role) {
+      throw new AppError('TOKEN_EXPIRED', 'Your access to this business changed', { reason: 'account_changed' });
+    }
     access = { role: m.role, companyId: m.companyId, employeeId: m.employeeId ?? null, branchIds: (m.branchIds ?? []) as Types.ObjectId[], membershipId: String(m._id) };
   }
   req.auth = {
@@ -34,6 +38,7 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
     companyId: access.companyId ? String(access.companyId) : null,
     employeeId: access.employeeId ? String(access.employeeId) : null,
     membershipId: access.membershipId,
+    deviceId: claims.did ?? null,
   };
   const lang = (req.headers['accept-language'] as string | undefined)?.slice(0, 2);
   if (access.companyId) {

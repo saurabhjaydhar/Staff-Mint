@@ -1,5 +1,4 @@
 import { Types } from 'mongoose';
-import { AppError } from '../../lib/errors.js';
 import { logger } from '../../lib/logger.js';
 import { Company, Employee, Membership, RefreshToken, type MembershipDoc, type UserDoc } from '../../models/index.js';
 
@@ -40,12 +39,20 @@ export async function ensureLegacyMembership(user: UserDoc): Promise<void> {
  * stays) a staff membership. Covers numbers added before they first logged
  * in, and people who work at more than one shop. Returns how many it added.
  */
-export async function attachStaffMemberships(user: UserDoc): Promise<number> {
+export async function attachStaffMemberships(user: UserDoc, opts: { force?: (Types.ObjectId | string)[] } = {}): Promise<number> {
   const emps = await Employee.find({ phone: user.phone, status: 'active', deletedAt: null }).setOptions({ skipTenant: true });
+  if (!emps.length) return 0;
+  const closed = new Set(
+    (await Company.find({ _id: { $in: emps.map((e) => e.companyId) }, closedAt: { $ne: null } }).select('_id').lean()).map((c) => String(c._id)),
+  );
+  const forced = new Set((opts.force ?? []).map(String));
   let added = 0;
   for (const emp of emps) {
+    if (closed.has(String(emp.companyId))) continue; // a closed business gives no access
     const existing = await Membership.findOne({ userId: user._id, companyId: emp.companyId });
     if (existing && (existing.role === 'owner' || existing.role === 'ca')) continue; // never downgrade an owner/CA
+    // Someone who left stays out until the owner adds them again (re-invite or reactivate).
+    if (existing?.status === 'inactive' && existing.endedReason === 'left' && String(existing.employeeId) === String(emp._id) && !forced.has(String(emp._id))) continue;
     const role = (emp.appRole ?? 'employee') as MembershipRole;
     const branchIds = role === 'manager' && emp.branchId ? [emp.branchId] : [];
     if (existing) {
@@ -56,6 +63,9 @@ export async function attachStaffMemberships(user: UserDoc): Promise<number> {
         existing.role = role;
         existing.branchIds = branchIds as any;
         existing.deviceIds = [];
+        existing.endedAt = null;
+        existing.endedReason = null;
+        existing.noticeDismissedAt = null;
         await existing.save();
         added++;
       }
@@ -79,7 +89,10 @@ export async function activeMemberships(userId: Types.ObjectId) {
 }
 
 /** Small summary for choosers and switchers. */
-export async function membershipViews(list: { _id: Types.ObjectId; companyId: Types.ObjectId; role: string; employeeId?: Types.ObjectId | null; lastUsedAt?: Date | null }[]) {
+export async function membershipViews(
+  list: { _id: Types.ObjectId; companyId: Types.ObjectId; role: string; employeeId?: Types.ObjectId | null; lastUsedAt?: Date | null; deviceIds?: string[] | null }[],
+  deviceId?: string | null,
+) {
   const companies = await Company.find({ _id: { $in: list.map((m) => m.companyId) } }).select('name businessType').lean();
   const names = new Map(companies.map((c) => [String(c._id), c]));
   return list.map((m) => ({
@@ -89,6 +102,8 @@ export async function membershipViews(list: { _id: Types.ObjectId; companyId: Ty
     businessType: names.get(String(m.companyId))?.businessType ?? null,
     role: m.role,
     lastUsedAt: m.lastUsedAt ?? null,
+    /** Staff account bound to another phone (only known when the device is). */
+    lockedToOtherPhone: deviceId ? !deviceAllowed(m, deviceId) : false,
   }));
 }
 
@@ -132,10 +147,9 @@ export async function activate(user: UserDoc, m: MembershipDoc | null) {
 export async function defaultMembership(user: UserDoc, deviceId?: string | null) {
   const list = await activeMemberships(user._id);
   const usable = list.find((m) => deviceAllowed(m, deviceId)) ?? null;
-  if (!usable && list.length) {
-    throw new AppError('DEVICE_NOT_BOUND', 'This account is linked to another phone. Ask your employer to reset your device.');
-  }
-  return { list, chosen: usable };
+  // Staff accounts locked to another phone: the app offers "Request device change" instead of a dead end.
+  const blocked = list.filter((m) => !deviceAllowed(m, deviceId));
+  return { list, chosen: usable, blocked };
 }
 
 /** Log out every device session open in these memberships. */
@@ -144,10 +158,35 @@ export async function revokeMembershipSessions(membershipIds: (Types.ObjectId | 
   await RefreshToken.updateMany({ membershipId: { $in: membershipIds }, revokedAt: null }, { revokedAt: new Date() });
 }
 
+export type EndReason = 'removed' | 'left' | 'closed' | 'phone_changed' | 'import_rollback';
+
+/**
+ * End access. Sessions are not logged out: their next request is told the
+ * account changed and their refresh moves them to another account (or to
+ * "no business" with a notice) — removal from one shop never logs anyone
+ * out of the others.
+ */
+export async function endMemberships(filter: Record<string, unknown>, reason: EndReason) {
+  return Membership.updateMany({ ...filter, status: 'active' }, { status: 'inactive', endedAt: new Date(), endedReason: reason, noticeDismissedAt: null });
+}
+
 /** End staff access to a business (deactivation, removal, phone change). */
-export async function deactivateStaffMemberships(companyId: Types.ObjectId, employeeIds: Types.ObjectId[]) {
-  const ms = await Membership.find({ companyId, employeeId: { $in: employeeIds }, status: 'active' }).select('_id').lean();
-  if (!ms.length) return;
-  await Membership.updateMany({ _id: { $in: ms.map((m) => m._id) } }, { status: 'inactive' });
-  await revokeMembershipSessions(ms.map((m) => m._id));
+export async function deactivateStaffMemberships(companyId: Types.ObjectId, employeeIds: Types.ObjectId[], reason: EndReason = 'removed') {
+  await endMemberships({ companyId, employeeId: { $in: employeeIds } }, reason);
+}
+
+/** Recently ended accounts the person hasn't been told about yet (last 30 days; leaving was their own choice). */
+export async function endedNotices(userId: Types.ObjectId) {
+  const list = await Membership.find({
+    userId,
+    status: 'inactive',
+    endedReason: { $in: ['removed', 'closed', 'phone_changed', 'import_rollback'] },
+    endedAt: { $gte: new Date(Date.now() - 30 * 86400_000) },
+    noticeDismissedAt: null,
+  })
+    .sort({ endedAt: -1 })
+    .limit(5)
+    .lean();
+  const views = await membershipViews(list);
+  return views.map((v, i) => ({ ...v, endedAt: list[i].endedAt, endedReason: list[i].endedReason }));
 }

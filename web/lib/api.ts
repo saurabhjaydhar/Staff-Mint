@@ -235,9 +235,13 @@ export class ApiClient {
         this.onAuthFailure?.(e);
         throw e;
       }
-      const body = (await res.json()) as Envelope<Tokens>;
+      const body = (await res.json()) as Envelope<Tokens & { accountChange?: unknown }>;
       const tokens = { accessToken: body.data.accessToken, refreshToken: body.data.refreshToken };
       this.tokens.set(tokens);
+      // The refresh moved this browser to another business (access ended / role changed): the app reloads and says why.
+      if (body.data.accountChange && typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("staffmint:account-changed", { detail: body.data.accountChange }));
+      }
       return tokens;
     };
     this.refreshing = run().finally(() => {

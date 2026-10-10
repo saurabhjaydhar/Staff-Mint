@@ -140,6 +140,10 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   @override
   Widget build(BuildContext context) {
     final s = context.s;
+    final locked = ref.watch(authControllerProvider.select((x) => x.blockedAccounts));
+    if (_who == null && !widget.another && locked.isNotEmpty) {
+      return DeviceLockedView(onOwnBusiness: () => setState(() => _who = 'owner'));
+    }
     if (_who == null) {
       return WhoAreYouView(
         onOwner: () => setState(() => _who = 'owner'),

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { errorMessage } from "@/lib/api";
 import { ROLE_KEY, ROLE_TONE, businessIcon, newBusinessLabel, webCanOpen } from "@/lib/accounts";
 import type { Membership } from "@/lib/types";
+import { ClosedBusinesses } from "./AccountNotices";
 import { useAuth, useI18n, useToast } from "./providers";
 import { Badge, Spinner, cx } from "./ui";
 
@@ -23,7 +24,7 @@ export function AccountChooser({
   onChosen: (m: Membership, switched: boolean) => void;
   showNew?: boolean;
 }) {
-  const { switchAccount } = useAuth();
+  const { switchAccount, me } = useAuth();
   const { t } = useI18n();
   const toast = useToast();
   const [busy, setBusy] = useState<string | null>(null);
@@ -80,6 +81,7 @@ export function AccountChooser({
           </button>
         );
       })}
+      {showNew && <ClosedBusinesses list={me?.closedBusinesses ?? []} />}
       {showNew && (
         <Link
           href="/business/new"

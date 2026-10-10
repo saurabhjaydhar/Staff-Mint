@@ -18,6 +18,8 @@ class Employee {
     this.consentAt,
     this.faceStatus = 'none',
     this.hasDevice = false,
+    this.linked = false,
+    this.invitedAt,
     this.language = 'en',
     this.leaveBalance,
     this.advanceBalancePaise,
@@ -41,6 +43,10 @@ class Employee {
   /// Face check photo: none | pending (owner to approve) | approved.
   final String faceStatus;
   final bool hasDevice;
+
+  /// Has opened StaffMint for this business; when the app invite was last sent.
+  final bool linked;
+  final DateTime? invitedAt;
   final String language;
 
   /// Present only on `GET /employees/:id`.
@@ -69,6 +75,8 @@ class Employee {
       consentAt: asStringOrNull(consent['at']),
       faceStatus: asString(asMap(j['face'])['status'], 'none'),
       hasDevice: asBool(j['hasDevice']),
+      linked: asBool(j['linked']),
+      invitedAt: asDateTimeOrNull(j['invitedAt']),
       language: asString(j['language'], 'en'),
       leaveBalance: j['leaveBalance'] is Map ? LeaveBalance.fromJson(asMap(j['leaveBalance'])) : null,
       advanceBalancePaise: asIntOrNull(j['advanceBalancePaise']),

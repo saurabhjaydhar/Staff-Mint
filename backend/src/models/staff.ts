@@ -29,6 +29,8 @@ const employeeSchema = new Schema(
     language: { type: String, enum: ['en', 'hi'], default: 'hi' },
     bankDetailsEnc: { type: String, default: null }, // field-level encrypted JSON
     bankUpdatedAt: { type: Date, default: null },
+    /** Last app invite sent to this staff number (WhatsApp/SMS). */
+    invitedAt: { type: Date, default: null },
     emergencyContact: { name: String, phone: String, relation: String },
     importSessionId: { type: Schema.Types.ObjectId, ref: 'ImportSession', default: null },
     openingLastNetPaise: { type: Number, default: null }, // last salary from the previous app (import), used for anomaly checks

@@ -4,6 +4,7 @@ import '../../features/auth/auth_controller.dart';
 import '../i18n/locale_provider.dart';
 import '../storage/providers.dart';
 import 'api_client.dart';
+import 'services/accounts_api.dart';
 import 'services/attendance_api.dart';
 import 'services/auth_api.dart';
 import 'services/company_api.dart';
@@ -20,6 +21,7 @@ final apiClientProvider = Provider<ApiClient>((ref) {
     tokens: ref.watch(tokenStorageProvider),
     languageCode: () => ref.read(localeProvider),
     onSessionExpired: () => ref.read(authControllerProvider.notifier).onSessionExpired(),
+    onAccountChanged: (change) => ref.read(authControllerProvider.notifier).onAccountChanged(change),
   );
 });
 
@@ -35,4 +37,5 @@ final payrollApiProvider = Provider((ref) => PayrollApi(ref.watch(apiClientProvi
 final reportsApiProvider = Provider((ref) => ReportsApi(ref.watch(apiClientProvider)));
 final assistantApiProvider = Provider((ref) => AssistantApi(ref.watch(apiClientProvider)));
 final billingApiProvider = Provider((ref) => BillingApi(ref.watch(apiClientProvider)));
+final accountsApiProvider = Provider((ref) => AccountsApi(ref.watch(apiClientProvider)));
 final auditApiProvider = Provider((ref) => AuditApi(ref.watch(apiClientProvider)));

@@ -119,6 +119,7 @@ describe('WhatsApp owner commands (same Mint brain)', () => {
     const { messaging } = await mocks();
     const { owner, suresh } = await shop();
     await setPlan(owner.companyId, 'growth');
+    messaging.outbox.length = 0; // staff invites sent while setting up the shop
     const wait = async (n: number) => {
       for (let i = 0; i < 50 && messaging.outbox.length < n; i++) await new Promise((r) => setTimeout(r, 20));
     };

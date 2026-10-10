@@ -305,7 +305,7 @@ export async function rollbackImport(ctx: Ctx, id: string) {
     const empIds = (c.employees ?? []).map((x: string) => new Types.ObjectId(x));
     if (empIds.length) {
       // Imported staff who already logged in lose access to this business only; their own accounts stay.
-      await deactivateStaffMemberships(ctx.companyId, empIds);
+      await deactivateStaffMemberships(ctx.companyId, empIds, 'import_rollback');
       const r = await Employee.updateMany({ companyId: ctx.companyId, _id: { $in: empIds } }, { deletedAt: new Date(), status: 'inactive' });
       removed += r.modifiedCount;
     }

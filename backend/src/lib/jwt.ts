@@ -9,6 +9,8 @@ export interface AccessClaims {
   eid: string | null;
   /** Membership the session is open in (absent on tokens issued before memberships). */
   mid?: string | null;
+  /** Device the session belongs to (lets /me say which staff accounts are locked to another phone). */
+  did?: string | null;
 }
 
 export function signAccessToken(claims: AccessClaims): string {

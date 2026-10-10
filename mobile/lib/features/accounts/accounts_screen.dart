@@ -11,11 +11,16 @@ import '../../core/widgets/bilingual.dart';
 import '../../core/widgets/common.dart';
 import '../auth/auth_controller.dart';
 import '../setup/setup_screen.dart' show businessIcons;
+import '../setup/who_are_you.dart' show RestoreBusinessCard;
 
 /// Opens [m] on this phone and lands on its home screen. Shared by the
 /// chooser and the Profile list. Returns true when the account changed.
 Future<bool> openAccount(BuildContext context, WidgetRef ref, Membership m) async {
   final s = context.s;
+  if (m.lockedToOtherPhone) {
+    await askToRequestPhone(context, ref, m);
+    return false;
+  }
   final ctrl = ref.read(authControllerProvider.notifier);
   final wasActive = ref.read(authControllerProvider).activeMembershipId == m.id;
   try {
@@ -42,6 +47,30 @@ Future<bool> openAccount(BuildContext context, WidgetRef ref, Membership m) asyn
   if (!wasActive) showSnack(context, s.switchedTo(m.companyName));
   context.go(session.isEmployee ? Routes.employeeHome : Routes.ownerHome);
   return !wasActive;
+}
+
+/// Staff account bound to another phone: explain, and send the owner a request.
+Future<void> askToRequestPhone(BuildContext context, WidgetRef ref, Membership m) async {
+  final s = context.s;
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      icon: const Icon(Icons.phonelink_lock_rounded, color: AppColors.indigo, size: 32),
+      title: Text(s.lockedTitle(m.companyName)),
+      content: Text(s.lockedBody),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(s.cancel)),
+        FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(s.requestThisPhone)),
+      ],
+    ),
+  );
+  if (ok != true || !context.mounted) return;
+  try {
+    await ref.read(authControllerProvider.notifier).requestDeviceChange(m.id);
+    if (context.mounted) showSnack(context, s.requestSent);
+  } catch (e) {
+    if (context.mounted) showError(context, e);
+  }
 }
 
 /// "Which business?" — after login with more than one account, and from
@@ -104,6 +133,7 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
               ),
               const SizedBox(height: 12),
             ],
+            for (final c in session.closedBusinesses) ...[RestoreBusinessCard(business: c), const SizedBox(height: 12)],
             const SizedBox(height: 4),
             _NewBusinessTile(
               label: ownsOne ? s.addAnotherBusiness : s.startOwnBusiness,
@@ -206,6 +236,15 @@ class AccountCard extends StatelessWidget {
                               style: TextStyle(color: chipFg, fontWeight: FontWeight.w700, fontSize: 12.5),
                             ),
                           ),
+                          if (m.lockedToOtherPhone)
+                            Text(
+                              s.lockedToOtherPhone,
+                              style: const TextStyle(
+                                color: AppColors.indigo,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           if (active)
                             Text(
                               s.openNow,
@@ -282,4 +321,67 @@ class _NewBusinessTile extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// "Gupta Sweets ▾" under a home header when this number has several
+/// accounts: one tap to switch, and staff at two shops always see which one
+/// they are checking in to.
+class BusinessSwitchChip extends ConsumerWidget {
+  const BusinessSwitchChip({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final session = ref.watch(authControllerProvider);
+    if (!session.hasManyAccounts) return const SizedBox.shrink();
+    final m = session.activeMembership;
+    final s = context.s;
+    final name = m?.companyName ?? session.company?.name ?? '';
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 2, 14, 4),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Semantics(
+          button: true,
+          label: '${s.switchAccount}: $name',
+          child: Material(
+            color: AppColors.mintFaint,
+            shape: const StadiumBorder(side: BorderSide(color: AppColors.mintLight, width: 1.4)),
+            child: InkWell(
+              key: const Key('businessChip'),
+              customBorder: const StadiumBorder(),
+              onTap: () => context.push(Routes.accounts),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 6, 8, 6),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      businessIcons[m?.businessType] ?? Icons.storefront_rounded,
+                      size: 18,
+                      color: AppColors.mintDark,
+                    ),
+                    const SizedBox(width: 6),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 220),
+                      child: Text(
+                        name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.mintDark),
+                      ),
+                    ),
+                    if (m != null) ...[
+                      const SizedBox(width: 6),
+                      Text('· ${s.roleLabel(m.role)}', style: const TextStyle(color: AppColors.muted, fontSize: 13)),
+                    ],
+                    const Icon(Icons.arrow_drop_down_rounded, color: AppColors.mintDark),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

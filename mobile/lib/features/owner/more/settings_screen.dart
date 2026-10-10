@@ -227,6 +227,14 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () => context.push(Routes.ownerHolidays),
               ),
+              ListTile(
+                key: const Key('settingsAccountants'),
+                leading: const Icon(Icons.calculate_rounded),
+                title: Text(s.accountantsBi.text),
+                subtitle: Text(s.accountantsHint),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => context.push(Routes.ownerAccountants),
+              ),
             ],
           ),
         ),
@@ -240,7 +248,72 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
             ),
           ),
         ),
+        SectionHeader(s.dangerZone),
+        Card(
+          child: ListTile(
+            key: const Key('closeBusiness'),
+            leading: const Icon(Icons.store_mall_directory_outlined, color: AppColors.red),
+            title: Text(
+              s.closeBusiness,
+              style: const TextStyle(color: AppColors.red, fontWeight: FontWeight.w700),
+            ),
+            subtitle: Text(s.closeBusinessHint),
+            onTap: () => showCloseBusinessDialog(context, ref),
+          ),
+        ),
+        const SizedBox(height: 24),
       ],
     );
+  }
+}
+
+/// Type the business name to confirm; the phone then moves to the owner's next account.
+Future<void> showCloseBusinessDialog(BuildContext context, WidgetRef ref) async {
+  final s = context.s;
+  final name = ref.read(authControllerProvider).company?.name ?? '';
+  final ctrl = TextEditingController();
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setState) => AlertDialog(
+        title: Text(s.closeBusiness),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(s.closeBusinessHint),
+            const SizedBox(height: 14),
+            TextField(
+              key: const Key('closeConfirmName'),
+              controller: ctrl,
+              autofocus: true,
+              decoration: InputDecoration(labelText: s.typeNameToConfirm(name)),
+              onChanged: (_) => setState(() {}),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(s.cancel)),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.red),
+            onPressed: ctrl.text.trim().toLowerCase() == name.trim().toLowerCase() && name.isNotEmpty
+                ? () => Navigator.pop(ctx, true)
+                : null,
+            child: Text(s.closeForever),
+          ),
+        ],
+      ),
+    ),
+  );
+  final typed = ctrl.text;
+  ctrl.dispose();
+  if (ok != true || !context.mounted) return;
+  try {
+    await ref.read(authControllerProvider.notifier).closeBusiness(typed);
+    if (context.mounted) showSnack(context, s.businessClosed(name));
+  } on PendingPunchesException catch (e) {
+    if (context.mounted) showSnack(context, s.pendingPunchesBlock(e.count), error: true);
+  } catch (e) {
+    if (context.mounted) showError(context, e);
   }
 }

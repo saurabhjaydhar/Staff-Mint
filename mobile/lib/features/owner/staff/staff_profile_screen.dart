@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/api/providers.dart';
 import '../../../core/i18n/strings.dart';
@@ -236,6 +237,33 @@ class StaffProfileScreen extends ConsumerWidget {
                             )
                           : null,
                     ),
+                    // Not on the app yet: send (or resend) the WhatsApp invite with the app link.
+                    if (!e.linked && e.isActive)
+                      ListTile(
+                        key: const Key('inviteTile'),
+                        leading: const Icon(Icons.send_to_mobile_rounded, color: AppColors.amberDark),
+                        title: Text(s.appNotJoined),
+                        subtitle: e.invitedAt == null
+                            ? null
+                            : Text(
+                                s.invitedAgo(
+                                  DateFormat('d MMM, h:mm a', s.languageCode).format(e.invitedAt!.toLocal()),
+                                ),
+                              ),
+                        trailing: TextButton(
+                          key: const Key('inviteButton'),
+                          onPressed: () async {
+                            if (await runGuarded(
+                              context,
+                              () => ref.read(accountsApiProvider).invite(e.id),
+                              success: s.inviteSent,
+                            )) {
+                              invalidate();
+                            }
+                          },
+                          child: Text(e.invitedAt == null ? s.sendInvite : s.resendInvite),
+                        ),
+                      ),
                     ListTile(
                       leading: Icon(
                         e.locationConsent ? Icons.verified_user_rounded : Icons.privacy_tip_outlined,
