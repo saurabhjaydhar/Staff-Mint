@@ -236,6 +236,7 @@ function CompanySetup({ onDone }: { onDone: (tokens: { accessToken: string; refr
         <h1 className="text-xl font-semibold">{t("setup_title")}</h1>
         <p className="text-sm text-slate-500">You can change everything later in Settings.</p>
       </div>
+      <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900 ring-1 ring-amber-200">{t("setup_staff_note")}</p>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label={t("setup_business_name")}>
           {(id) => <Input id={id} value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Sharma Kirana Store" autoFocus />}

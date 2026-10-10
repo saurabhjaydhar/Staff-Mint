@@ -27,6 +27,10 @@ class FakeAuthApi implements AuthApi {
 
   @override
   Future<void> logout(String refreshToken) async {}
+
+  @override
+  Future<({String accessToken, String refreshToken})> refresh(String refreshToken) async =>
+      (accessToken: 'a2', refreshToken: 'r2');
 }
 
 void main() {

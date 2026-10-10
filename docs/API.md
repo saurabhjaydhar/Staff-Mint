@@ -203,3 +203,9 @@ Fields: `name, phone, ratePaise, wageType, designation, joiningDate, branch, adv
 - `error` (engine down, photo missing) only adds the `face_check_failed` flag. It never blocks or holds a check-in.
 - The reference photo is deleted when the staff member withdraws consent, when the owner resets it, and when the staff member is deactivated.
 - `FACE_PROVIDER=mock` refuses to decide in production, so a missing key cannot approve anyone.
+
+### Staff logins
+- A number that logged in before it was added as staff has an "unclaimed" login (owner role, no business). When an active staff record with that number exists, the login becomes that staff login: at OTP login, on `POST /auth/refresh` (the app's "Check again"), and as soon as the owner adds or edits the staff phone. Device binding then starts with the phone that logs in.
+- `POST /employees` and a phone change in `PATCH /employees/:id` return 409 with `details.reason`:
+  - `other_business`: the number already uses StaffMint for another business (as owner or staff).
+  - `owner_number`: the number is this business owner's own login.

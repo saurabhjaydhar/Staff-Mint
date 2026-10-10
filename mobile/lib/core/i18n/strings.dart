@@ -900,6 +900,26 @@ class S {
   String get invalidEmail => _t('Email looks wrong', 'ईमेल सही नहीं लगता');
   String get viewProfile => _t('View profile', 'प्रोफ़ाइल देखें');
   String get or => _t('or', 'या');
+
+  // ---- Owner or staff? ----
+  String get whoAreYou => _t('How will you use StaffMint?', 'आप StaffMint कैसे इस्तेमाल करेंगे?');
+  String get whoAreYouHint => _t('This number is new to StaffMint.', 'यह नंबर StaffMint पर नया है।');
+  String get iOwnBusiness => _t('I own a business', 'मेरा बिज़नेस है');
+  String get iOwnBusinessHint => _t('Set up my shop and add my staff', 'दुकान सेट करें और स्टाफ़ जोड़ें');
+  String get iWorkAtShop => _t('I work at a shop', 'मैं किसी दुकान पर काम करता/करती हूँ');
+  String get iWorkAtShopHint => _t('Mark my attendance and see my salary', 'हाज़िरी लगाएँ और सैलरी देखें');
+  String get askEmployerTitle => _t('Ask your employer to add you', 'मालिक से आपको जोड़ने को कहें');
+  String get askEmployerBody => _t(
+    'Your employer adds you in StaffMint with this mobile number. Then tap "Check again" — no need to log in again.',
+    'मालिक इसी मोबाइल नंबर से आपको StaffMint में जोड़ेंगे। फिर "फिर से जाँचें" दबाएँ — दोबारा लॉगिन की ज़रूरत नहीं।',
+  );
+  String get yourNumber => _t('Your number', 'आपका नंबर');
+  String get checkAgain => _t('Check again', 'फिर से जाँचें');
+  String get notAddedYet => _t(
+    'Not added yet. Ask your employer to add this number.',
+    'अभी तक नहीं जोड़ा गया। मालिक से यह नंबर जोड़ने को कहें।',
+  );
+  String get useAnotherNumber => _t('Use another number', 'दूसरा नंबर इस्तेमाल करें');
   String get hindi => 'हिन्दी';
   String get english => 'English';
 

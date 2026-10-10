@@ -159,6 +159,7 @@ const en = {
   role_ca: "Accountant",
   role_employee: "Staff",
   profile_test_code: "Test mode — your code is {code}",
+  setup_staff_note: "Work at a shop? Don't create a business. Ask your employer to add this mobile number, then use the StaffMint mobile app.",
 } as const;
 
 export type DictKey = keyof typeof en;
@@ -315,6 +316,7 @@ const hi: Dict = {
   role_ca: "अकाउंटेंट",
   role_employee: "स्टाफ़",
   profile_test_code: "टेस्ट मोड — आपका कोड {code} है",
+  setup_staff_note: "किसी दुकान पर काम करते हैं? बिज़नेस न बनाएँ। मालिक से यह मोबाइल नंबर जोड़ने को कहें, फिर StaffMint मोबाइल ऐप इस्तेमाल करें।",
 };
 
 export const dictionaries: Record<"en" | "hi", Dict> = { en, hi };

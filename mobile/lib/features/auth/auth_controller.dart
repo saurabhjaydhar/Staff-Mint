@@ -75,6 +75,20 @@ class AuthController extends Notifier<SessionState> {
     state = _fromMe(me, needsCompanySetupHint: needsCompanySetupHint);
   }
 
+  /// "Check again" for staff waiting to be added: new tokens (the server links
+  /// the number if the owner has added it), then a fresh session. True when
+  /// the number is now staff.
+  Future<bool> recheckStaffLink() async {
+    final tokens = ref.read(tokenStorageProvider);
+    final refresh = await tokens.readRefreshToken();
+    if (refresh == null) return false;
+    final t = await ref.read(authApiProvider).refresh(refresh);
+    await tokens.saveTokens(accessToken: t.accessToken, refreshToken: t.refreshToken);
+    await refreshMe();
+    final u = state.user;
+    return u != null && u.companyId != null && (u.isEmployee || u.role == 'manager');
+  }
+
   Future<void> createCompany(CreateCompanyRequest req) async {
     final res = await ref.read(companyApiProvider).create(req);
     await ref.read(tokenStorageProvider).saveTokens(accessToken: res.accessToken, refreshToken: res.refreshToken);
