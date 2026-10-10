@@ -3,11 +3,11 @@ import { AppError, notFound } from '../../lib/errors.js';
 import { normalizePhone } from '../../lib/phone.js';
 import { todayIn } from '../../lib/dates.js';
 import type { Ctx } from '../../lib/context.js';
-import { Branch, Company, Employee, SalaryStructure, Shift, User } from '../../models/index.js';
+import { Branch, Company, Employee, Membership, SalaryStructure, Shift, User } from '../../models/index.js';
 import { companyPlan, activeStaffCount } from '../billing/plans.js';
 import { audit } from '../audit/service.js';
 import { employeeView } from '../views.js';
-import { isUnclaimedLogin, linkStaffLogin, revokeAllForUser } from '../auth/service.js';
+import { activate, attachStaffMemberships, deactivateStaffMemberships, revokeMembershipSessions } from '../auth/memberships.js';
 import { advanceBalanceFor } from '../advances/service.js';
 import { getLeaveBalance } from '../leave/service.js';
 
@@ -37,10 +37,12 @@ export async function assertEmployeeInScope(ctx: Ctx, employeeId: string | Types
 }
 
 async function withDeviceFlags(emps: any[]) {
-  const userIds = emps.map((e) => e.userId).filter(Boolean);
-  const users = userIds.length ? await User.find({ _id: { $in: userIds } }).select('deviceIds').lean() : [];
-  const hasDevice = new Map(users.map((u) => [String(u._id), (u.deviceIds?.length ?? 0) > 0]));
-  return emps.map((e) => employeeView(e, { hasDevice: e.userId ? !!hasDevice.get(String(e.userId)) : false }));
+  const linked = emps.filter((e) => e.userId);
+  const ms = linked.length
+    ? await Membership.find({ companyId: linked[0].companyId, employeeId: { $in: linked.map((e) => e._id) } }).select('employeeId deviceIds').lean()
+    : [];
+  const hasDevice = new Map(ms.map((m) => [String(m.employeeId), (m.deviceIds?.length ?? 0) > 0]));
+  return emps.map((e) => employeeView(e, { hasDevice: e.userId ? !!hasDevice.get(String(e._id)) : false }));
 }
 
 export async function listEmployees(ctx: Ctx, q: { search?: string; status?: 'active' | 'inactive' | 'all'; branchId?: string }) {
@@ -107,41 +109,32 @@ export async function createEmployee(ctx: Ctx, input: EmployeeInput, opts: { ski
 }
 
 /**
- * A phone can be a staff login only if it isn't already in use by another
- * business (as owner or staff) or by this business's owner. Returns the
- * existing login, if any, so it can be attached after the record is saved.
+ * A phone can be staff here unless it is this business's owner or accountant.
+ * People who own or work at another business simply get one more membership.
+ * Returns the existing login, if any, so it can be attached after saving.
  */
 async function assertPhoneCanBeStaff(ctx: Ctx, phone: string, name: string) {
   const login = await User.findOne({ phone, deletedAt: null });
-  if (!login || isUnclaimedLogin(login)) return login;
-  const sameCompany = String(login.companyId) === String(ctx.companyId);
-  if (!sameCompany || login.role === 'owner' || login.role === 'ca') {
-    const reason = sameCompany ? 'owner_number' : 'other_business';
+  if (!login) return null;
+  const here = await Membership.findOne({ userId: login._id, companyId: ctx.companyId, status: 'active' }).lean();
+  if (here && (here.role === 'owner' || here.role === 'ca')) {
     throw new AppError(
       'CONFLICT',
-      sameCompany
-        ? `${phone} is the business owner's own number. Use ${name}'s personal number.`
-        : `${phone} already uses StaffMint for another business. Use a different number for ${name}.`,
-      { phone, reason },
+      here.role === 'owner' ? `${phone} is the business owner's own number. Use ${name}'s personal number.` : `${phone} is your accountant's number. Use ${name}'s personal number.`,
+      { phone, reason: here.role === 'owner' ? 'owner_number' : 'accountant_number' },
     );
   }
   return login;
 }
 
-/** Link a waiting login (unclaimed, or this company's old staff login) to the new record. */
+/** Give a waiting login its membership for this staff record right away. */
 async function attachLogin(ctx: Ctx, e: any, login: any) {
   if (!login) return;
-  if (isUnclaimedLogin(login)) {
-    await linkStaffLogin(login);
-    return;
+  if (await attachStaffMemberships(login)) {
+    if (!login.companyId) await activate(login, await Membership.findOne({ userId: login._id, companyId: ctx.companyId }));
+    else await login.save();
+    await audit(ctx, { action: 'employee.login.attach', entity: 'employee', entityId: e._id });
   }
-  // Same business, re-added after an earlier record was removed: point the login at the new record.
-  login.employeeId = e._id;
-  login.role = e.appRole ?? 'employee';
-  await login.save();
-  e.userId = login._id;
-  await e.save();
-  await audit(ctx, { action: 'employee.login.attach', entity: 'employee', entityId: e._id });
 }
 
 export async function bulkCreate(ctx: Ctx, list: EmployeeInput[]) {
@@ -185,9 +178,8 @@ export async function updateEmployee(ctx: Ctx, id: string, patch: Partial<Employ
     const waiting = phone !== e.phone ? await assertPhoneCanBeStaff(ctx, phone, e.name) : null;
     if (waiting) newLogin = waiting;
     if (phone !== e.phone && e.userId) {
-      // Phone change detaches the old login.
-      await revokeAllForUser(e.userId);
-      await User.updateOne({ _id: e.userId }, { deletedAt: new Date() });
+      // The old number loses access to this business only; that person's other businesses are untouched.
+      await deactivateStaffMemberships(ctx.companyId, [e._id]);
       e.userId = null;
     }
     e.phone = phone;
@@ -231,7 +223,7 @@ export async function deactivateEmployee(ctx: Ctx, id: string, reason?: string) 
   await e.save();
   // Face photo is personal data with no use after exit: delete it now.
   if (e.face?.refKey) await (await import('../face/service.js')).clearFace(e);
-  if (e.userId) await revokeAllForUser(e.userId);
+  await deactivateStaffMemberships(ctx.companyId, [e._id]);
   await audit(ctx, { action: 'employee.deactivate', entity: 'employee', entityId: e._id, before, after: { ...e.toObject(), reason } });
   return e;
 }
@@ -244,16 +236,23 @@ export async function reactivateEmployee(ctx: Ctx, id: string) {
   e.status = 'active';
   e.exitDate = undefined;
   await e.save();
+  if (e.userId) {
+    const user = await User.findOne({ _id: e.userId, deletedAt: null });
+    if (user) await attachStaffMemberships(user);
+  }
   await audit(ctx, { action: 'employee.reactivate', entity: 'employee', entityId: e._id, before, after: e });
   return e;
 }
 
 export async function resetDevice(ctx: Ctx, id: string) {
   const e = await assertEmployeeInScope(ctx, id);
-  if (e.userId) {
-    await User.updateOne({ _id: e.userId }, { deviceIds: [] });
-    await revokeAllForUser(e.userId);
+  // Only this business's binding: the person's other memberships keep their phones.
+  const ms = await Membership.find({ companyId: ctx.companyId, employeeId: e._id }).select('_id').lean();
+  if (ms.length) {
+    await Membership.updateMany({ _id: { $in: ms.map((m) => m._id) } }, { deviceIds: [] });
+    await revokeMembershipSessions(ms.map((m) => m._id));
   }
+  if (e.userId) await User.updateOne({ _id: e.userId, companyId: ctx.companyId }, { deviceIds: [] });
   await audit(ctx, { action: 'employee.reset_device', entity: 'employee', entityId: e._id });
   return e;
 }
@@ -263,10 +262,13 @@ export async function setAppRole(ctx: Ctx, id: string, appRole: 'employee' | 'ma
   const before = { appRole: e.appRole };
   e.appRole = appRole;
   await e.save();
-  if (e.userId) {
-    await User.updateOne({ _id: e.userId }, { role: appRole, branchIds: appRole === 'manager' && e.branchId ? [e.branchId] : [] });
-    await revokeAllForUser(e.userId);
+  const branchIds = appRole === 'manager' && e.branchId ? [e.branchId] : [];
+  const ms = await Membership.find({ companyId: ctx.companyId, employeeId: e._id, role: { $in: ['employee', 'manager'] } }).select('_id').lean();
+  if (ms.length) {
+    await Membership.updateMany({ _id: { $in: ms.map((m) => m._id) } }, { role: appRole, branchIds });
+    await revokeMembershipSessions(ms.map((m) => m._id));
   }
+  if (e.userId) await User.updateOne({ _id: e.userId, companyId: ctx.companyId, employeeId: e._id }, { role: appRole, branchIds });
   await audit(ctx, { action: 'employee.role', entity: 'employee', entityId: e._id, before, after: { appRole } });
   return e;
 }

@@ -4,12 +4,14 @@ import { AppError, notFound } from '../../lib/errors.js';
 import { toGeoPoint } from '../../lib/geo.js';
 import { minutesOfDay } from '../../lib/dates.js';
 import type { Ctx } from '../../lib/context.js';
-import { Branch, Company, Holiday, Shift, Subscription, User } from '../../models/index.js';
+import { Branch, Company, Holiday, Membership, RefreshToken, Shift, Subscription, User } from '../../models/index.js';
+import { sha256 } from '../../lib/crypto.js';
 import { HOLIDAY_TEMPLATES } from '../config/defaults.js';
 import { getConfig } from '../config/service.js';
 import { companyPlan, getPlan } from '../billing/plans.js';
 import { audit } from '../audit/service.js';
 import { issueTokens } from '../auth/service.js';
+import { activate, activeMemberships, membershipViews } from '../auth/memberships.js';
 import { branchView, holidayView, shiftView } from '../views.js';
 import { provider } from '../../providers/registry.js';
 
@@ -57,11 +59,19 @@ export async function seedHolidays(companyId: Types.ObjectId, country: string, y
   }
 }
 
-export async function setupCompany(userId: Types.ObjectId, input: SetupInput) {
-  const user = await User.findById(userId);
+/** A person can own several businesses; this keeps accidental duplicates and abuse in check. */
+export const MAX_OWNED_BUSINESSES = 10;
+
+/**
+ * Create a business owned by this person. Anyone can do this, including
+ * someone who is staff or accountant elsewhere: they get an owner membership
+ * and the session (on this device) switches into the new business.
+ */
+export async function setupCompany(userId: Types.ObjectId, input: SetupInput, session: { deviceId?: string; refreshToken?: string } = {}) {
+  const user = await User.findOne({ _id: userId, deletedAt: null });
   if (!user) throw notFound('User');
-  if (user.companyId) throw new AppError('CONFLICT', 'Company already set up');
-  if (user.role !== 'owner') throw new AppError('FORBIDDEN', 'Only owners can create a company');
+  const owned = await Membership.countDocuments({ userId: user._id, role: 'owner', status: 'active' });
+  if (owned >= MAX_OWNED_BUSINESSES) throw new AppError('CONFLICT', `You can own up to ${MAX_OWNED_BUSINESSES} businesses. Contact support to add more.`);
 
   let address = input.location.address;
   if (!address) address = (await (await provider('geo')).reverseGeocode(input.location.lat, input.location.lng)).address ?? undefined;
@@ -93,14 +103,25 @@ export async function setupCompany(userId: Types.ObjectId, input: SetupInput) {
     currency: company.currency,
   });
 
-  user.companyId = company._id;
   if (input.ownerName) user.name = input.ownerName;
-  await user.save();
+  const membership = await Membership.create({ userId: user._id, companyId: company._id, role: 'owner' });
+  await activate(user, membership);
 
   const ctx: Ctx = { userId: user._id, companyId: company._id, role: 'owner', employeeId: null, branchIds: [], actorName: user.name || user.phone, channel: 'app', language: 'hi' };
   await audit(ctx, { action: 'company.create', entity: 'company', entityId: company._id, after: company });
-  const tokens = await issueTokens(user);
-  return { company: await companyView(company), ...tokens };
+  // The device that created the business continues in it; its previous session token is retired.
+  let deviceId = session.deviceId;
+  if (session.refreshToken) {
+    const old = await RefreshToken.findOneAndUpdate({ tokenHash: sha256(session.refreshToken), userId: user._id }, { revokedAt: new Date() });
+    deviceId ??= old?.deviceId ?? undefined;
+  }
+  const tokens = await issueTokens(user, deviceId, undefined, membership);
+  return {
+    company: await companyView(company),
+    ...tokens,
+    activeMembershipId: String(membership._id),
+    memberships: await membershipViews(await activeMemberships(user._id)),
+  };
 }
 
 export async function getCompany(ctx: Ctx) {
@@ -220,9 +241,20 @@ export async function deleteHoliday(ctx: Ctx, id: string) {
 export async function addAccountant(ctx: Ctx, phone: string, name: string) {
   const { plan } = await companyPlan({ _id: ctx.companyId });
   if (!plan.features.includes('ca_access')) throw new AppError('FEATURE_NOT_IN_PLAN', 'CA access needs the Pro plan', { feature: 'ca_access' });
-  const existing = await User.findOne({ phone });
-  if (existing) throw new AppError('CONFLICT', 'This phone already has a StaffMint account');
-  const u = await User.create({ phone, name, role: 'ca', companyId: ctx.companyId });
+  // An existing StaffMint user (owner elsewhere, another client's CA) simply gets one more membership.
+  const u = (await User.findOne({ phone, deletedAt: null })) ?? (await User.create({ phone, name, role: 'owner', companyId: null }));
+  const here = await Membership.findOne({ userId: u._id, companyId: ctx.companyId });
+  if (here?.status === 'active') {
+    const msg = here.role === 'ca' ? 'This number is already your accountant' : here.role === 'owner' ? 'This is the owner\'s own number' : 'This number is one of your staff. Use a different number for the accountant.';
+    throw new AppError('CONFLICT', msg, { reason: `already_${here.role}` });
+  }
+  if (here) {
+    here.set({ role: 'ca', status: 'active', employeeId: null, branchIds: [], deviceIds: [] });
+    await here.save();
+  } else {
+    await Membership.create({ userId: u._id, companyId: ctx.companyId, role: 'ca' });
+  }
+  if (!u.companyId) await activate(u, await Membership.findOne({ userId: u._id, companyId: ctx.companyId }));
   await audit(ctx, { action: 'user.ca.add', entity: 'user', entityId: u._id, after: { phone, name, role: 'ca' } });
-  return { id: String(u._id), phone, name, role: 'ca' };
+  return { id: String(u._id), phone, name: u.name || name, role: 'ca' };
 }

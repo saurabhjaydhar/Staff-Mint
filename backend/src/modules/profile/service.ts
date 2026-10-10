@@ -115,7 +115,7 @@ export async function profileView(ctx: Ctx) {
       name: user.name ?? '',
       phone: user.phone,
       email: user.email ?? null,
-      role: user.role,
+      role: ctx.role,
       language: user.language ?? 'hi',
       photoUrl: user.photoKey ? await storage.signedUrl(user.photoKey, env.SIGNED_URL_TTL_SEC) : null,
       memberSince: (user as any).createdAt ?? null,
@@ -226,6 +226,10 @@ async function assertPhoneFree(ctx: Ctx, phone: string) {
   if (ctx.companyId && (await Employee.exists({ companyId: ctx.companyId, phone, deletedAt: null, _id: { $ne: ctx.employeeId ?? null } }))) {
     throw new AppError('CONFLICT', 'This number belongs to another staff member', { field: 'phone' });
   }
+  // Staff records elsewhere move with this person; someone else's record with that number blocks the change.
+  if (await Employee.exists({ phone, deletedAt: null, userId: { $ne: ctx.userId } }).setOptions({ skipTenant: true })) {
+    throw new AppError('CONFLICT', 'This number is already added as staff in a business', { field: 'phone' });
+  }
 }
 
 /** Step 2: the code proves the new number is theirs; login moves to it. */
@@ -238,11 +242,8 @@ export async function verifyPhoneChange(ctx: Ctx, rawPhone: string, code: string
   const before = user.phone;
   user.phone = phone;
   await user.save();
-  const employee = await loadOwnEmployee(ctx);
-  if (employee) {
-    employee.phone = phone;
-    await employee.save();
-  }
+  // Every business this person is staff at now knows the new number.
+  await Employee.updateMany({ userId: user._id, deletedAt: null }, { phone }).setOptions({ skipTenant: true });
   await audit(ctx, { action: 'profile.phone', entity: 'user', entityId: user._id, before: { phone: before }, after: { phone } });
   return profileView(ctx);
 }

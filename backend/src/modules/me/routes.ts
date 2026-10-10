@@ -6,6 +6,7 @@ import { authenticate, ctxOf, requireRole } from '../../middleware/auth.js';
 import { AppError } from '../../lib/errors.js';
 import { Company, Employee, User } from '../../models/index.js';
 import { userView } from '../auth/service.js';
+import { activeMemberships, membershipViews } from '../auth/memberships.js';
 import { companyView } from '../company/service.js';
 import { employeeView } from '../views.js';
 import { audit } from '../audit/service.js';
@@ -21,9 +22,21 @@ meRouter.use(authenticate);
 
 meRouter.get('/', async (req, res) => {
   const user = await User.findById(req.auth!.userId).lean();
-  const company = user?.companyId ? await Company.findById(user.companyId).lean() : null;
-  const employee = user?.employeeId ? await Employee.findOne({ _id: user.employeeId, companyId: user.companyId }).lean() : null;
-  res.json({ data: { user: userView(user), company: company ? await companyView(company) : null, employee: employee ? employeeView(employee, { hasDevice: true }) : null } });
+  // The business is this session's, not the user's last one: two devices can be in different businesses.
+  const a = req.auth!;
+  const company = a.companyId ? await Company.findById(a.companyId).lean() : null;
+  const employee = a.employeeId ? await Employee.findOne({ _id: a.employeeId, companyId: a.companyId }).lean() : null;
+  const memberships = await membershipViews(await activeMemberships(new Types.ObjectId(a.userId)));
+  const activeMembershipId = a.membershipId ?? (a.companyId ? memberships.find((m) => m.companyId === a.companyId)?.id ?? null : null);
+  res.json({
+    data: {
+      user: { ...userView(user), role: a.role, companyId: a.companyId, employeeId: a.employeeId },
+      company: company ? await companyView(company) : null,
+      employee: employee ? employeeView(employee, { hasDevice: true }) : null,
+      activeMembershipId,
+      memberships,
+    },
+  });
 });
 
 meRouter.patch('/', async (req, res) => {
@@ -33,8 +46,10 @@ meRouter.patch('/', async (req, res) => {
   if (b.name) user.name = b.name;
   if (b.language) user.language = b.language;
   await user.save();
-  if (b.language && user.employeeId) await Employee.updateOne({ _id: user.employeeId, companyId: user.companyId }, { language: b.language });
-  res.json({ data: userView(user) });
+  // Language is the person's: keep every staff record linked to them in step.
+  if (b.language) await Employee.updateMany({ userId: user._id }, { language: b.language }).setOptions({ skipTenant: true });
+  const a = req.auth!;
+  res.json({ data: { ...userView(user), role: a.role, companyId: a.companyId, employeeId: a.employeeId } });
 });
 
 meRouter.post('/consent', requireRole('employee', 'manager'), async (req, res) => {

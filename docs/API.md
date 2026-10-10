@@ -57,14 +57,17 @@ AuditLog  { id, actorId, actorName, channel:'app'|'web'|'assistant'|'whatsapp'|'
 | Method | Path | Body | Returns |
 |---|---|---|---|
 | POST | /auth/otp/request | `{phone, channel?:'sms'\|'whatsapp'}` | `{requestId, expiresInSec, devCode?}` (devCode only when OTP provider is `mock`) |
-| POST | /auth/otp/verify | `{phone, code, deviceId, deviceName?}` | `{accessToken, refreshToken, user:User, needsCompanySetup:boolean}` |
-| POST | /auth/refresh | `{refreshToken}` | `{accessToken, refreshToken}` (rotation; old refresh token invalid) |
+| POST | /auth/otp/verify | `{phone, code, deviceId, deviceName?}` | `Session {accessToken, refreshToken, user:User, needsCompanySetup:boolean, activeMembershipId:string\|null, memberships:Membership[], needsAccountChoice:boolean}` |
+| POST | /auth/refresh | `{refreshToken}` | `{accessToken, refreshToken}` (rotation; old refresh token invalid; stays in the same business) |
+| POST | /auth/switch | `{membershipId, deviceId, refreshToken?}` (Bearer) | `Session` opened in that business; the passed refresh token is retired. `DEVICE_NOT_BOUND` for a staff account bound to another phone |
 | POST | /auth/logout | `{refreshToken}` | `{ok:true}` |
 
-Phone: E.164 (`+919876543210`) or 10-digit Indian (`9876543210`, normalised server-side). A phone that belongs to an employee logs in as `employee` (device is bound on first login; another device → `DEVICE_NOT_BOUND` until owner resets). Unknown phone → new `owner` with `needsCompanySetup:true`.
+Phone: E.164 (`+919876543210`) or 10-digit Indian (`9876543210`, normalised server-side). Unknown phone with no staff record → `needsCompanySetup:true`.
+
+`Membership {id, companyId, companyName, businessType, role:'owner'|'manager'|'employee'|'ca', lastUsedAt}`: one phone can own a business, work at another and be the accountant of a third. Login opens the most recently used account this device may use; `needsAccountChoice` is true when there is more than one, and the app offers a chooser. Each device stays in its own business (the access token's `mid` claim and the refresh token both carry the membership), so an owner's tablet and phone can be in different shops.
 
 ### Me
-| GET | /me | — | `{user, company:Company\|null, employee:Employee\|null}` |
+| GET | /me | — | `{user, company:Company\|null, employee:Employee\|null, activeMembershipId, memberships:Membership[]}` (user.role/companyId/employeeId are this session's) |
 | PATCH | /me | `{name?, language?}` | `User` |
 | POST | /me/consent | `{location:true}` | `Employee` |
 | GET | /me/profile | — | `Profile {user:{id,name,phone,email,role,language,photoUrl,memberSince,lastLoginAt}, company:{id,name,businessType,planName}\|null, work:{employeeId,designation,joiningDate,wageType,ratePaise,branchName,shift}\|null, bank:BankMasked\|null, emergencyContact:{name,phone,relation}\|null, completeness:{percent, missing:string[]}}` |
@@ -83,12 +86,12 @@ Phone: E.164 (`+919876543210`) or 10-digit Indian (`9876543210`, normalised serv
 | POST | /me/notifications/read | `{ids}` | `{ok:true}` |
 
 ### Company setup & settings (owner)
-| POST | /company | `{name, businessType, location:{lat,lng,address?}, openingTime:'09:00', closingTime?:'19:00', weeklyOff:number[], country?:'IN', timezone?:'Asia/Kolkata', currency?:'INR'}` | `{company, accessToken, refreshToken}` (new tokens carry companyId) |
+| POST | /company | `{name, businessType, location:{lat,lng,address?}, openingTime:'09:00', closingTime?:'19:00', weeklyOff:number[], country?:'IN', timezone?:'Asia/Kolkata', currency?:'INR', deviceId?, refreshToken?}` | `{company, accessToken, refreshToken, activeMembershipId, memberships}`. Any signed-in person can create a business (first or another, up to 10 owned); this device moves into it and the passed refresh token is retired |
 | GET | /company | — | `Company` |
 | PATCH | /company | `{name?, businessType?, location?}` | `Company` |
 | PATCH | /company/settings | partial `settings` | `Company` |
 | GET | /company/rules | — | `{rules: {key, text}[]}` plain-language (hi/en by Accept-Language) |
-| POST | /company/accountants | `{phone, name}` (Pro plan) | CA user with read access to reports/payroll/export |
+| POST | /company/accountants | `{phone, name}` (Pro plan) | CA access to reports/payroll/export. An existing StaffMint user gets one more account (`ca` membership) |
 | GET/POST | /branches | `{name, location, radiusM?}` | `Branch[]` / `Branch` |
 | PATCH | /branches/:id | partial | `Branch` |
 | GET/POST | /shifts | `{name, start, end, graceMinutes?, weeklyOff}` | |
@@ -204,8 +207,13 @@ Fields: `name, phone, ratePaise, wageType, designation, joiningDate, branch, adv
 - The reference photo is deleted when the staff member withdraws consent, when the owner resets it, and when the staff member is deactivated.
 - `FACE_PROVIDER=mock` refuses to decide in production, so a missing key cannot approve anyone.
 
-### Staff logins
-- A number that logged in before it was added as staff has an "unclaimed" login (owner role, no business). When an active staff record with that number exists, the login becomes that staff login: at OTP login, on `POST /auth/refresh` (the app's "Check again"), and as soon as the owner adds or edits the staff phone. Device binding then starts with the phone that logs in.
-- `POST /employees` and a phone change in `PATCH /employees/:id` return 409 with `details.reason`:
-  - `other_business`: the number already uses StaffMint for another business (as owner or staff).
+### Staff logins and accounts
+- Each person (phone) is one user; each business they can open is a membership. Every active staff record with their number becomes a staff membership: at OTP login, on `POST /auth/refresh` (the app's "Check again" when they had no business), and as soon as the owner adds the staff or edits the staff phone.
+- `POST /employees` and a phone change in `PATCH /employees/:id` return 409 with `details.reason` only for this business's own people:
   - `owner_number`: the number is this business owner's own login.
+  - `accountant_number`: the number is this business's accountant.
+  Owners and staff of other businesses can be added; they get one more account.
+- Phone binding is per staff membership: the first phone that opens a staff account is the only one allowed for it (check-in included) until the owner resets the device. Owner and CA accounts are not bound, and web sessions never bind.
+- Deactivating staff, a staff phone change and an import rollback end that business's membership and its sessions only; the person keeps their other accounts. A role change (employee ↔ manager) updates the membership and ends its sessions so the new access applies on next login.
+- WhatsApp commands use the business last opened in the app (else the most senior access). Push data includes `companyId` so the app can open the right account.
+- Accounts made before memberships get one automatically on their next login or refresh.

@@ -1,6 +1,6 @@
 import { Types } from 'mongoose';
 import type { Ctx, Role } from '../../lib/context.js';
-import { Notification, User } from '../../models/index.js';
+import { Membership, Notification, User } from '../../models/index.js';
 import { provider } from '../../providers/registry.js';
 import type { MessagingEvent, MessagingProvider } from '../../providers/types.js';
 import { logger } from '../../lib/logger.js';
@@ -33,8 +33,17 @@ async function sendReply(m: MessagingProvider, to: string, r: AssistantReply) {
   else await m.sendText(to, r.text);
 }
 
+/** WhatsApp has no account picker: commands apply to the business last opened in the app, else the most senior access. */
+async function whatsappMembership(user: { _id: Types.ObjectId; companyId?: Types.ObjectId | null }) {
+  const list = await Membership.find({ userId: user._id, status: 'active' }).sort({ lastUsedAt: -1 }).lean();
+  const rank = (r: string) => ['owner', 'manager', 'ca', 'employee'].indexOf(r);
+  return list.find((m) => String(m.companyId) === String(user.companyId)) ?? [...list].sort((a, b) => rank(a.role) - rank(b.role))[0] ?? null;
+}
+
 async function handleInbound(m: MessagingProvider, ev: Extract<MessagingEvent, { type: 'message.inbound' }>) {
-  const user = await User.findOne({ phone: ev.from, deletedAt: null }).lean();
+  const found = await User.findOne({ phone: ev.from, deletedAt: null }).lean();
+  const access = found ? await whatsappMembership(found) : null;
+  const user = found && access ? { ...found, companyId: access.companyId, role: access.role, employeeId: access.employeeId ?? null, branchIds: access.branchIds ?? [] } : null;
   if (!user?.companyId) {
     await m.sendText(ev.from, 'This number is not registered on StaffMint. Download the app to get started. / Yeh number StaffMint par registered nahi hai.');
     return;

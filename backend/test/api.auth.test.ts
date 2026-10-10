@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { api, auth, V, nextPhone, otpLogin, createOwner, addEmployee, employeeSession } from './helpers.js';
-import { User, OtpRequest } from '../src/models/index.js';
+import { OtpRequest, Membership } from '../src/models/index.js';
 
 describe('auth', () => {
   it('OTP login creates an owner who must set up a company', async () => {
@@ -70,18 +70,21 @@ describe('auth', () => {
     await api().post(`${V}/employees/${emp.id}/reset-device`).set(auth(owner.token)).expect(200);
     const again = await otpLogin(phone, 'device-B-1');
     expect(again.res.status).toBe(200);
-    const u = await User.findOne({ phone: `+91${phone}` }).lean();
-    expect(u!.deviceIds).toEqual(['device-B-1']);
+    const m = await Membership.findOne({ companyId: owner.companyId, employeeId: emp.id }).lean();
+    expect(m!.deviceIds).toEqual(['device-B-1']);
   });
 
-  it('deactivated staff cannot log in', async () => {
+  it('deactivated staff lose the business at once, and log in with no business', async () => {
     const owner = await createOwner();
     const phone = nextPhone();
     const emp = await addEmployee(owner, { phone });
-    await employeeSession(phone, 'device-A-1');
+    const s = await employeeSession(phone, 'device-A-1');
     await api().post(`${V}/employees/${emp.id}/deactivate`).set(auth(owner.token)).send({}).expect(200);
+    const old = await api().get(`${V}/me`).set(auth(s.token));
+    expect(old.status).toBe(401);
     const r = await otpLogin(phone, 'device-A-1');
-    expect(r.res.status).toBe(403);
+    expect(r.res.status).toBe(200);
+    expect(r).toMatchObject({ needsCompanySetup: true, memberships: [], user: { companyId: null } });
   });
 });
 
@@ -104,9 +107,18 @@ describe('company setup', () => {
     expect(bad.status).toBe(400);
   });
 
-  it('cannot set up twice', async () => {
+  it('an owner can add a second business; this device moves into it', async () => {
     const owner = await createOwner();
-    const r = await api().post(`${V}/company`).set(auth(owner.token)).send({ name: 'X', businessType: 'shop', location: { lat: 1, lng: 1 }, openingTime: '09:00', weeklyOff: [0] });
-    expect(r.status).toBe(409);
+    const r = await api()
+      .post(`${V}/company`)
+      .set(auth(owner.token))
+      .send({ name: 'Second Shop', businessType: 'shop', location: { lat: 1, lng: 1 }, openingTime: '09:00', weeklyOff: [0], refreshToken: owner.refreshToken });
+    expect(r.status).toBe(201);
+    expect(r.body.data.memberships).toHaveLength(2);
+    const me = await api().get(`${V}/me`).set(auth(r.body.data.accessToken)).expect(200);
+    expect(me.body.data.company.name).toBe('Second Shop');
+    // The old session token was retired; the first business is still one switch away.
+    await api().post(`${V}/auth/refresh`).send({ refreshToken: owner.refreshToken }).expect(401);
+    expect(me.body.data.memberships.map((m: any) => m.companyName).sort()).toEqual(['Second Shop', 'Test Shop']);
   });
 });

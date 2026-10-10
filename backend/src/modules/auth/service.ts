@@ -4,7 +4,8 @@ import { AppError } from '../../lib/errors.js';
 import { normalizePhone } from '../../lib/phone.js';
 import { randomDigits, randomToken, sha256, safeEqual } from '../../lib/crypto.js';
 import { signAccessToken } from '../../lib/jwt.js';
-import { OtpRequest, RefreshToken, User, Employee, type UserDoc } from '../../models/index.js';
+import { OtpRequest, RefreshToken, User, Employee, Membership, type MembershipDoc, type UserDoc } from '../../models/index.js';
+import { activate, activeMemberships, attachStaffMemberships, bindDevice, defaultMembership, deviceAllowed, ensureLegacyMembership, membershipViews } from './memberships.js';
 import { provider } from '../../providers/registry.js';
 import { logger } from '../../lib/logger.js';
 
@@ -63,80 +64,56 @@ export async function consumeOtp(phone: string, code: string) {
   await req.save();
 }
 
-/** A login that never set up a business. It is not anyone's data yet, so it may become a staff login. */
-export const isUnclaimedLogin = (u: { role: string; companyId?: unknown }) => u.role === 'owner' && !u.companyId;
-
-/**
- * Turn an unclaimed login into the staff login for the newest active staff
- * record with this phone. Fixes numbers that opened the app before the
- * owner added them (they would otherwise land in "create your business").
- * Returns true when it linked.
- */
-export async function linkStaffLogin(user: UserDoc, deviceId?: string | null): Promise<boolean> {
-  if (!isUnclaimedLogin(user)) return false;
-  const emp = await Employee.findOne({ phone: user.phone, status: 'active', deletedAt: null }).setOptions({ skipTenant: true }).sort({ createdAt: -1 });
-  if (!emp) return false;
-  user.role = emp.appRole ?? 'employee';
-  user.companyId = emp.companyId;
-  user.employeeId = emp._id;
-  if (!user.name) user.name = emp.name;
-  user.language = emp.language ?? user.language;
-  // Device binding starts fresh: only the phone logging in now is bound.
-  user.deviceIds = deviceId && !deviceId.startsWith('web-') ? [deviceId] : [];
-  await user.save();
-  emp.userId = user._id;
-  await emp.save();
-  logger.info({ userId: user._id, employeeId: emp._id }, 'Unclaimed login linked to staff record');
-  return true;
-}
-
-/** Find or create the user for a phone. Employees are matched by their phone on an active employee record. */
+/** Find or create the person for a phone, with their business memberships up to date. */
 async function resolveUser(phone: string): Promise<UserDoc> {
   let user = await User.findOne({ phone, deletedAt: null });
-  if (user && (await linkStaffLogin(user))) return user;
-  if (user) {
-    // Employee user whose record was re-activated or moved: keep link fresh.
-    if (user.role === 'employee' || user.role === 'manager') {
-      const emp = user.employeeId ? await Employee.findOne({ _id: user.employeeId, companyId: user.companyId }).lean() : null;
-      if (!emp || emp.status !== 'active' || emp.deletedAt) {
-        throw new AppError('FORBIDDEN', 'Your staff account is inactive. Please contact your employer.');
-      }
-      if (user.role !== emp.appRole) {
-        user.role = emp.appRole;
-        await user.save();
-      }
-    }
-    return user;
+  if (!user) {
+    const emp = await Employee.findOne({ phone, status: 'active', deletedAt: null }).setOptions({ skipTenant: true }).sort({ createdAt: -1 }).lean();
+    user = await User.create({ phone, name: emp?.name ?? '', role: 'owner', companyId: null, language: emp?.language ?? 'hi' });
   }
-  const emp = await Employee.findOne({ phone, status: 'active', deletedAt: null }).setOptions({ skipTenant: true }).sort({ createdAt: -1 });
-  if (emp) {
-    user = await User.create({ phone, name: emp.name, role: emp.appRole ?? 'employee', companyId: emp.companyId, employeeId: emp._id, language: emp.language ?? 'hi' });
-    emp.userId = user._id;
-    await emp.save();
-    return user;
-  }
-  return User.create({ phone, role: 'owner', companyId: null });
+  await ensureLegacyMembership(user);
+  await attachStaffMemberships(user);
+  return user;
+}
+
+/** Login result: the session opens in the most recent business; the app asks when there is more than one. */
+async function sessionResult(user: UserDoc, membership: MembershipDoc | null, list: MembershipDoc[], tokens: { accessToken: string; refreshToken: string }) {
+  return {
+    ...tokens,
+    user: userView(user),
+    needsCompanySetup: !membership,
+    activeMembershipId: membership ? String(membership._id) : null,
+    memberships: await membershipViews(list),
+    needsAccountChoice: list.length > 1,
+  };
 }
 
 export async function verifyOtp(input: { phone: string; code: string; deviceId: string; deviceName?: string }) {
   const phone = parsePhone(input.phone);
   await consumeOtp(phone, input.code);
   const user = await resolveUser(phone);
-
-  const isWebLogin = input.deviceId.startsWith('web-');
-  if ((user.role === 'employee' || user.role === 'manager') && !isWebLogin) {
-    // Device binding applies to the phone app only; web logins never bind a staff account.
-    if (user.deviceIds.length === 0) user.deviceIds = [input.deviceId];
-    else if (!user.deviceIds.includes(input.deviceId)) {
-      throw new AppError('DEVICE_NOT_BOUND', 'This account is linked to another phone. Ask your employer to reset your device.');
-    }
-  } else if (!isWebLogin && !user.deviceIds.includes(input.deviceId)) {
-    user.deviceIds = [...user.deviceIds, input.deviceId].slice(-5);
-  }
+  const { list, chosen } = await defaultMembership(user, input.deviceId);
+  if (chosen) await bindDevice(chosen, input.deviceId);
   user.lastLoginAt = new Date();
-  await user.save();
-  const tokens = await issueTokens(user, input.deviceId);
-  return { ...tokens, user: userView(user), needsCompanySetup: !user.companyId };
+  await activate(user, chosen);
+  const tokens = await issueTokens(user, input.deviceId, undefined, chosen);
+  return sessionResult(user, chosen, list, tokens);
+}
+
+/** Open another of the person's businesses on this device. */
+export async function switchMembership(userId: Types.ObjectId | string, input: { membershipId: string; deviceId: string; refreshToken?: string }) {
+  const user = await User.findOne({ _id: userId, deletedAt: null });
+  if (!user) throw new AppError('UNAUTHORIZED', 'User not found');
+  const m = await Membership.findOne({ _id: input.membershipId, userId: user._id, status: 'active' });
+  if (!m) throw new AppError('NOT_FOUND', 'This account is not available any more');
+  if (!deviceAllowed(m, input.deviceId)) {
+    throw new AppError('DEVICE_NOT_BOUND', 'This staff account is linked to another phone. Ask your employer to reset your device.');
+  }
+  await bindDevice(m, input.deviceId);
+  await activate(user, m);
+  if (input.refreshToken) await RefreshToken.updateOne({ tokenHash: sha256(input.refreshToken), userId: user._id }, { revokedAt: new Date() });
+  const tokens = await issueTokens(user, input.deviceId, undefined, m);
+  return sessionResult(user, m, await activeMemberships(user._id), tokens);
 }
 
 export function userView(u: any) {
@@ -152,18 +129,25 @@ export function userView(u: any) {
   };
 }
 
-export async function issueTokens(user: { _id: Types.ObjectId; role: string; companyId?: Types.ObjectId | null; employeeId?: Types.ObjectId | null }, deviceId?: string, family?: string) {
+export async function issueTokens(
+  user: { _id: Types.ObjectId; role: string; companyId?: Types.ObjectId | null; employeeId?: Types.ObjectId | null },
+  deviceId?: string,
+  family?: string,
+  membership?: { _id: Types.ObjectId; role: string; companyId: Types.ObjectId; employeeId?: Types.ObjectId | null } | null,
+) {
   const accessToken = signAccessToken({
     sub: String(user._id),
-    role: user.role,
-    cid: user.companyId ? String(user.companyId) : null,
-    eid: user.employeeId ? String(user.employeeId) : null,
+    role: membership?.role ?? user.role,
+    cid: membership ? String(membership.companyId) : user.companyId ? String(user.companyId) : null,
+    eid: membership?.employeeId ? String(membership.employeeId) : membership ? null : user.employeeId ? String(user.employeeId) : null,
+    mid: membership ? String(membership._id) : null,
   });
   const refreshToken = randomToken(48);
   await RefreshToken.create({
     userId: user._id,
     tokenHash: sha256(refreshToken),
     family: family ?? randomToken(12),
+    membershipId: membership?._id ?? null,
     deviceId,
     expiresAt: new Date(Date.now() + env.JWT_REFRESH_TTL_DAYS * 86400_000),
   });
@@ -181,9 +165,18 @@ export async function refresh(refreshToken: string) {
   }
   const user = await User.findById(doc.userId);
   if (!user || user.deletedAt) throw new AppError('UNAUTHORIZED', 'User not found');
-  // "Check again" on the waiting screen: the owner may have added this number since.
-  await linkStaffLogin(user, doc.deviceId);
-  const tokens = await issueTokens(user, doc.deviceId ?? undefined, doc.family);
+  await ensureLegacyMembership(user);
+  // Stay in the same business on this device while that access lasts.
+  let m = doc.membershipId ? await Membership.findOne({ _id: doc.membershipId, userId: user._id, status: 'active' }) : null;
+  if (!m && !doc.membershipId && user.companyId) m = await Membership.findOne({ userId: user._id, companyId: user.companyId, status: 'active' });
+  if (!m) {
+    // No business yet ("Check again" on the waiting screen) or access was removed: pick what is available now.
+    await attachStaffMemberships(user);
+    m = (await defaultMembership(user, doc.deviceId).catch(() => ({ chosen: null }))).chosen;
+    if (m) await bindDevice(m, doc.deviceId);
+    await activate(user, m);
+  }
+  const tokens = await issueTokens(user, doc.deviceId ?? undefined, doc.family, m);
   doc.revokedAt = new Date();
   doc.replacedBy = sha256(tokens.refreshToken);
   await doc.save();
