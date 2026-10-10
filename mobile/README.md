@@ -37,12 +37,20 @@ flutter run --dart-define=API_BASE_URL=http://192.168.1.20:4000/api/v1
 
 # Staging / production (HTTPS)
 flutter run --release --dart-define=API_BASE_URL=https://api.staffmint.app/api/v1
+
+# Live server (URL kept in config/production.json)
+flutter build apk --release --dart-define-from-file=config/production.json
 ```
+
+`config/production.json` currently points at the Coolify sslip.io address, which has no TLS certificate,
+so release builds allow plain HTTP to `*.sslip.io` only
+(`android/app/src/main/res/xml/network_security_config.xml`, `NSAppTransportSecurity` in `ios/Runner/Info.plist`).
+Once the API has a real HTTPS domain, update the JSON and remove both exceptions.
 
 Optional: `--dart-define=MAP_TILE_URL=https://your-tiles/{z}/{x}/{y}.png` to use a tile server
 other than the public OpenStreetMap one (recommended for production — see OSM tile usage policy).
 
-Plain HTTP is allowed **only in debug/profile builds** (`android/app/src/debug|profile/AndroidManifest.xml`).
+Plain HTTP to any host is allowed **only in debug/profile builds** (`android/app/src/debug|profile/res/xml/network_security_config.xml`).
 Release builds require HTTPS.
 
 When the backend's OTP provider is `mock`, `/auth/otp/request` returns `devCode`; the OTP screen shows

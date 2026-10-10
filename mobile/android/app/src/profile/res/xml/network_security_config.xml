@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug/profile: allow plain HTTP to any host (emulator 10.0.2.2, laptop on Wi-Fi).
+     Overrides the release config in src/main; usesCleartextTraffic is ignored once a config is set. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>
