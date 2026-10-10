@@ -40,15 +40,46 @@ class AuditLog {
 }
 
 class BillingInfo {
-  const BillingInfo({this.subscription, this.plan, this.staffCount = 0});
+  const BillingInfo({this.subscription, this.plan, this.staffCount = 0, this.billedToName});
   final Subscription? subscription;
   final Plan? plan;
   final int staffCount;
+
+  /// Paid together with this business (one bill); its plan is managed there.
+  final String? billedToName;
 
   factory BillingInfo.fromJson(Json j) => BillingInfo(
     subscription: j['subscription'] is Map ? Subscription.fromJson(asMap(j['subscription'])) : null,
     plan: j['plan'] is Map ? Plan.fromJson(asMap(j['plan'])) : null,
     staffCount: asInt(j['staffCount']),
+    billedToName: j['billedTo'] is Map ? asStringOrNull(asMap(j['billedTo'])['name']) : null,
+  );
+}
+
+/// One bill for several businesses of the same main owner.
+class BillingGroup {
+  const BillingGroup({
+    this.isPayer = true,
+    this.members = const [],
+    this.candidates = const [],
+    this.totalStaff = 0,
+    this.extraBusinessPricePaise = 0,
+  });
+  final bool isPayer;
+  final List<({String companyId, String name, int staffCount})> members;
+  final List<({String companyId, String name, int staffCount})> candidates;
+  final int totalStaff;
+  final int extraBusinessPricePaise;
+
+  static ({String companyId, String name, int staffCount}) _biz(Json j) =>
+      (companyId: asString(j['companyId']), name: asString(j['name']), staffCount: asInt(j['staffCount']));
+
+  factory BillingGroup.fromJson(Json j) => BillingGroup(
+    isPayer: asBool(j['isPayer']),
+    members: asList(j['members'], _biz),
+    candidates: asList(j['candidates'], _biz),
+    totalStaff: asInt(j['totalStaff']),
+    extraBusinessPricePaise: asInt(j['extraBusinessPricePaise']),
   );
 }
 

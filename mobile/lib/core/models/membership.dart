@@ -12,6 +12,7 @@ class Membership {
     this.businessType,
     this.lastUsedAt,
     this.lockedToOtherPhone = false,
+    this.pinned = false,
   });
 
   final String id;
@@ -24,6 +25,9 @@ class Membership {
   /// Staff account bound to another phone: offer "Request this phone".
   final bool lockedToOtherPhone;
 
+  /// Pinned to the top of the chooser.
+  final bool pinned;
+
   bool get isStaff => role == 'employee' || role == 'manager';
 
   factory Membership.fromJson(Json j) => Membership(
@@ -34,6 +38,7 @@ class Membership {
     businessType: asStringOrNull(j['businessType']),
     lastUsedAt: asDateTimeOrNull(j['lastUsedAt']),
     lockedToOtherPhone: asBool(j['lockedToOtherPhone']),
+    pinned: asBool(j['pinned']),
   );
 }
 

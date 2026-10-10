@@ -222,6 +222,28 @@ class AuthController extends Notifier<SessionState> {
     }
   }
 
+  /// Pin an account to the top of the chooser.
+  Future<void> pinAccount(String membershipId, {required bool pinned}) async {
+    state = state.copyWith(
+      memberships: [
+        for (final m in state.memberships)
+          m.id == membershipId
+              ? Membership(
+                  id: m.id,
+                  companyId: m.companyId,
+                  companyName: m.companyName,
+                  role: m.role,
+                  businessType: m.businessType,
+                  lastUsedAt: m.lastUsedAt,
+                  lockedToOtherPhone: m.lockedToOtherPhone,
+                  pinned: pinned,
+                )
+              : m,
+      ],
+    );
+    await ref.read(accountsApiProvider).pin(membershipId, pinned: pinned);
+  }
+
   /// Stop a support recovery that looks wrong.
   Future<void> stopRecovery(String id) async {
     await ref.read(accountsApiProvider).stopRecovery(id);

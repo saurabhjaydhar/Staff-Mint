@@ -1221,6 +1221,22 @@ class S {
   String get exStaffPayslips =>
       _t('Ex-staff can see their old payslips (12 months)', 'पुराने स्टाफ़ अपनी पेस्लिप देख सकें (12 महीने)');
 
+  // ----------------------------------------------------- Accounts at scale
+  String get searchBusinesses => _t('Search businesses', 'बिज़नेस खोजें');
+  String get pin => _t('Pin to top', 'ऊपर रखें');
+  String get unpin => _t('Unpin', 'ऊपर से हटाएँ');
+  Bi get oneBillBi => _b('One bill for your businesses', 'आपके सभी बिज़नेस का एक बिल');
+  String oneBillHint(String extra) => _t(
+    'Pay for your other businesses here. Staff add up across them; each extra business is $extra/month.',
+    'अपने बाकी बिज़नेस का भुगतान यहीं करें। स्टाफ़ सबका जुड़कर गिना जाएगा; हर अतिरिक्त बिज़नेस $extra/महीना।',
+  );
+  String get onThisBill => _t('On this bill', 'इस बिल में');
+  String get addToBill => _t('Add to this bill', 'इस बिल में जोड़ें');
+  String get removeFromBill => _t('Remove from bill', 'बिल से हटाएँ');
+  String billedWith(String name) =>
+      _t('Paid together with $name. Change the plan there.', '$name के साथ भुगतान होता है। प्लान वहीं बदलें।');
+  String totalStaffOnBill(int n) => _t('$n staff on this bill', 'इस बिल में $n स्टाफ़');
+
   // ---------------------------------------------------------------- Misc
   String get thisMonth => _t('This month', 'इस महीने');
   String get offlineNote => _t('Offline · showing saved data', 'ऑफ़लाइन · सेव डेटा दिखा रहे हैं');
