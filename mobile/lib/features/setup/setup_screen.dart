@@ -11,6 +11,7 @@ import '../../core/widgets/common.dart';
 import '../../core/widgets/location_picker.dart';
 import '../../core/widgets/pickers.dart';
 import '../auth/auth_controller.dart';
+import 'who_are_you.dart';
 
 const businessTypes = ['pharmacy', 'clinic', 'salon', 'restaurant', 'shop', 'office', 'other'];
 
@@ -46,6 +47,9 @@ class SetupScreen extends ConsumerStatefulWidget {
 class _SetupScreenState extends ConsumerState<SetupScreen> {
   static const totalSteps = 5;
   int _step = 0;
+
+  /// null: not asked yet · owner · staff
+  String? _who;
   bool _busy = false;
 
   final _name = TextEditingController();
@@ -119,16 +123,25 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   @override
   Widget build(BuildContext context) {
     final s = context.s;
+    if (_who == null) {
+      return WhoAreYouView(
+        onOwner: () => setState(() => _who = 'owner'),
+        onStaff: () => setState(() => _who = 'staff'),
+      );
+    }
+    if (_who == 'staff') return WaitingForEmployerView(onBack: () => setState(() => _who = null));
     return PopScope(
-      canPop: _step == 0,
+      canPop: false,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop && _step > 0) setState(() => _step--);
+        if (didPop) return;
+        setState(() => _step > 0 ? _step-- : _who = null);
       },
       child: Scaffold(
         appBar: AppBar(
-          leading: _step > 0
-              ? IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => setState(() => _step--))
-              : null,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => setState(() => _step > 0 ? _step-- : _who = null),
+          ),
           title: Text(s.setupStep(_step + 1, totalSteps)),
           actions: const [LangPill(), SizedBox(width: 8)],
           bottom: PreferredSize(

@@ -44,6 +44,12 @@ The redesign follows [docs/design](../design/README.md): a warm paper ledger, Hi
 | <img src="mobile/m3-staff-profile.jpg" width="240"><br>Staff profile with completeness ring and one-tap chips | <img src="mobile/m3b-staff-profile-work.jpg" width="240"><br>Work details are read-only (set by the owner) | <img src="mobile/m4-staff-bank-sheet.jpg" width="240"><br>Salary account: number typed twice, IFSC or UPI |
 | <img src="mobile/m5-staff-bank-card.jpg" width="240"><br>Saved salary account, masked; the owner is notified | | |
 
+### New number: owner or staff?
+
+| | | |
+|---|---|---|
+| <img src="mobile/n1-who-are-you.jpg" width="240"><br>A number StaffMint doesn't know is asked first | <img src="mobile/n2-ask-employer.jpg" width="240"><br>Staff not added yet: ask the employer, then "Check again" | <img src="mobile/n4-linked-staff.jpg" width="240"><br>After the owner adds the number, "Check again" goes straight to the staff app |
+
 ## Web dashboard
 
 ### My profile

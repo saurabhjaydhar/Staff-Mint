@@ -7,7 +7,7 @@ import { Branch, Company, Employee, SalaryStructure, Shift, User } from '../../m
 import { companyPlan, activeStaffCount } from '../billing/plans.js';
 import { audit } from '../audit/service.js';
 import { employeeView } from '../views.js';
-import { revokeAllForUser } from '../auth/service.js';
+import { isUnclaimedLogin, linkStaffLogin, revokeAllForUser } from '../auth/service.js';
 import { advanceBalanceFor } from '../advances/service.js';
 import { getLeaveBalance } from '../leave/service.js';
 
@@ -75,6 +75,7 @@ export async function createEmployee(ctx: Ctx, input: EmployeeInput, opts: { ski
   const phone = normalizePhone(input.phone, company?.country ?? 'IN');
   if (!phone) throw new AppError('VALIDATION_ERROR', `Invalid phone number for ${input.name}`);
   if (await Employee.exists({ companyId: ctx.companyId, phone, deletedAt: null })) throw new AppError('CONFLICT', `${phone} is already added`, { phone });
+  const login = await assertPhoneCanBeStaff(ctx, phone, input.name);
   if (!opts.skipCapacityCheck) await ensureStaffCapacity(ctx.companyId);
   const d = await defaults(ctx.companyId);
   if (input.branchId && !(await Branch.exists({ _id: input.branchId, companyId: ctx.companyId }))) throw notFound('Branch');
@@ -101,7 +102,46 @@ export async function createEmployee(ctx: Ctx, input: EmployeeInput, opts: { ski
     basePaise: e.ratePaise,
   });
   await audit(ctx, { action: 'employee.create', entity: 'employee', entityId: e._id, after: e });
+  await attachLogin(ctx, e, login);
   return e;
+}
+
+/**
+ * A phone can be a staff login only if it isn't already in use by another
+ * business (as owner or staff) or by this business's owner. Returns the
+ * existing login, if any, so it can be attached after the record is saved.
+ */
+async function assertPhoneCanBeStaff(ctx: Ctx, phone: string, name: string) {
+  const login = await User.findOne({ phone, deletedAt: null });
+  if (!login || isUnclaimedLogin(login)) return login;
+  const sameCompany = String(login.companyId) === String(ctx.companyId);
+  if (!sameCompany || login.role === 'owner' || login.role === 'ca') {
+    const reason = sameCompany ? 'owner_number' : 'other_business';
+    throw new AppError(
+      'CONFLICT',
+      sameCompany
+        ? `${phone} is the business owner's own number. Use ${name}'s personal number.`
+        : `${phone} already uses StaffMint for another business. Use a different number for ${name}.`,
+      { phone, reason },
+    );
+  }
+  return login;
+}
+
+/** Link a waiting login (unclaimed, or this company's old staff login) to the new record. */
+async function attachLogin(ctx: Ctx, e: any, login: any) {
+  if (!login) return;
+  if (isUnclaimedLogin(login)) {
+    await linkStaffLogin(login);
+    return;
+  }
+  // Same business, re-added after an earlier record was removed: point the login at the new record.
+  login.employeeId = e._id;
+  login.role = e.appRole ?? 'employee';
+  await login.save();
+  e.userId = login._id;
+  await e.save();
+  await audit(ctx, { action: 'employee.login.attach', entity: 'employee', entityId: e._id });
 }
 
 export async function bulkCreate(ctx: Ctx, list: EmployeeInput[]) {
@@ -135,12 +175,15 @@ export async function getEmployee(ctx: Ctx, id: string) {
 
 export async function updateEmployee(ctx: Ctx, id: string, patch: Partial<EmployeeInput> & { effectiveFrom?: string; language?: 'en' | 'hi' }) {
   const e = await assertEmployeeInScope(ctx, id);
+  let newLogin: any = null;
   const before = e.toObject();
   const company = await Company.findById(ctx.companyId).lean();
   if (patch.phone) {
     const phone = normalizePhone(patch.phone, company?.country ?? 'IN');
     if (!phone) throw new AppError('VALIDATION_ERROR', 'Invalid phone number');
     if (phone !== e.phone && (await Employee.exists({ companyId: ctx.companyId, phone, deletedAt: null }))) throw new AppError('CONFLICT', `${phone} is already added`);
+    const waiting = phone !== e.phone ? await assertPhoneCanBeStaff(ctx, phone, e.name) : null;
+    if (waiting) newLogin = waiting;
     if (phone !== e.phone && e.userId) {
       // Phone change detaches the old login.
       await revokeAllForUser(e.userId);
@@ -175,6 +218,7 @@ export async function updateEmployee(ctx: Ctx, id: string, patch: Partial<Employ
     });
   }
   await audit(ctx, { action: 'employee.update', entity: 'employee', entityId: e._id, before, after: e });
+  await attachLogin(ctx, e, newLogin);
   return e;
 }
 

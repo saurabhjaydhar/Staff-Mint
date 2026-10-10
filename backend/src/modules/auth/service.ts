@@ -63,9 +63,37 @@ export async function consumeOtp(phone: string, code: string) {
   await req.save();
 }
 
+/** A login that never set up a business. It is not anyone's data yet, so it may become a staff login. */
+export const isUnclaimedLogin = (u: { role: string; companyId?: unknown }) => u.role === 'owner' && !u.companyId;
+
+/**
+ * Turn an unclaimed login into the staff login for the newest active staff
+ * record with this phone. Fixes numbers that opened the app before the
+ * owner added them (they would otherwise land in "create your business").
+ * Returns true when it linked.
+ */
+export async function linkStaffLogin(user: UserDoc, deviceId?: string | null): Promise<boolean> {
+  if (!isUnclaimedLogin(user)) return false;
+  const emp = await Employee.findOne({ phone: user.phone, status: 'active', deletedAt: null }).setOptions({ skipTenant: true }).sort({ createdAt: -1 });
+  if (!emp) return false;
+  user.role = emp.appRole ?? 'employee';
+  user.companyId = emp.companyId;
+  user.employeeId = emp._id;
+  if (!user.name) user.name = emp.name;
+  user.language = emp.language ?? user.language;
+  // Device binding starts fresh: only the phone logging in now is bound.
+  user.deviceIds = deviceId && !deviceId.startsWith('web-') ? [deviceId] : [];
+  await user.save();
+  emp.userId = user._id;
+  await emp.save();
+  logger.info({ userId: user._id, employeeId: emp._id }, 'Unclaimed login linked to staff record');
+  return true;
+}
+
 /** Find or create the user for a phone. Employees are matched by their phone on an active employee record. */
 async function resolveUser(phone: string): Promise<UserDoc> {
   let user = await User.findOne({ phone, deletedAt: null });
+  if (user && (await linkStaffLogin(user))) return user;
   if (user) {
     // Employee user whose record was re-activated or moved: keep link fresh.
     if (user.role === 'employee' || user.role === 'manager') {
@@ -153,6 +181,8 @@ export async function refresh(refreshToken: string) {
   }
   const user = await User.findById(doc.userId);
   if (!user || user.deletedAt) throw new AppError('UNAUTHORIZED', 'User not found');
+  // "Check again" on the waiting screen: the owner may have added this number since.
+  await linkStaffLogin(user, doc.deviceId);
   const tokens = await issueTokens(user, doc.deviceId ?? undefined, doc.family);
   doc.revokedAt = new Date();
   doc.replacedBy = sha256(tokens.refreshToken);

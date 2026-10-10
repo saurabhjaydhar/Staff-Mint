@@ -58,6 +58,12 @@ class AuthApi {
     return AuthResult.fromJson(asMap(d));
   }
 
+  /// Fresh tokens; the server re-checks whether this number has been added as staff.
+  Future<({String accessToken, String refreshToken})> refresh(String refreshToken) async {
+    final d = asMap(await _c.post('/auth/refresh', body: {'refreshToken': refreshToken}, auth: false));
+    return (accessToken: asString(d['accessToken']), refreshToken: asString(d['refreshToken']));
+  }
+
   Future<void> logout(String refreshToken) async {
     await _c.post('/auth/logout', body: {'refreshToken': refreshToken}, auth: false);
   }
