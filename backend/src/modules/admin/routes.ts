@@ -51,6 +51,18 @@ adminRouter.put('/configs/:key', async (req, res) => {
   res.json({ data: await setConfig(String(req.params.key), b.value, b.companyId ?? null) });
 });
 
+// Fresh free trial for testing or support: one business, or every business a phone owns. days=0 ends it now.
+adminRouter.post('/trials', async (req, res) => {
+  const b = body(
+    req,
+    z
+      .object({ companyId: z.string().optional(), phone: z.string().optional(), days: z.number().int().min(0).max(90).default(14), planCode: z.string().default('pro') })
+      .refine((x) => x.companyId || x.phone, 'companyId or phone is required'),
+  );
+  const { grantTrial } = await import('../billing/trial.js');
+  res.json({ data: await grantTrial(b) });
+});
+
 // Support recovery for a lost number (PRD F14 row 11): review proofs, then approve (7-day hold) or reject.
 adminRouter.get('/recovery-requests', async (req, res) => {
   const { adminListRecoveries } = await import('../accounts/identity.js');

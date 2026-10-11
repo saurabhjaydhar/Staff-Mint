@@ -40,8 +40,9 @@ class AuditLog {
 }
 
 class BillingInfo {
-  const BillingInfo({this.subscription, this.plan, this.staffCount = 0, this.billedToName});
+  const BillingInfo({this.subscription, this.plan, this.staffCount = 0, this.billedToName, this.trial});
   final Subscription? subscription;
+  final Trial? trial;
   final Plan? plan;
   final int staffCount;
 
@@ -53,6 +54,7 @@ class BillingInfo {
     plan: j['plan'] is Map ? Plan.fromJson(asMap(j['plan'])) : null,
     staffCount: asInt(j['staffCount']),
     billedToName: j['billedTo'] is Map ? asStringOrNull(asMap(j['billedTo'])['name']) : null,
+    trial: j['trial'] is Map ? Trial.fromJson(asMap(j['trial'])) : null,
   );
 }
 

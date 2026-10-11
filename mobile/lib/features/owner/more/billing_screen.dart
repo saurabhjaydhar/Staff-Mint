@@ -69,7 +69,16 @@ class _BillingScreenState extends ConsumerState<BillingScreen> {
                       style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
                     ),
                     const SizedBox(height: 6),
-                    if (b.subscription != null) Text(s.subscriptionStatus(b.subscription!.status)),
+                    if (b.trial != null)
+                      Text(
+                        b.trial!.active
+                            ? s.trialEndsOn(Dates.pretty(b.trial!.endsAt.toLocal(), s.languageCode))
+                            : s.trialEndedOn(Dates.pretty(b.trial!.endsAt.toLocal(), s.languageCode)),
+                        key: const Key('billingTrial'),
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      )
+                    else if (b.subscription != null)
+                      Text(s.subscriptionStatus(b.subscription!.status)),
                     if (b.subscription?.currentPeriodEnd != null)
                       Text(s.renewsOn(Dates.pretty(b.subscription!.currentPeriodEnd!.toLocal(), s.languageCode))),
                     if (b.plan != null) Text(s.staffUsage(b.staffCount, b.plan!.staffLimit)),

@@ -66,6 +66,8 @@ Webhook URL to register: `https://<api>/api/v1/webhooks/messaging/meta` (or `/ai
 | `punch_approval` | name, distance | Outside-geofence check-in alert |
 | `mint_reply` | text | AiSensy only: carries Mint replies |
 | `document_share` | caption + document | AiSensy only: reports |
+| `trial_reminder` | business name, days left, end date | Free trial ends soon (3 days and 1 day before) |
+| `trial_ended` | business name | Free trial ended; now on Free, data kept |
 | `staff_invite` | staff name, business name, staff phone, app link | Invite sent when an owner adds staff (and "Resend invite"). The app link is config `app.downloadUrl` — set the real Play Store URL at launch (`PUT /admin/config`) |
 
 ### Push notifications (🟡)

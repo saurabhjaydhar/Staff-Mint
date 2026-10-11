@@ -96,7 +96,7 @@ describe('company setup', () => {
     const c = await api().get(`${V}/company`).set(auth(owner.token));
     expect(c.body.data.settings).toMatchObject({ graceMinutes: 15, halfDayHours: 4, monthDivisor: 'days_in_month', missingCheckoutPolicy: 'half_day' });
     expect(c.body.data.subscription.status).toBe('trialing');
-    expect(c.body.data.plan.code).toBe('starter');
+    expect(c.body.data.plan.code).toBe('pro');
     const b = await api().get(`${V}/branches`).set(auth(owner.token));
     expect(b.body.data[0]).toMatchObject({ radiusM: 100, location: { lat: 28.6139, lng: 77.209 } });
     const h = await api().get(`${V}/holidays?year=2026`).set(auth(owner.token));

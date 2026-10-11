@@ -63,6 +63,35 @@ class Subscription {
   );
 }
 
+/// Free trial of a business: a countdown while it runs, then "trial ended" for 30 days.
+class Trial {
+  const Trial({required this.planCode, required this.planName, required this.endsAt, this.paidFeatures = const []});
+  final String planCode;
+  final String planName;
+  final DateTime endsAt;
+
+  /// Paid features that stop when the trial ends (keys like `payroll`).
+  final List<String> paidFeatures;
+
+  bool activeAt(DateTime now) => endsAt.isAfter(now);
+  bool get active => activeAt(DateTime.now());
+
+  /// Whole days left, counting today's part as one; 0 once ended. Counted on the phone so it stays right.
+  int daysLeftAt(DateTime now) {
+    final ms = endsAt.difference(now).inMilliseconds;
+    return ms <= 0 ? 0 : (ms / Duration.millisecondsPerDay).ceil();
+  }
+
+  int get daysLeft => daysLeftAt(DateTime.now());
+
+  factory Trial.fromJson(Json j) => Trial(
+    planCode: asString(j['planCode']),
+    planName: asString(j['planName']),
+    endsAt: asDateTimeOrNull(j['endsAt']) ?? DateTime.now(),
+    paidFeatures: (j['paidFeatures'] is List ? j['paidFeatures'] as List : const []).map((e) => '$e').toList(),
+  );
+}
+
 class CompanySettings {
   const CompanySettings({
     this.graceMinutes = 15,
@@ -165,6 +194,7 @@ class Company {
     this.settings = const CompanySettings(),
     this.plan,
     this.subscription,
+    this.trial,
   });
 
   final String id;
@@ -177,6 +207,7 @@ class Company {
   final CompanySettings settings;
   final Plan? plan;
   final Subscription? subscription;
+  final Trial? trial;
 
   bool hasFeature(String f) => plan?.has(f) ?? true;
 
@@ -191,6 +222,7 @@ class Company {
     settings: CompanySettings.fromJson(asMap(j['settings'])),
     plan: j['plan'] is Map ? Plan.fromJson(asMap(j['plan'])) : null,
     subscription: j['subscription'] is Map ? Subscription.fromJson(asMap(j['subscription'])) : null,
+    trial: j['trial'] is Map ? Trial.fromJson(asMap(j['trial'])) : null,
   );
 }
 

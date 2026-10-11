@@ -7,8 +7,8 @@ import type { Ctx } from '../../lib/context.js';
 import { Branch, Company, Holiday, Membership, RefreshToken, Shift, Subscription, User } from '../../models/index.js';
 import { sha256 } from '../../lib/crypto.js';
 import { HOLIDAY_TEMPLATES } from '../config/defaults.js';
-import { getConfig } from '../config/service.js';
-import { companyPlan, getPlan } from '../billing/plans.js';
+import { companyPlan } from '../billing/plans.js';
+import { trialForNewBusiness, trialFromSubscription } from '../billing/trial.js';
 import { audit } from '../audit/service.js';
 import { issueTokens } from '../auth/service.js';
 import { activate, activeMemberships, membershipViews } from '../auth/memberships.js';
@@ -43,6 +43,8 @@ export async function companyView(company: any) {
     subscription: subscription
       ? { status: subscription.status, planCode: subscription.planCode, trialEndsAt: subscription.trialEndsAt ?? null, currentPeriodEnd: subscription.currentPeriodEnd ?? null }
       : { status: 'free', planCode: 'free', trialEndsAt: null, currentPeriodEnd: null },
+    /** Free trial countdown, or "trial ended" for 30 days after (owners see a banner). */
+    trial: await trialFromSubscription(subscription),
   };
 }
 
@@ -92,14 +94,13 @@ export async function setupCompany(userId: Types.ObjectId, input: SetupInput, se
   const year = new Date().getFullYear();
   await seedHolidays(company._id, country, [year, year + 1]);
 
-  const trialPlanCode = await getConfig<string>('signup.trialPlan');
-  const trialPlan = await getPlan(trialPlanCode);
+  const trial = await trialForNewBusiness(user._id);
   await Subscription.create({
     companyId: company._id,
     provider: 'internal',
-    planCode: trialPlan.trialDays > 0 ? trialPlan.code : 'free',
-    status: trialPlan.trialDays > 0 ? 'trialing' : 'free',
-    trialEndsAt: trialPlan.trialDays > 0 ? new Date(Date.now() + trialPlan.trialDays * 86400_000) : undefined,
+    planCode: trial ? trial.planCode : 'free',
+    status: trial ? 'trialing' : 'free',
+    trialEndsAt: trial?.endsAt,
     currency: company.currency,
   });
 

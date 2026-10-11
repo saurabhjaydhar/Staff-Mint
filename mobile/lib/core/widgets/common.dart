@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../api/api_exception.dart';
 import '../i18n/strings.dart';
+import '../router/routes.dart';
 import '../theme/app_theme.dart';
 import 'skeleton.dart';
 
@@ -54,7 +56,28 @@ void showUndoSnackBar(BuildContext context, String message, VoidCallback onUndo)
   );
 }
 
-void showError(BuildContext context, Object error) => showSnack(context, errorMessage(context, error), error: true);
+void showError(BuildContext context, Object error) {
+  // A paid feature or plan limit: offer the plans screen right there.
+  final router = GoRouter.maybeOf(context);
+  if (error is ApiException && error.isPlanError && router != null) {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    messenger?.hideCurrentSnackBar();
+    messenger?.showSnackBar(
+      SnackBar(
+        content: Text(errorMessage(context, error)),
+        backgroundColor: AppColors.red,
+        action: SnackBarAction(
+          key: const Key('upgradeAction'),
+          label: context.s.upgrade,
+          textColor: Colors.white,
+          onPressed: () => router.push(Routes.ownerBilling),
+        ),
+      ),
+    );
+    return;
+  }
+  showSnack(context, errorMessage(context, error), error: true);
+}
 
 Future<bool> confirmDialog(
   BuildContext context, {

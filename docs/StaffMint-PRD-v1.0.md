@@ -259,6 +259,13 @@ Only for jobs easier on a big screen: Excel import, bulk edits, report downloads
 - Razorpay subscriptions; **pricing is dynamic**: plans, limits, prices and trial length live in a server-side `plans` config (no app release needed to change them).
 - Support multiple currencies/tax settings in the data model from day one (INR now; AED/SAR later), even if only INR is enabled.
 - Free data export always available, including after cancellation (30-day window).
+- **Free trial (decided Oct 2026):** every new owner gets **14 days of Pro** (all features) on their first business, so they can try everything before choosing.
+  - **One trial per owner, not per business:** a business created while the owner's trial runs shares the same end date; one created after it ended starts on Free (the owner can add it to their one bill instead).
+  - **Countdown:** owners see "Pro free trial: N days left" on the home screen (app Today, web dashboard) with "See plans"; it turns amber in the last 3 days.
+  - **Reminders:** push + WhatsApp to the owner 3 days and 1 day before the end, daytime only (config `trial.reminderDays`).
+  - **When it ends, fall back to Free (the app is never locked):** one "trial ended" message says what keeps working (attendance, leave, daily summary, all data) and what pauses until a plan is chosen. Paid screens show Upgrade. Staff above the Free limit are not removed; the owner just can't add more. Face check is switched off. A dismissible "trial ended" banner stays for 30 days.
+  - **Support/testing:** `POST /admin/trials` gives a business (or every business of a phone) a fresh trial, or ends it now with `days: 0`.
+  - Trial plan and length are config (`signup.trialPlan`, the plan's `trialDays`).
 
 ### F13. Trust features
 - Audit log (who/what/before/after/channel) visible to owner.

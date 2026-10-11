@@ -37,6 +37,8 @@ const FEATURE_LABELS: Record<string, string> = {
   branches: "Multiple branches",
   reports: "Reports (PDF/Excel)",
   whatsapp_payslips: "Payslips on WhatsApp",
+  whatsapp_assistant: "WhatsApp assistant",
+  face_match: "Face check",
   ca_access: "Accountant (CA) access",
   priority_support: "Priority support",
 };
@@ -135,6 +137,16 @@ export default function BillingPage() {
               <div className="text-sm text-slate-600">
                 {current.staffCount} of {current.plan?.staffLimit ?? "—"} staff
                 used
+                {current.trial && (
+                  <span data-billing-trial>
+                    {" "}
+                    ·{" "}
+                    {(current.trial.active ? t("trial_until") : t("trial_ended_on")).replace(
+                      "{date}",
+                      formatDate(current.trial.endsAt),
+                    )}
+                  </span>
+                )}
                 {current.subscription.currentPeriodEnd && (
                   <>
                     {" "}
