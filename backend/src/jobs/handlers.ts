@@ -7,6 +7,7 @@ import { closeDay, dashboardToday } from '../modules/attendance/service.js';
 import { autoDraftForCompany } from '../modules/payroll/service.js';
 import { generateRunPdfs } from '../modules/payslips/service.js';
 import { notifyOwners } from '../modules/notifications/service.js';
+import { trialNotices } from '../modules/billing/trial.js';
 import { provider } from '../providers/registry.js';
 import { systemCtx } from '../lib/context.js';
 
@@ -104,6 +105,10 @@ export async function schedulerTick(now = new Date()) {
         updates['jobState.lastDraftMonth'] = lastMonth;
         if (run) summary.drafts++;
       }
+
+      // Free trial: reminders 3 days and 1 day before it ends, then "trial ended".
+      const trialKey = await trialNotices(c, now);
+      if (trialKey) updates['jobState.lastTrialNotice'] = trialKey;
 
       // Retention purge at ~3 AM.
       if (local.hour === 3 && local.minute < 15) await purgeRetention(c, now);

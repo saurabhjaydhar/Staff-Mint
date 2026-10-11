@@ -67,7 +67,10 @@ export const DEFAULT_PLANS = [
 ];
 
 export const DEFAULT_CONFIG: Record<string, unknown> = {
-  'signup.trialPlan': 'starter',
+  /** Every new owner tries all features (Pro) for the plan's trialDays, once per owner. */
+  'signup.trialPlan': 'pro',
+  /** Push/WhatsApp reminders this many days before the trial ends. */
+  'trial.reminderDays': [3, 1],
   'billing.priceLockMonths': 24,
   'billing.exportWindowDays': 30,
   'leave.types': ['paid', 'sick', 'unpaid'],

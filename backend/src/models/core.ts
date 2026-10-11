@@ -47,6 +47,8 @@ const companySchema = new Schema(
       lastAutoAbsentDate: String,
       lastDigestDate: String,
       lastDraftMonth: String,
+      /** "<trialEndsAt ISO>|3", "|1" or "|ended": the last trial message sent. */
+      lastTrialNotice: String,
     },
     cancelledAt: { type: Date, default: null },
     exportAvailableUntil: { type: Date, default: null },
@@ -81,6 +83,8 @@ const userSchema = new Schema(
     lastLoginAt: Date,
     /** Devices this person logged in from (last 10), for the recycled-number check. */
     loginDevices: { type: [String], default: [] },
+    /** One free trial per owner: when the trial of their first business ends (later businesses share it). */
+    trialEndsAt: { type: Date, default: null },
     /** WhatsApp has no account picker: the business WhatsApp commands go to, and a message waiting for that choice. */
     whatsappCompanyId: { type: Schema.Types.ObjectId, ref: 'Company', default: null },
     whatsappPending: { text: String, at: Date },

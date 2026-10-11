@@ -19,6 +19,7 @@ import '../attendance/month_grid.dart';
 import '../providers/owner_providers.dart';
 import 'needs_you_card.dart';
 import 'status_quick_sheet.dart';
+import 'trial_banner.dart';
 
 /// Owner "Today": the ledger day-sheet (who came, when) plus what needs the
 /// owner. Tap a status pill to fix it in two taps; every save can be undone.
@@ -155,6 +156,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
             ),
             const BusinessSwitchChip(),
             const AccountAlerts(),
+            const TrialBanner(),
             if (_monthMode) ...[
               MonthSwitcher(month: _month, onChanged: (m) => setState(() => _month = m)),
               Expanded(child: MonthGridView(month: Dates.toApiMonth(_month))),

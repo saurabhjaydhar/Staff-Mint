@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useI18n, useToast } from "@/components/providers";
+import { TrialBanner } from "@/components/TrialBanner";
 import { Alert, Badge, Button, Card, EmptyState, Loading, PageHeader, Stat } from "@/components/ui";
 import { useAction, useAsync } from "@/hooks/useAsync";
 import { api } from "@/lib/api";
@@ -72,6 +73,7 @@ export default function DashboardPage() {
           </Button>
         }
       />
+      <TrialBanner />
       {errorText && <Alert onRetry={reload}>{errorText}</Alert>}
       {action.error && <Alert>{action.error}</Alert>}
 

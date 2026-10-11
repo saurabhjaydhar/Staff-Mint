@@ -100,6 +100,19 @@ export interface Company {
   settings: CompanySettings;
   plan: Plan;
   subscription: Subscription;
+  /** Free trial countdown, or "trial ended" for 30 days after. */
+  trial?: Trial | null;
+}
+
+export interface Trial {
+  planCode: string;
+  planName: string;
+  endsAt: string;
+  daysLeft: number;
+  active: boolean;
+  ended: boolean;
+  /** Paid features that stop when the trial ends. */
+  paidFeatures: string[];
 }
 
 export interface Branch {
@@ -611,6 +624,7 @@ export interface SubscriptionInfo {
   subscription: Subscription;
   plan: Plan;
   staffCount: number;
+  trial?: Trial | null;
   /** Paid together with another business (one bill); its plan is managed there. */
   billedTo?: { companyId: string; name: string } | null;
 }

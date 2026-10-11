@@ -6,6 +6,7 @@ import { provider } from '../../providers/registry.js';
 import type { PaymentEvent } from '../../providers/types.js';
 import { activeStaffCount, billingGroupIds, billingStaffCount, companyPlan, getPlan } from './plans.js';
 import { getConfig } from '../config/service.js';
+import { trialFromSubscription } from './trial.js';
 import { audit } from '../audit/service.js';
 import { systemCtx } from '../../lib/context.js';
 import { logger } from '../../lib/logger.js';
@@ -27,6 +28,7 @@ export async function subscriptionSummary(ctx: Ctx) {
         }
       : null,
     staffCount: await activeStaffCount(ctx.companyId),
+    trial: await trialFromSubscription(subscription),
     /** Paid together with another business (one bill); manage the plan there. */
     billedTo: await payerOf(ctx.companyId),
   };

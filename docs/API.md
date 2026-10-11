@@ -22,7 +22,10 @@ Company   { id, name, businessType, country, currency, timezone, location:{lat,l
             settings: { graceMinutes, halfDayHours, monthDivisor:'days_in_month'|'30'|'26', missingCheckoutPolicy:'half_day'|'present'|'flag',
                         weekOffsPaid, holidaysPaid, sickLeavePaid, outsideGeofencePolicy:'block'|'request_approval', phoneLockPolicy:'off'|'recommended'|'required', faceMatchPolicy:'off'|'review', language, digestTime:'09:30',
                         roundToRupee, selfieRequired, maxDeviceTimeDriftMin, selfieRetentionDays, whatsappAlerts },
-            plan: Plan, subscription: { status:'trialing'|'active'|'past_due'|'cancelled'|'free', planCode, currentPeriodEnd|null } }
+            plan: Plan, subscription: { status:'trialing'|'active'|'past_due'|'cancelled'|'free', planCode, currentPeriodEnd|null },
+            trial: Trial|null }
+Trial     { planCode, planName, endsAt, daysLeft, active, ended, paidFeatures: string[] }
+          // free trial countdown; after the end, ended:true for 30 days (owners see "trial ended"). null when no trial.
 Branch    { id, name, location:{lat,lng,address?}, radiusM, shiftId }
 Shift     { id, name, start:'09:00', end:'19:00', graceMinutes:number|null, weeklyOff:number[] }
 Employee  { id, name, phone, branchId, shiftId, wageType:'monthly'|'daily', ratePaise, designation?, joiningDate?, status:'active'|'inactive',
@@ -182,7 +185,7 @@ Fields: `name, phone, ratePaise, wageType, designation, joiningDate, branch, adv
 
 ### Billing
 | GET | /billing/plans | (public) | `Plan[]` |
-| GET | /billing/subscription | | `{subscription, plan, staffCount}` |
+| GET | /billing/subscription | | `{subscription, plan, staffCount, trial: Trial\|null, billedTo}` |
 | POST | /billing/subscribe | `{planCode, interval:'monthly'\|'yearly'}` | `{provider, subscriptionId, checkoutUrl, keyId?}` |
 | POST | /billing/cancel | | `{subscription}` |
 
@@ -194,6 +197,11 @@ Fields: `name, phone, ratePaise, wageType, designation, joiningDate, branch, adv
 
 ### Admin (header `x-admin-key: $ADMIN_API_KEY`)
 `GET/PUT /admin/plans/:code` · `GET/PUT /admin/flags` · `GET/PUT /admin/configs/:key`
+
+`POST /admin/trials` `{companyId? | phone?, days=14, planCode='pro'}` → `[{companyId, name, planCode, trialEndsAt} | {companyId, name, skipped:'paid_plan'}]`.
+A fresh free trial for one business, or every business a phone owns (testing, support). `days: 0` ends the trial now. Businesses on a paid plan are skipped.
+
+**Free trial rules:** a new owner's first business gets `signup.trialPlan` (default `pro`) for that plan's `trialDays` (14). One trial per owner: later businesses share its end date while it runs and start on Free after. The scheduler sends `trial_reminder` 3 and 1 days before the end (`trial.reminderDays`) and `trial_ended` once (push + WhatsApp to the main owner, 10 AM–8 PM local). At the end the business is on Free, and face check is set to `off` if Free doesn't include it.
 
 ## Implementation notes
 - `deviceId` values starting with `web-` never bind or block an employee's phone binding.

@@ -596,6 +596,28 @@ class S {
   String get choosePlan => _t('Choose plan', 'प्लान चुनें');
   String get yourPlan => _t('Your plan', 'आपका प्लान');
   String trialDays(int n) => _t('$n-day free trial', '$n दिन का फ़्री ट्रायल');
+
+  // Free trial banner (every new owner tries all features).
+  String trialLeft(String plan, int days) => days <= 1
+      ? _t('$plan free trial: last day', '$plan फ़्री ट्रायल: आख़िरी दिन')
+      : _t('$plan free trial: $days days left', '$plan फ़्री ट्रायल: $days दिन बाक़ी');
+  String trialAllOn(String date) => _t(
+    'All features are on until $date. Pick a plan any time to keep them.',
+    '$date तक सारे फ़ीचर चालू हैं। इन्हें चालू रखने के लिए कभी भी प्लान चुनें।',
+  );
+  String trialEndsSoon(String date) => _t(
+    'Ends on $date. After that you move to Free: your data stays, paid features pause.',
+    '$date को ख़त्म होगा। फिर आप Free पर आ जाएँगे: डेटा रहेगा, पेड फ़ीचर रुक जाएँगे।',
+  );
+  String get trialEndedTitle => _t('Your free trial has ended', 'आपका फ़्री ट्रायल ख़त्म हो गया');
+  String trialEndedBody(String paused) => _t(
+    'You are on Free now. Attendance, leave and the daily summary keep working, and all your data is safe.${paused.isEmpty ? '' : ' Paused until you pick a plan: $paused.'}',
+    'अब आप Free पर हैं। हाज़िरी, छुट्टी और रोज़ की रिपोर्ट चलती रहेगी, आपका सारा डेटा सुरक्षित है।${paused.isEmpty ? '' : ' प्लान लेने तक रुका है: $paused।'}',
+  );
+  String get seePlans => _t('See plans', 'प्लान देखें');
+  String get upgrade => _t('Upgrade', 'अपग्रेड करें');
+  String trialEndsOn(String date) => _t('Free trial until $date', '$date तक फ़्री ट्रायल');
+  String trialEndedOn(String date) => _t('Free trial ended on $date', 'फ़्री ट्रायल $date को ख़त्म हुआ');
   String featureLabel(String f) {
     switch (f) {
       case 'attendance':
@@ -618,6 +640,10 @@ class S {
         return _t('Reports', 'रिपोर्ट');
       case 'whatsapp_payslips':
         return _t('Payslips on WhatsApp', 'WhatsApp पर पेस्लिप');
+      case 'whatsapp_assistant':
+        return _t('WhatsApp assistant', 'WhatsApp सहायक');
+      case 'face_match':
+        return _t('Face check', 'चेहरा मिलान');
       case 'ca_access':
         return _t('CA access', 'CA एक्सेस');
       case 'priority_support':
