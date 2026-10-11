@@ -195,8 +195,29 @@ Fields: `name, phone, ratePaise, wageType, designation, joiningDate, branch, adv
 ### Webhooks (signature verified)
 `POST /webhooks/payments/:provider` · `GET|POST /webhooks/messaging/:provider`
 
-### Admin (header `x-admin-key: $ADMIN_API_KEY`)
-`GET/PUT /admin/plans/:code` · `GET/PUT /admin/flags` · `GET/PUT /admin/configs/:key`
+### Admin (admin app session `Authorization: Bearer <admin token>`, or header `x-admin-key: $ADMIN_API_KEY` for scripts)
+**Sign-in (admin app):** `POST /admin-auth/login {email, password}` → `{ticket, sentTo, devCode?}` (6-digit code emailed; `devCode` only with the mock email provider outside production) ·
+`POST /admin-auth/verify {ticket, code}` → `{accessToken, expiresInSec: 43200, admin}`. Admin tokens use their own audience; owner/staff tokens are refused.
+5 wrong passwords lock the account for 15 minutes; a code allows 5 tries and lasts 10 minutes. Rate limit: 20 sign-in calls per 15 minutes per IP.
+
+Roles: `admin` (everything) and `viewer` (all GETs; changes return 403). Every change is written to the activity log (`AdminAction`).
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | /admin/me · POST /admin/logout · POST /admin/me/password `{current, next}` | logout and password change end every session of that admin |
+| GET | /admin/stats | businesses by status, owners, active staff, signups (7/30 days + per day), monthly revenue (paise), paid plans, trials ending in 3 days, pending recoveries, failed messages (7 days) |
+| GET | /admin/companies?search=&status=&page=&limit= | search by name, id or owner phone; status `trial`\|`paid`\|`past_due`\|`free`\|`closed`\|`billed_with` |
+| GET | /admin/companies/:id | plan, trial, people, staff, subscriptions, failed messages, admin changes |
+| POST | /admin/companies/:id/plan `{planCode, months=1, note?}` | put on a plan by hand (no charge, `pricePaise: 0`); `free` ends it. Refused (409 `provider_subscription`) while a Razorpay subscription is live |
+| GET/PUT | /admin/plans · /admin/plans/:code | GET lists the built-in plans until the first edit |
+| GET/PUT | /admin/flags | |
+| GET | /admin/configs | every setting: value, default, changed, businesses with their own value |
+| GET/PUT | /admin/configs/:key `{value, companyId?}` | a known setting keeps its type (number, text, on/off, list) |
+| GET | /admin/messages?status=&channel=&companyId= | WhatsApp/push/SMS/email across businesses |
+| GET | /admin/actions?companyId= | activity log |
+| GET/POST/PATCH | /admin/admins · /admin/admins/:id `{role?, active?, name?}` | at least one active admin is kept; you can't remove your own access |
+
+First admin: `npm run admin:create -- --email you@example.com --password '<10+ chars>'` (production image: `node dist/scripts/createAdmin.js …`). Running it again for the same email resets the password.
 
 `POST /admin/trials` `{companyId? | phone?, days=14, planCode='pro'}` → `[{companyId, name, planCode, trialEndsAt} | {companyId, name, skipped:'paid_plan'}]`.
 A fresh free trial for one business, or every business a phone owns (testing, support). `days: 0` ends the trial now. Businesses on a paid plan are skipped.

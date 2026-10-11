@@ -3,11 +3,15 @@
 # Coolify (Hostinger VPS):
 #   1. New Resource → Public/Private Git repo → this repo, branch master,
 #      Build Pack "Docker Compose", compose file /docker-compose.prod.yml.
-#   2. Domains: give `api` https://api.example.com:4000 and `web` https://app.example.com:3000
+#   2. Domains: give `api` https://api.example.com:4000, `web` https://app.example.com:3000
+#      and `admin` https://admin.example.com:3200
 #      (the :port tells Coolify which container port to route to; the public URL stays on 443).
 #      Point both DNS A records at the VPS IP first so Let's Encrypt can issue certificates.
 #   3. Environment Variables tab: fill every variable marked :? below, plus the providers you use.
-#      NEXT_PUBLIC_API_BASE_URL is baked into the web bundle at build time — redeploy `web` after changing it.
+#      NEXT_PUBLIC_API_BASE_URL is baked into the web and admin bundles at build time — redeploy them after changing it.
+#      CORS_ORIGINS must list both https://app.example.com and https://admin.example.com.
+#   5. Create the first admin (once): in the `api` container run
+#        node dist/scripts/createAdmin.js --email you@example.com --name "You" --password '<10+ chars>'
 #   4. Deploy. The API seeds default plans/config on boot; no manual seed step is needed.
 #
 # Plain Docker: put the same variables in a `.env` next to this file and run
@@ -111,6 +115,15 @@ services:
     restart: unless-stopped
     depends_on: [api]
     expose: ["3000"]
+
+  admin:
+    build:
+      context: ./admin
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:?}
+    restart: unless-stopped
+    depends_on: [api]
+    expose: ["3200"]
 
 volumes:
   mongo-data:
