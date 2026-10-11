@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "mobile (prod API)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "toolArgs": ["--dart-define-from-file=config/production.json"]
+    },
+    {
+      "name": "mobile (local API)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "toolArgs": ["--dart-define-from-file=config/local.json"]
+    }
+  ]
+}

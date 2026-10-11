@@ -1,13 +1,13 @@
-/// Compile-time configuration supplied through `--dart-define`.
+/// Compile-time configuration supplied through `--dart-define-from-file`.
 ///
 /// Example:
-///   flutter run --dart-define=API_BASE_URL=https://api.staffmint.app/api/v1
+///   flutter run --dart-define-from-file=config/production.json
 class Env {
   Env._();
 
   /// Base URL of the StaffMint API including the `/api/v1` prefix.
-  /// Defaults to the Android emulator's alias for the host machine.
-  static const String apiBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'http://10.0.2.2:4000/api/v1');
+  /// No default: always supplied by a file in `config/` (local.json, production.json).
+  static const String apiBaseUrl = String.fromEnvironment('API_BASE_URL');
 
   /// OpenStreetMap tile server used by the location pickers.
   static const String mapTileUrl = String.fromEnvironment(

@@ -145,7 +145,7 @@ Set `PAYMENT_PROVIDER=razorpay`.
 ## 3. Mobile app (build-time)
 | Item | Notes |
 |---|---|
-| `--dart-define=API_BASE_URL=https://api.staffmint.app/api/v1` | Default is `http://10.0.2.2:4000/api/v1` (Android emulator) |
+| `API_BASE_URL` in `mobile/config/*.json` | Passed with `--dart-define-from-file`; no default, the app stops at startup if missing. `local.json` = emulator → laptop, `production.json` = live server |
 | `--dart-define=MAP_TILE_URL=...` | 🟡 Production map tiles (OpenStreetMap public tiles are for dev only); e.g. MapTiler or Stadia key |
 | `android/app/google-services.json` | 🔴 Real Firebase file (see Push above) |
 | `android/key.properties` + upload keystore `.jks` | 🔴 Play Store signing (`keytool -genkey ...`). Both are gitignored; **back them up** |
