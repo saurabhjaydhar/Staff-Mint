@@ -12,6 +12,7 @@ Product spec: [`docs/StaffMint-PRD-v1.0.md`](docs/StaffMint-PRD-v1.0.md) · API 
 | `backend/` | API, background jobs, payroll engine, Mint assistant, provider adapters | Node 22 · Express 5 · TypeScript (ESM) · MongoDB/Mongoose · BullMQ · Zod · Vitest |
 | `mobile/` | One Flutter app with Owner and Employee modes (Android first) | Flutter 3.47 · Riverpod · Dio · Hive (offline punches) · go_router |
 | `web/` | Minimal dashboard: Excel import, bulk edits, payroll compare, reports, CA access | Next.js 16 · Tailwind 4 · Vitest |
+| `admin/` | Admin app for the StaffMint team: businesses, trials, plans & prices, settings & flags, recovery, messages (mobile first) | Next.js 16 · Tailwind 4 · Vitest |
 | `docs/` | PRD, API contract, credentials checklist | |
 | `deploy/` | Nginx example, Mongo backup script | |
 
@@ -27,7 +28,11 @@ cd backend && npm install && npm run seed:demo && npm run dev
 # 3. Web  (http://localhost:3000)
 cd web && npm install && npm run dev
 
-# 4. Mobile (Android emulator)
+# 4. Admin app  (http://localhost:3200)
+cd backend && npm run admin:create -- --email you@example.com --password 'long-pass-123'
+cd admin && npm install && npm run dev
+
+# 5. Mobile (Android emulator)
 cd mobile && flutter pub get && flutter run --dart-define=API_BASE_URL=http://10.0.2.2:4000/api/v1
 ```
 Or run the whole stack with `docker compose up -d --build` (copy `backend/.env.example` to `backend/.env` first).
@@ -38,8 +43,9 @@ Or run the whole stack with `docker compose up -d --build` (copy `backend/.env.e
 | backend | `npm run lint && npm run typecheck && npm test` | 163 tests: golden payroll files, rules engine, Hinglish parser, auth, tenant isolation, attendance, leave, payroll, import, assistant, WhatsApp, billing, reports, provider contracts, scheduler |
 | web | `npm run lint && npm test && npm run build` | 64 tests |
 | mobile | `flutter analyze && flutter test` | 79 tests, analyze clean |
+| admin | `npm run lint && npm run typecheck && npm test && npm run build` | 18 tests |
 
-CI runs all three: `.github/workflows/ci.yml`.
+CI runs all four: `.github/workflows/ci.yml`.
 
 ## How the PRD maps to code (MVP F1–F13)
 | Feature | Where |

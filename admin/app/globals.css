@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+@theme {
+  --color-mint-50: #ecfaf2;
+  --color-mint-100: #d2f3e0;
+  --color-mint-200: #a8e6c4;
+  --color-mint-300: #74d4a2;
+  --color-mint-400: #45c383;
+  --color-mint-500: #2bb673;
+  --color-mint-600: #22965e;
+  --color-mint-700: #1c774c;
+  --color-mint-800: #195e3e;
+  --color-mint-900: #144d34;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Helvetica Neue", Arial, sans-serif;
+}
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased;
+}
+
+/* Room for the bottom tab bar and the phone's home indicator. */
+.pb-tabbar {
+  padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

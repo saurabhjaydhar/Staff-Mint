@@ -21,7 +21,7 @@ The server **refuses to start in production** while these still have their dev v
 |---|---|---|
 | `NODE_ENV` | `production` | — |
 | `PUBLIC_BASE_URL` | Public API URL, e.g. `https://api.staffmint.app` | your domain |
-| `WEB_APP_URL`, `CORS_ORIGINS` | Web dashboard URL, e.g. `https://app.staffmint.app` | your domain |
+| `WEB_APP_URL`, `CORS_ORIGINS` | Web dashboard URL, e.g. `https://app.staffmint.app`. `CORS_ORIGINS` must also list the admin app, e.g. `https://app.staffmint.app,https://admin.staffmint.app` | your domain |
 | `MONGODB_URI` | MongoDB Atlas connection string | Atlas → Connect → Drivers (M10+ with backups/PITR recommended) |
 | `REDIS_URL` | Redis URL (BullMQ jobs) | Upstash / Redis Cloud / the docker `redis` service |
 | `JOBS_DRIVER` | `bullmq` in production (run the `worker` service) | — |
@@ -29,7 +29,7 @@ The server **refuses to start in production** while these still have their dev v
 | `JWT_REFRESH_SECRET` | random, ≥ 48 chars (different from the access secret) | `openssl rand -base64 48` |
 | `FIELD_ENCRYPTION_KEY` | 32-byte key, base64 (field-level encryption) | `openssl rand -base64 32`. **Back it up; data encrypted with it cannot be read without it** |
 | `FILE_URL_SECRET` | signs private file links | `openssl rand -base64 32` |
-| `ADMIN_API_KEY` | protects `/api/v1/admin/*` (dynamic pricing, flags) | `openssl rand -hex 24` |
+| `ADMIN_API_KEY` | for scripts calling `/api/v1/admin/*`. People use the admin app (email + password + emailed code); create the first admin with `node dist/scripts/createAdmin.js --email … --password …` | `openssl rand -hex 24` |
 
 ### OTP login (🔴)
 Set `OTP_PROVIDER=msg91` (India) **or** `twilio`.
@@ -129,7 +129,7 @@ Set `PAYMENT_PROVIDER=razorpay`.
 ### Email, maps and observability (⚪ / 🟡)
 | Variable | Notes |
 |---|---|
-| `EMAIL_PROVIDER=resend`, `RESEND_API_KEY`, `EMAIL_FROM` | Domain verified in Resend |
+| `EMAIL_PROVIDER=resend`, `RESEND_API_KEY`, `EMAIL_FROM` | Domain verified in Resend. **Needed for admin app sign-in codes** in production |
 | `GEO_PROVIDER=google`, `GOOGLE_MAPS_API_KEY` | Geocoding API (reverse geocodes the shop pin into an address) |
 | `SENTRY_DSN` | 🟡 Sentry project DSN (errors) |
 | `ANALYTICS_PROVIDER=posthog`, `POSTHOG_API_KEY`, `POSTHOG_HOST` | PostHog project key |

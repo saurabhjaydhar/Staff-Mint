@@ -6,3 +6,4 @@ export * from './leave.js';
 export * from './money.js';
 export * from './payroll.js';
 export * from './misc.js';
+export * from './admin.js';

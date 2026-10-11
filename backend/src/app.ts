@@ -26,7 +26,7 @@ import { exportRouter } from './modules/export/routes.js';
 import { billingRouter, mockCheckoutRouter, paymentsWebhookRouter } from './modules/billing/routes.js';
 import { messagingWebhookRouter } from './modules/messaging/routes.js';
 import { dashboardRouter } from './modules/dashboard/routes.js';
-import { adminRouter } from './modules/admin/routes.js';
+import { adminAuthRouter, adminRouter } from './modules/admin/routes.js';
 import { filesRouter } from './modules/files/routes.js';
 import { accountsRouter } from './modules/accounts/routes.js';
 import { enabledFlags } from './modules/config/service.js';
@@ -59,6 +59,7 @@ export function createApp() {
   api.use('/billing', billingRouter);
   api.use('/webhooks/payments', paymentsWebhookRouter);
   api.use('/webhooks/messaging', messagingWebhookRouter);
+  api.use('/admin-auth', adminAuthRouter);
   api.use('/admin', adminRouter);
   api.get('/config/public', async (_req, res) => {
     res.json({ data: { minAppVersion: env.MIN_APP_VERSION, features: await enabledFlags(), supportWhatsApp: env.SUPPORT_WHATSAPP, otpProvider: providerName('otp'), environment: env.NODE_ENV } });

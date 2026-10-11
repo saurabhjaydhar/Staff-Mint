@@ -255,6 +255,11 @@ PF/ESI/PT/TDS filing, biometric devices, live GPS tracking, performance/OKRs, re
 ### F11. Web dashboard (secondary, minimal)
 Only for jobs easier on a big screen: Excel import, bulk edits, report downloads, CA/accountant access. Everything daily must work in the app. Full web parity → V2.
 
+### F11b. Admin app (for the StaffMint team; decided Oct 2026)
+A separate app (`admin/`, its own domain such as admin.staffmint.app), not part of the owners' web dashboard, so no admin code or screens ever reach customers. Mobile first: bottom tabs on phones, sidebar on desktop.
+- Sign-in: email + password + a 6-digit code sent by email; 12-hour sessions; lockout after 5 wrong passwords. Roles: Admin (can change) and View only (support).
+- Screens: Home (revenue, businesses by status, trials ending, signups chart, "needs you"), Businesses (search by name/phone, filter by status, detail with people, subscriptions, failed messages; give trial, change plan), Plans & prices, Settings & feature flags, Number recovery (approve/reject), Messages (failed WhatsApp/push), Activity log (every admin change), Admins.
+
 ### F12. Billing
 - Razorpay subscriptions; **pricing is dynamic**: plans, limits, prices and trial length live in a server-side `plans` config (no app release needed to change them).
 - Support multiple currencies/tax settings in the data model from day one (INR now; AED/SAR later), even if only INR is enabled.
