@@ -28,9 +28,10 @@ class OwnersScreen extends ConsumerWidget {
     final name = TextEditingController();
     final phone = TextEditingController();
     var billing = false;
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
+    final ok = await showDialogWithControllers<bool>(
+      context,
+      [name, phone],
+      (ctx) => StatefulBuilder(
         builder: (ctx, setState) => AlertDialog(
           title: Text(title),
           content: Column(
@@ -65,8 +66,6 @@ class OwnersScreen extends ConsumerWidget {
       ),
     );
     final out = (name.text.trim(), phone.text.trim(), billing);
-    name.dispose();
-    phone.dispose();
     if (ok != true) return null;
     if (out.$1.isEmpty || !Phones.isValid(out.$2)) {
       if (context.mounted) showSnack(context, s.invalidPhone, error: true);
@@ -82,9 +81,10 @@ class OwnersScreen extends ConsumerWidget {
     var keepAs = 'co_owner';
     var codeSent = false;
     final me = ref.read(authControllerProvider).user?.phone ?? '';
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
+    final ok = await showDialogWithControllers<bool>(
+      context,
+      [phone, code],
+      (ctx) => StatefulBuilder(
         builder: (ctx, setState) => AlertDialog(
           title: Text(s.transferBusiness),
           content: SingleChildScrollView(
@@ -148,8 +148,6 @@ class OwnersScreen extends ConsumerWidget {
     );
     final to = Phones.normalize(phone.text);
     final c = code.text.trim();
-    phone.dispose();
-    code.dispose();
     if (ok != true || to == null || !context.mounted) return;
     final done = await runGuarded(
       context,
@@ -273,9 +271,10 @@ class OwnersScreen extends ConsumerWidget {
                   subtitle: Text(s.ownerLostNumberHint),
                   onTap: () async {
                     final ctrl = TextEditingController();
-                    final ok = await showDialog<bool>(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
+                    final ok = await showDialogWithControllers<bool>(
+                      context,
+                      [ctrl],
+                      (ctx) => AlertDialog(
                         title: Text(s.ownerLostNumber),
                         content: TextField(
                           controller: ctrl,
@@ -289,7 +288,6 @@ class OwnersScreen extends ConsumerWidget {
                       ),
                     );
                     final to = Phones.normalize(ctrl.text);
-                    ctrl.dispose();
                     if (ok != true || to == null || !context.mounted) return;
                     if (await runGuarded(context, () => api.startOwnerRecovery(to))) ref.invalidate(transferProvider);
                   },

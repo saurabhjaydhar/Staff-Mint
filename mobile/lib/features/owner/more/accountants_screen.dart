@@ -20,9 +20,10 @@ class AccountantsScreen extends ConsumerWidget {
     final s = context.s;
     final name = TextEditingController();
     final phone = TextEditingController();
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
+    final ok = await showDialogWithControllers<bool>(
+      context,
+      [name, phone],
+      (ctx) => AlertDialog(
         title: Text(s.addAccountant),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -50,8 +51,6 @@ class AccountantsScreen extends ConsumerWidget {
     );
     final n = name.text.trim();
     final p = phone.text.trim();
-    name.dispose();
-    phone.dispose();
     if (ok != true || !context.mounted) return;
     if (n.isEmpty || !Phones.isValid(p)) {
       showSnack(context, s.invalidPhone, error: true);

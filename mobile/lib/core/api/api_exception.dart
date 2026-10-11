@@ -91,9 +91,12 @@ class ApiException implements Exception {
 
   factory ApiException.fromDio(DioException e) {
     final inner = e.error;
-    // The UI collapses every transport failure into "No internet"; keep the real cause in debug logs.
-    if (kDebugMode && e.type != DioExceptionType.badResponse) {
-      debugPrint('[api] ${e.type.name} ${e.requestOptions.method} ${e.requestOptions.uri}: ${inner ?? e.message}');
+    // The UI shows a short friendly message; keep the real cause (or the server's error body) in debug logs.
+    if (kDebugMode) {
+      final cause = e.type == DioExceptionType.badResponse
+          ? '${e.response?.statusCode} ${e.response?.data}'
+          : '${inner ?? e.message}';
+      debugPrint('[api] ${e.type.name} ${e.requestOptions.method} ${e.requestOptions.uri}: $cause');
     }
     if (inner is ApiException) return inner;
     switch (e.type) {

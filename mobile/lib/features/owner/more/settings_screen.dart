@@ -281,9 +281,10 @@ Future<void> showCloseBusinessDialog(BuildContext context, WidgetRef ref) async 
   final s = context.s;
   final name = ref.read(authControllerProvider).company?.name ?? '';
   final ctrl = TextEditingController();
-  final ok = await showDialog<bool>(
-    context: context,
-    builder: (ctx) => StatefulBuilder(
+  final ok = await showDialogWithControllers<bool>(
+    context,
+    [ctrl],
+    (ctx) => StatefulBuilder(
       builder: (ctx, setState) => AlertDialog(
         title: Text(s.closeBusiness),
         content: Column(
@@ -315,7 +316,6 @@ Future<void> showCloseBusinessDialog(BuildContext context, WidgetRef ref) async 
     ),
   );
   final typed = ctrl.text;
-  ctrl.dispose();
   if (ok != true || !context.mounted) return;
   try {
     await ref.read(authControllerProvider.notifier).closeBusiness(typed);
