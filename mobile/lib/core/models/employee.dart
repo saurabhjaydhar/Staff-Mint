@@ -1,6 +1,7 @@
 import '../utils/json.dart';
 import 'leave.dart';
 import 'profile.dart';
+import 'statutory.dart';
 
 class Employee {
   const Employee({
@@ -25,6 +26,7 @@ class Employee {
     this.advanceBalancePaise,
     this.bank,
     this.emergencyContact,
+    this.statutory,
   });
 
   final String id;
@@ -55,6 +57,9 @@ class Employee {
   final BankInfo? bank;
   final EmergencyContact? emergencyContact;
 
+  /// Employee ID, PF UAN, ESIC, PAN (masked) for the salary slip; only in the detail view.
+  final EmployeeStatutory? statutory;
+
   bool get isActive => status == 'active';
   bool get isDaily => wageType == 'daily';
 
@@ -82,6 +87,7 @@ class Employee {
       advanceBalancePaise: asIntOrNull(j['advanceBalancePaise']),
       bank: BankInfo.fromJsonOrNull(j['bank']),
       emergencyContact: EmergencyContact.fromJsonOrNull(j['emergencyContact']),
+      statutory: EmployeeStatutory.fromJsonOrNull(j['statutory']),
     );
   }
 }

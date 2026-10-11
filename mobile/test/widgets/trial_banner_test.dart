@@ -74,7 +74,7 @@ void main() {
     await pump(tester, user: _owner, trial: _trial(const Duration(days: -2)));
     expect(find.text('Your free trial has ended'), findsOneWidget);
     expect(find.textContaining('Attendance, leave and the daily summary keep working'), findsOneWidget);
-    expect(find.textContaining('Paused until you pick a plan: Salary, Payslips, Face check.'), findsOneWidget);
+    expect(find.textContaining('Paused until you pick a plan: Salary, Salary slips, Face check.'), findsOneWidget);
     expect(find.text('Upgrade'), findsOneWidget);
     await tester.tap(find.byTooltip('OK'));
     await tester.pumpAndSettle();

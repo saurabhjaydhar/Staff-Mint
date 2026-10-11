@@ -20,7 +20,7 @@ interface ReportTable {
   landscape?: boolean;
 }
 
-async function build(ctx: Ctx, kind: ReportKind, month: string): Promise<ReportTable> {
+export async function buildReport(ctx: Ctx, kind: ReportKind, month: string): Promise<ReportTable> {
   const company = await Company.findById(ctx.companyId).lean();
   const money = (p: number) => formatMoney(p, company!.currency);
   switch (kind) {
@@ -39,10 +39,32 @@ async function build(ctx: Ctx, kind: ReportKind, month: string): Promise<ReportT
       const run = await PayrollRun.findOne({ companyId: ctx.companyId, month, status: { $ne: 'superseded' } }).sort({ revision: -1 }).lean();
       if (!run) throw new AppError('NOT_FOUND', `No salary run for ${month}. Create one first.`);
       const slips = await Payslip.find({ companyId: ctx.companyId, runId: run._id }).sort({ employeeName: 1 }).lean();
-      const sum = (code: string) => (s: any) => s.lines.filter((l: any) => l.code === code).reduce((a: number, l: any) => a + l.amountPaise, 0);
-      const rows = slips.map((s: any) => [s.employeeName, s.wageType, money(s.ratePaise), s.payableDays, money(sum('basic')(s)), money(sum('bonus')(s)), money(sum('deduction')(s)), money(sum('advance')(s)), money(s.netPaise)]);
-      rows.push(['TOTAL', '', '', '', '', '', '', '', money(run.totals?.netPaise ?? 0)]);
-      return { title: 'Salary register / वेतन रजिस्टर', subtitle: `${monthLabel(month)} · ${run.status} · rev ${run.revision}`, headers: ['Name', 'Type', 'Rate', 'Payable days', 'Earned', 'Bonus', 'Deductions', 'Advance', 'Net pay'], rows, landscape: true };
+      const sum = (...codes: string[]) => (s: any) => s.lines.filter((l: any) => codes.includes(l.code)).reduce((a: number, l: any) => a + l.amountPaise, 0);
+      // PF / ESI / PT columns only when this month has them (most small shops don't).
+      const statutory = (['pf', 'esi', 'pt'] as const).filter((c) => slips.some((s: any) => sum(c)(s) > 0));
+      const label = { pf: 'PF', esi: 'ESI', pt: 'Prof. tax' };
+      const rows = slips.map((s: any) => [
+        s.employeeName,
+        s.wageType,
+        money(s.ratePaise),
+        s.payableDays,
+        money(sum('basic', 'allowance')(s)),
+        money(sum('bonus')(s)),
+        money(s.grossPaise ?? 0),
+        ...statutory.map((c) => money(sum(c)(s))),
+        money(sum('deduction')(s)),
+        money(sum('advance')(s)),
+        money(s.netPaise),
+      ]);
+      const total = (f: (s: any) => number) => money(slips.reduce((a: number, s: any) => a + f(s), 0));
+      rows.push(['TOTAL', '', '', '', total(sum('basic', 'allowance')), total(sum('bonus')), total((s) => s.grossPaise ?? 0), ...statutory.map((c) => total(sum(c))), total(sum('deduction')), total(sum('advance')), money(run.totals?.netPaise ?? 0)]);
+      return {
+        title: 'Salary register / वेतन रजिस्टर',
+        subtitle: `${monthLabel(month)} · ${run.status} · rev ${run.revision}`,
+        headers: ['Name', 'Type', 'Rate', 'Paid days', 'Earned', 'Bonus', 'Gross', ...statutory.map((c) => label[c]), 'Deductions', 'Advance', 'Net pay'],
+        rows,
+        landscape: true,
+      };
     }
     case 'advances': {
       const list = await listAdvances(ctx, {});
@@ -86,7 +108,7 @@ export async function toXlsx(sheets: { name: string; headers: string[]; rows: (s
 }
 
 export async function renderReport(ctx: Ctx, kind: ReportKind, month: string, format: 'pdf' | 'xlsx') {
-  const t = await build(ctx, kind, month);
+  const t = await buildReport(ctx, kind, month);
   const company = await Company.findById(ctx.companyId).lean();
   const filename = `${kind}-${month}.${format}`;
   if (format === 'xlsx') return { filename, contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', data: await toXlsx([{ name: kind, headers: t.headers, rows: t.rows }]) };

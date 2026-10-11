@@ -4,7 +4,7 @@ import { Adjustment, Attendance, Company, Employee, PayrollRun, Payslip } from '
 import { dayContext, implicitStatus } from '../attendance/service.js';
 import { advancesForMonth, outstandingOf } from '../advances/service.js';
 import { rateOn } from '../employees/service.js';
-import type { EngineInput, PayrollSettings } from './engine.js';
+import { DEFAULT_STATUTORY, type EngineInput, type PayrollSettings, type StatutorySettings } from './engine.js';
 
 export function payrollSettingsOf(company: any): PayrollSettings {
   const s = company.settings ?? {};
@@ -15,6 +15,27 @@ export function payrollSettingsOf(company: any): PayrollSettings {
     sickLeavePaid: s.sickLeavePaid ?? true,
     dailyPaysOffDays: s.dailyPaysOffDays ?? false,
     roundToRupee: s.roundToRupee ?? true,
+    statutory: statutoryOf(company),
+  };
+}
+
+/** The engine's statutory settings, or null when the shop uses none of PF / ESI / PT. */
+export function statutoryOf(company: any): StatutorySettings | null {
+  const st = company?.settings?.statutory;
+  if (!st || !(st.pfEnabled || st.esiEnabled || st.ptEnabled)) return null;
+  return {
+    pfEnabled: !!st.pfEnabled,
+    basicPercent: st.basicPercent ?? DEFAULT_STATUTORY.basicPercent,
+    pfRatePercent: st.pfRatePercent ?? DEFAULT_STATUTORY.pfRatePercent,
+    pfWageCeilingPaise: st.pfWageCeilingPaise ?? DEFAULT_STATUTORY.pfWageCeilingPaise,
+    pfCapAtCeiling: st.pfCapAtCeiling ?? true,
+    esiEnabled: !!st.esiEnabled,
+    esiEmployeePercent: st.esiEmployeePercent ?? DEFAULT_STATUTORY.esiEmployeePercent,
+    esiEmployerPercent: st.esiEmployerPercent ?? DEFAULT_STATUTORY.esiEmployerPercent,
+    esiWageLimitPaise: st.esiWageLimitPaise ?? DEFAULT_STATUTORY.esiWageLimitPaise,
+    ptEnabled: !!st.ptEnabled,
+    ptMonthlyPaise: st.ptMonthlyPaise ?? DEFAULT_STATUTORY.ptMonthlyPaise,
+    ptMinGrossPaise: st.ptMinGrossPaise ?? 0,
   };
 }
 
@@ -72,6 +93,8 @@ export async function buildEngineInputs(companyId: Types.ObjectId, month: string
           .filter((a) => String(a.employeeId) === String(e._id))
           .map((a) => ({ id: String(a._id), date: a.date, amountPaise: a.amountPaise, mode: a.mode as any, installments: a.installments, outstandingPaise: outstandingOf(a, month), skip: a.skipMonths.includes(month) })),
         lastNetPaise: lastNet.get(String(e._id)) ?? (e as any).openingLastNetPaise ?? null,
+        pfExempt: !!(e as any).pfExempt,
+        esiExempt: !!(e as any).esiExempt,
       },
     });
   }

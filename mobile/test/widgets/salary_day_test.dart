@@ -109,7 +109,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(flag, findsNothing);
     expect(find.text('All 3 staff look fine'), findsOneWidget);
-    expect(find.text('Slide to approve & send payslips'), findsOneWidget);
+    expect(find.text('Slide to approve & send salary slips'), findsOneWidget);
   });
 
   testWidgets('one slide approves, sends payslips and shows the success screen', (tester) async {
@@ -119,6 +119,6 @@ void main() {
 
     expect(api.calls, ['approve:r1', 'send:r1']);
     expect(find.text('Salary approved!'), findsOneWidget);
-    expect(find.textContaining('Payslips are going to 3 staff'), findsOneWidget);
+    expect(find.textContaining('Salary slips are going to 3 staff'), findsOneWidget);
   });
 }

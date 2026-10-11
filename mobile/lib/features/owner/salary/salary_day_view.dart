@@ -13,6 +13,7 @@ import '../../../core/widgets/step_bar.dart';
 import '../../../core/widgets/success_screen.dart';
 import '../providers/owner_providers.dart';
 import 'money_dialogs.dart';
+import 'mark_paid_sheet.dart';
 import 'payslip_receipt.dart';
 
 /// "Salary day": review only the flagged staff, then one slide approves and
@@ -90,7 +91,9 @@ class _SalaryDayViewState extends ConsumerState<SalaryDayView> {
 
   Future<void> _markPaid(PayrollRun r) async {
     final s = context.s;
-    final paid = await _act(() => _api.markPaid(r.id));
+    final how = await askHowPaid(context, staffCount: r.employees);
+    if (how == null || !mounted) return;
+    final paid = await _act(() => _api.markPaid(r.id, paidOn: how.paidOn, method: how.method));
     if (paid == null || !mounted) return;
     final bi = s.salaryPaidBi;
     await showSuccessScreen(

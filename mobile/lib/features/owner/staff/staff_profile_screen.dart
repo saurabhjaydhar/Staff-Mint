@@ -19,6 +19,7 @@ import '../../profile/profile_sheets.dart';
 import '../providers/owner_providers.dart';
 import '../salary/money_dialogs.dart';
 import '../salary/advances_view.dart';
+import 'slip_details_sheet.dart';
 
 class StaffProfileScreen extends ConsumerWidget {
   const StaffProfileScreen({super.key, required this.employeeId});
@@ -188,6 +189,22 @@ class StaffProfileScreen extends ConsumerWidget {
                       )
                     : BankCard(bank: e.bank!, onEdit: canEditBank ? () => editBank(e.bank) : null),
               ),
+              if (canEditBank) ...[
+                SectionHeader(s.slipDetailsBi.text),
+                SlipDetailsCard(
+                  details: e.statutory,
+                  onEdit: () async {
+                    final saved = await showEditSheet(
+                      context,
+                      SlipDetailsSheet(employeeId: e.id, initial: e.statutory),
+                    );
+                    if (saved) {
+                      invalidate();
+                      if (context.mounted) showSnack(context, s.saved);
+                    }
+                  },
+                ),
+              ],
               if (e.emergencyContact != null) ...[
                 SectionHeader(s.emergencyBi.text),
                 Card(

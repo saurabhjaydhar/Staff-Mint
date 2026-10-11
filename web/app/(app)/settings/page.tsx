@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { AccountantsCard, CloseBusinessCard, OwnersCard } from "@/components/AccountCards";
+import { StatutoryCard } from "@/components/StatutoryCards";
 import { useAuth, useI18n, useToast } from "@/components/providers";
 import { Alert, Button, Card, Checkbox, EmptyState, Field, Input, Loading, PageHeader, Select, Table, Td, Th } from "@/components/ui";
 import { useAction, useAsync } from "@/hooks/useAsync";
@@ -36,6 +37,7 @@ export default function SettingsPage() {
           </div>
         </>
       )}
+      <StatutoryCard />
       <HolidaysCard />
       <ShiftsCard />
       <BranchesCard />
@@ -224,7 +226,7 @@ function SettingsForm({ settings, onSaved }: { settings: CompanySettings; onSave
           <Field label="Daily summary time">
             {(id) => <Input id={id} type="time" value={d.digestTime} onChange={(e) => set("digestTime", e.target.value)} />}
           </Field>
-          <Field label="Language for staff messages & payslips">
+          <Field label="Language for staff messages & salary slips">
             {(id) => (
               <Select id={id} value={d.language} onChange={(e) => set("language", e.target.value as Draft["language"])}>
                 <option value="hi">Hindi</option>

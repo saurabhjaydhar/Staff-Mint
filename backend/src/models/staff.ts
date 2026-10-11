@@ -34,6 +34,13 @@ const employeeSchema = new Schema(
     /** The number now belongs to someone else (recycled); no login attaches until the owner updates it. */
     phoneRecycledAt: { type: Date, default: null },
     emergencyContact: { name: String, phone: String, relation: String },
+    /** Shown on salary slips: the shop's own staff number, and PF/ESI/PAN when the shop uses them. */
+    employeeCode: { type: String, default: null },
+    uan: { type: String, default: null },
+    esicNumber: { type: String, default: null },
+    panEnc: { type: String, default: null }, // field-level encrypted
+    pfExempt: { type: Boolean, default: false },
+    esiExempt: { type: Boolean, default: false },
     importSessionId: { type: Schema.Types.ObjectId, ref: 'ImportSession', default: null },
     openingLastNetPaise: { type: Number, default: null }, // last salary from the previous app (import), used for anomaly checks
   },

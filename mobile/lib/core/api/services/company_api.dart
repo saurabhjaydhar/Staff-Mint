@@ -93,6 +93,12 @@ class CompanyApi {
   Future<Company> updateSettings(Json partial) async =>
       Company.fromJson(asMap(await _c.patch('/company/settings', body: partial)));
 
+  Future<StatutorySettings> statutory() async => StatutorySettings.fromJson(asMap(await _c.get('/company/statutory')));
+
+  /// PF / ESI / Professional Tax switches and codes. Applies from the next salary.
+  Future<StatutorySettings> updateStatutory(Json partial) async =>
+      StatutorySettings.fromJson(asMap(await _c.patch('/company/statutory', body: partial)));
+
   Future<List<RuleText>> rules() async {
     final d = asMap(await _c.get('/company/rules'));
     return asList(d['rules'], RuleText.fromJson);

@@ -32,11 +32,11 @@ export async function listPayslips(ctx: Ctx, q: { month?: string; employeeId?: s
 
 export async function getPayslip(ctx: Ctx, id: string) {
   const s = await Payslip.findOne({ _id: id, companyId: ctx.companyId, deletedAt: null }).lean();
-  if (!s) throw notFound('Payslip');
-  if (ctx.role === 'employee' && (String(s.employeeId) !== String(ctx.employeeId) || s.status === 'draft')) throw notFound('Payslip');
+  if (!s) throw notFound('Salary slip');
+  if (ctx.role === 'employee' && (String(s.employeeId) !== String(ctx.employeeId) || s.status === 'draft')) throw notFound('Salary slip');
   if (ctx.role === 'manager') {
     const ok = await Employee.exists({ ...employeeScope(ctx), _id: s.employeeId });
-    if (!ok) throw notFound('Payslip');
+    if (!ok) throw notFound('Salary slip');
   }
   return s;
 }
@@ -65,7 +65,8 @@ export async function renderPayslipPdf(companyId: Types.ObjectId, payslipId: Typ
   const s = await Payslip.findOne({ _id: payslipId, companyId }).lean();
   if (!s) return null;
   const company = await Company.findById(companyId).lean();
-  const html = payslipHtml(s, { name: company!.name, currency: company!.currency, address: company!.location?.address });
+  const st = (company!.settings as any)?.statutory ?? {};
+  const html = payslipHtml(s, { name: company!.name, currency: company!.currency, address: company!.location?.address, pfNumber: st.pfEnabled ? st.pfNumber : null, esiNumber: st.esiEnabled ? st.esiNumber : null });
   const pdf = await (await provider('pdf')).render(html);
   const key = `payslips/${companyId}/${s.month}/r${s.revision}/${s.employeeId}.pdf`;
   await (await provider('storage')).put(key, pdf, 'application/pdf');
@@ -79,11 +80,11 @@ export async function generateRunPdfs(companyId: Types.ObjectId, runId: Types.Ob
   return slips.length;
 }
 
-/** Deliver payslips to staff: app push always; WhatsApp document when the plan includes it. */
+/** Deliver salary slips to staff: app push always; WhatsApp document when the plan includes it. */
 export async function sendPayslips(ctx: Ctx, runId: string, payslipIds?: string[]) {
   const run = await PayrollRun.findOne({ _id: runId, companyId: ctx.companyId });
   if (!run) throw notFound('Payroll run');
-  if (!['approved', 'paid'].includes(run.status)) throw new AppError('CONFLICT', 'Approve the salary before sending payslips');
+  if (!['approved', 'paid'].includes(run.status)) throw new AppError('CONFLICT', 'Approve the salary before sending salary slips');
   const f: any = { companyId: ctx.companyId, runId: run._id };
   if (payslipIds?.length) f._id = { $in: payslipIds };
   const slips = await Payslip.find(f).lean();
@@ -93,18 +94,18 @@ export async function sendPayslips(ctx: Ctx, runId: string, payslipIds?: string[
   let sent = 0;
   for (const s of slips) {
     const key = s.pdfKey ?? (await renderPayslipPdf(ctx.companyId, s._id));
-    const url = key ? await storage.signedUrl(key, 24 * 3600, { filename: `payslip-${s.month}.pdf` }) : undefined;
+    const url = key ? await storage.signedUrl(key, 24 * 3600, { filename: `salary-slip-${s.month}.pdf` }) : undefined;
     await notifyEmployee(
       ctx.companyId,
       s.employeeId,
       {
         template: 'payslip_ready',
-        title: `Payslip for ${monthLabel(s.month, 'en')}`,
-        titleHi: `${monthLabel(s.month, 'hi')} की वेतन पर्ची`,
-        body: `Net pay ${formatMoney(s.netPaise ?? 0)}`,
-        bodyHi: `हाथ में वेतन ${formatMoney(s.netPaise ?? 0)}`,
+        title: `Salary slip for ${monthLabel(s.month, 'en')}`,
+        titleHi: `${monthLabel(s.month, 'hi')} की सैलरी स्लिप`,
+        body: `In hand ${formatMoney(s.netPaise ?? 0)}${s.paidOn ? ' · paid' : ''}`,
+        bodyHi: `हाथ में वेतन ${formatMoney(s.netPaise ?? 0)}${s.paidOn ? ' · भुगतान हो गया' : ''}`,
         data: { type: 'payslip', payslipId: String(s._id), month: s.month },
-        whatsapp: { template: 'payslip_ready', params: [s.employeeName ?? '', monthLabel(s.month, 'en'), formatMoney(s.netPaise ?? 0)], documentUrl: url, filename: `payslip-${s.month}.pdf` },
+        whatsapp: { template: 'payslip_ready', params: [s.employeeName ?? '', monthLabel(s.month, 'en'), formatMoney(s.netPaise ?? 0)], documentUrl: url, filename: `salary-slip-${s.month}.pdf` },
       },
       { whatsapp: viaWhatsApp },
     );

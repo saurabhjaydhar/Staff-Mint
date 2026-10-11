@@ -217,7 +217,7 @@ export default function DashboardPage() {
 
       <div className="grid gap-3 sm:grid-cols-3">
         <QuickLink href="/import" title="Import staff from Excel" body="Switch from another app in minutes." />
-        <QuickLink href="/payroll" title="Month-end salary" body="Preview, approve and send payslips." />
+        <QuickLink href="/payroll" title="Month-end salary" body="Preview, approve and send salary slips." />
         <QuickLink href="/reports" title="Download reports" body="Attendance, salary, advances, late list." />
       </div>
     </div>

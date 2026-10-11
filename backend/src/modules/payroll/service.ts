@@ -10,6 +10,11 @@ import { recordRepayments } from '../advances/service.js';
 import { enqueue } from '../../jobs/queue.js';
 import { notifyOwners } from '../notifications/service.js';
 import { payslipView } from '../payslips/views.js';
+import { decryptField } from '../../lib/crypto.js';
+import { maskPan } from '../../lib/mask.js';
+import { monthLabel } from '../../lib/dates.js';
+import { formatMoney } from '../../lib/money.js';
+import { notifyEmployee } from '../notifications/service.js';
 
 const LOCKED = ['approved', 'paid'];
 
@@ -32,8 +37,44 @@ function toPayslipDoc(companyId: Types.ObjectId, runId: Types.ObjectId, revision
     grossPaise: r.grossPaise,
     deductionsPaise: r.deductionsPaise,
     netPaise: r.netPaise,
+    employerContributions: r.employerContributions,
+    employeeInfo: slipEmployeeInfo(emp),
     inputs: { ...input, advanceDeductions: r.advanceDeductions },
     status: 'draft',
+  };
+}
+
+/** What the salary slip prints about the person, frozen when the slip is made. Account and PAN masked. */
+function slipEmployeeInfo(emp: any) {
+  let bankLast4: string | null = null;
+  let upiId: string | null = null;
+  if (emp.bankDetailsEnc) {
+    try {
+      const b = JSON.parse(decryptField(emp.bankDetailsEnc));
+      bankLast4 = b.accountNumber ? String(b.accountNumber).slice(-4) : null;
+      upiId = b.upiId ?? null;
+    } catch {
+      /* unreadable bank details: leave them off the slip */
+    }
+  }
+  let panMasked: string | null = null;
+  if (emp.panEnc) {
+    try {
+      panMasked = maskPan(decryptField(emp.panEnc));
+    } catch {
+      panMasked = null;
+    }
+  }
+  return {
+    code: emp.employeeCode ?? null,
+    designation: emp.designation ?? null,
+    joiningDate: emp.joiningDate ?? null,
+    uan: emp.uan ?? null,
+    esicNumber: emp.esicNumber ?? null,
+    panMasked,
+    bankLast4,
+    upiId,
+    language: emp.language ?? 'hi',
   };
 }
 
@@ -49,6 +90,8 @@ export async function runView(run: any, withPayslips = true, lang: 'en' | 'hi' =
     anomalies: (run.anomalies ?? []).map((a: any) => ({ employeeId: String(a.employeeId), employeeName: a.employeeName, code: a.code, message: lang === 'hi' ? (a.messageHi ?? a.message) : a.message })),
     approvedAt: run.approvedAt ?? null,
     paidAt: run.paidAt ?? null,
+    paidOn: run.paidOn ?? null,
+    paymentMethod: run.paymentMethod ?? null,
     createdAt: run.createdAt,
     ...(withPayslips ? { payslips: await Promise.all(slips.map((s) => payslipView(s, lang))) } : {}),
   };
@@ -135,13 +178,37 @@ export async function approve(ctx: Ctx, id: string) {
   return run;
 }
 
-export async function markPaid(ctx: Ctx, id: string) {
+const METHOD_LABEL = { cash: { en: 'cash', hi: 'नकद' }, upi: { en: 'UPI', hi: 'UPI' }, bank: { en: 'bank transfer', hi: 'बैंक ट्रांसफ़र' }, mixed: { en: 'cash + UPI/bank', hi: 'नकद + UPI/बैंक' } } as const;
+export type PaymentMethod = keyof typeof METHOD_LABEL;
+
+/** Records that salary was handed over (StaffMint doesn't move money). Slips then show "Paid on … by …". */
+export async function markPaid(ctx: Ctx, id: string, input: { paidOn?: string; method?: PaymentMethod } = {}) {
   const run = await getRun(ctx, id);
   if (run.status !== 'approved') throw new AppError('CONFLICT', 'Approve the salary first');
+  const company = await Company.findById(ctx.companyId).lean();
+  const paidOn = input.paidOn ?? todayIn(company!.timezone);
+  const method = input.method ?? 'cash';
   run.status = 'paid';
   run.paidAt = new Date();
+  run.paidOn = paidOn;
+  run.paymentMethod = method;
   await run.save();
-  await audit(ctx, { action: 'payroll.paid', entity: 'payroll_run', entityId: run._id, after: { month: run.month } });
+  // Slips get the paid date and method, and their PDFs are made again to show it.
+  await Payslip.updateMany({ companyId: ctx.companyId, runId: run._id }, { $set: { paidOn, paymentMethod: method, pdfKey: null } });
+  await enqueue('payslips.pdf', { companyId: String(ctx.companyId), runId: String(run._id) });
+  const slips = await Payslip.find({ companyId: ctx.companyId, runId: run._id }).select('employeeId netPaise month').lean();
+  const m = METHOD_LABEL[method];
+  for (const s of slips) {
+    await notifyEmployee(ctx.companyId, s.employeeId, {
+      template: 'salary_paid',
+      title: `${monthLabel(s.month, 'en')} salary paid`,
+      titleHi: `${monthLabel(s.month, 'hi')} की सैलरी मिल गई`,
+      body: `Your salary of ${formatMoney(s.netPaise ?? 0)} is marked paid (${m.en}) on ${paidOn}.`,
+      bodyHi: `आपकी ${formatMoney(s.netPaise ?? 0)} सैलरी ${paidOn} को (${m.hi}) दे दी गई है।`,
+      data: { type: 'payslip', payslipId: String(s._id), month: s.month },
+    });
+  }
+  await audit(ctx, { action: 'payroll.paid', entity: 'payroll_run', entityId: run._id, after: { month: run.month, paidOn, method } });
   return run;
 }
 

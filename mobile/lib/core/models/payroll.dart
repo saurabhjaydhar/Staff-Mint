@@ -78,6 +78,9 @@ class Payslip {
     this.status = 'draft',
     this.pdfUrl,
     this.sentAt,
+    this.employerContributions = const [],
+    this.paidOn,
+    this.paymentMethod,
   });
 
   final String id;
@@ -99,6 +102,13 @@ class Payslip {
   final String status;
   final String? pdfUrl;
   final String? sentAt;
+
+  /// PF / ESI paid by the employer on top of salary (shown, not deducted).
+  final List<PayslipLine> employerContributions;
+
+  /// When the owner marked the salary paid (YYYY-MM-DD) and how: cash | upi | bank | mixed.
+  final String? paidOn;
+  final String? paymentMethod;
 
   bool get isPersisted => id.isNotEmpty;
 
@@ -122,6 +132,9 @@ class Payslip {
     status: asString(j['status'], 'draft'),
     pdfUrl: asStringOrNull(j['pdfUrl']),
     sentAt: asStringOrNull(j['sentAt']),
+    employerContributions: asList(j['employerContributions'], (c) => PayslipLine.fromJson({...c, 'kind': 'employer'})),
+    paidOn: asStringOrNull(j['paidOn']),
+    paymentMethod: asStringOrNull(j['paymentMethod']),
   );
 }
 
@@ -159,6 +172,8 @@ class PayrollRun {
     this.anomalies = const [],
     this.approvedAt,
     this.paidAt,
+    this.paidOn,
+    this.paymentMethod,
     this.payslips,
   });
 
@@ -174,6 +189,8 @@ class PayrollRun {
   final List<PayrollAnomaly> anomalies;
   final String? approvedAt;
   final String? paidAt;
+  final String? paidOn;
+  final String? paymentMethod;
   final List<Payslip>? payslips;
 
   bool get isDraft => status == 'draft';
@@ -197,6 +214,8 @@ class PayrollRun {
       anomalies: asList(j['anomalies'], PayrollAnomaly.fromJson),
       approvedAt: asStringOrNull(j['approvedAt']),
       paidAt: asStringOrNull(j['paidAt']),
+      paidOn: asStringOrNull(j['paidOn']),
+      paymentMethod: asStringOrNull(j['paymentMethod']),
       payslips: j['payslips'] is List ? asList(j['payslips'], Payslip.fromJson) : null,
     );
   }

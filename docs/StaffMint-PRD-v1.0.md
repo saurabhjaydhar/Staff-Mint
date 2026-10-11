@@ -238,9 +238,11 @@ PF/ESI/PT/TDS filing, biometric devices, live GPS tracking, performance/OKRs, re
 - Monthly: salary ÷ days in month (or 30 / 26 — owner setting) × payable days.
 - Payable days = present + half-day×0.5 + paid leave + paid holidays + week offs (setting).
 - Add: bonus/incentive lines. Subtract: advances, manual deductions.
-- Flow: Draft (auto on 1st) → Owner preview (anomalies flagged: big change vs last month, negative net) → Approve → Payslips PDF (Hindi + English) → Send via WhatsApp → Mark Paid.
+- Flow: Draft (auto on 1st) → Owner preview (anomalies flagged: big change vs last month, negative net) → Approve → Salary slip PDFs (Hindi + English) → Send via WhatsApp → Mark Paid (how + date).
 - Run is snapshotted (inputs + engine version); re-runs reproducible; payslips immutable after sending (corrections = new revision).
 - **Parallel-run compare:** owner uploads old app's salary report → line-by-line diff with plain-language reasons.
+- **Salary slip (decided Oct 2026):** called "Salary slip / सैलरी स्लिप" everywhere (not "payslip"). Formal A4 PDF in the staff member's language: business header, employee details, days boxes, Earnings | Deductions with Gross and Total deductions, Net in words, "Paid on <date> by <cash/UPI/bank>" (asked when the owner marks paid), and a "how this was worked out" box.
+- **Two versions of the slip:** (1) *Simple* (default, most small shops): Basic + bonus/deductions/advance. (2) *With PF / ESI / Professional Tax* (owner turns on in Settings): Basic (default 50%) + "HRA & allowances", PF 12% of Basic (₹15,000 ceiling), ESI 0.75% (wages ≤ ₹21,000, rounded up), state PT; employer PF/ESI shown separately "on top of salary"; per-staff Employee ID, UAN, ESIC, masked PAN and PF/ESI exemptions. Statutory deductions come before advances; net never below zero. Salary register adds PF/ESI/PT columns only when used.
 
 **Acceptance:** golden-file tests cover all rules; salary for 30 staff computed in < 5 s.
 

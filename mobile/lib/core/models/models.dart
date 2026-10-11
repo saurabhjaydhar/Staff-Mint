@@ -9,4 +9,5 @@ export 'misc.dart';
 export 'money.dart';
 export 'payroll.dart';
 export 'profile.dart';
+export 'statutory.dart';
 export 'user.dart';

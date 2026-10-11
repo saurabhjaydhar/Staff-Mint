@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState, type FormEvent } from "react";
 import { useRole } from "@/components/AppShell";
+import { SlipDetailsModal } from "@/components/StatutoryCards";
 import { useI18n, useToast } from "@/components/providers";
 import { Alert, Badge, Button, Card, EmptyState, Field, Input, Loading, Modal, PageHeader, Select, Table, Td, Th, cx } from "@/components/ui";
 import { useAction, useAsync, useDebounced } from "@/hooks/useAsync";
@@ -23,6 +24,7 @@ export default function StaffPage() {
   const [effectiveFrom, setEffectiveFrom] = useState("");
   const [adding, setAdding] = useState(false);
   const [deactivating, setDeactivating] = useState<Employee | null>(null);
+  const [slipFor, setSlipFor] = useState<Employee | null>(null);
   const action = useAction();
   const q = useDebounced(search.trim());
 
@@ -244,6 +246,11 @@ export default function StaffPage() {
                           {emp.invitedAt ? t("acc_resend") : t("acc_invite")}
                         </Button>
                       )}
+                      {role === "owner" && (
+                        <Button size="sm" variant="ghost" onClick={() => setSlipFor(emp)}>
+                          {t("slip_details")}
+                        </Button>
+                      )}
                       {!inactive && (
                         <Button size="sm" variant="ghost" className="text-red-600" onClick={() => setDeactivating(emp)}>
                           Deactivate
@@ -269,6 +276,7 @@ export default function StaffPage() {
           toast(`${emp.name} added`);
         }}
       />
+      <SlipDetailsModal employee={slipFor} onClose={() => setSlipFor(null)} />
       <DeactivateModal
         employee={deactivating}
         onClose={() => setDeactivating(null)}

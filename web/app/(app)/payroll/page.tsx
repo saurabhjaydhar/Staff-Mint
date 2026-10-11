@@ -3,15 +3,18 @@
 import { Fragment, useState, type FormEvent } from "react";
 import { useRole } from "@/components/AppShell";
 import { useI18n, useToast } from "@/components/providers";
-import { Alert, Badge, Button, Card, EmptyState, Field, Input, Loading, PageHeader, Select, Stat, Table, Td, Th, cx, type Tone } from "@/components/ui";
+import { Alert, Badge, Button, Card, EmptyState, Field, Input, Loading, Modal, PageHeader, Select, Stat, Table, Td, Th, cx, type Tone } from "@/components/ui";
 import { useAction, useAsync } from "@/hooks/useAsync";
 import { api } from "@/lib/api";
-import { defaultPayrollMonth, formatDateTime, formatMonth } from "@/lib/format";
+import { defaultPayrollMonth, formatDate, formatDateTime, formatMonth, todayStr } from "@/lib/format";
 import { formatPaise } from "@/lib/money";
-import type { CompareResult, PayrollRun, Payslip } from "@/lib/types";
+import type { DictKey } from "@/lib/i18n";
+import type { CompareResult, PaymentMethod, PayrollRun, Payslip } from "@/lib/types";
 
 const RUN_TONE: Record<PayrollRun["status"], Tone> = { draft: "amber", approved: "sky", paid: "mint", superseded: "slate" };
 const SLIP_TONE: Record<Payslip["status"], Tone> = { draft: "amber", final: "sky", sent: "mint" };
+const METHODS: PaymentMethod[] = ["cash", "upi", "bank", "mixed"];
+const methodKey = (m: PaymentMethod) => `pay_${m}` as DictKey;
 
 function pickDefaultRun(runs: PayrollRun[]): PayrollRun | undefined {
   const sorted = [...runs].sort((a, b) => b.revision - a.revision);
@@ -24,6 +27,7 @@ export default function PayrollPage() {
   const { readOnly } = useRole();
   const [month, setMonth] = useState(() => defaultPayrollMonth());
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [paying, setPaying] = useState(false);
   const action = useAction();
 
   const runs = useAsync(() => api.get<PayrollRun[]>("/payroll/runs", { month }), `runs:${month}`);
@@ -51,10 +55,10 @@ export default function PayrollPage() {
   }
 
   async function sendPayslips(r: PayrollRun) {
-    if (!window.confirm(`Send payslips for ${formatMonth(r.month)} to ${r.totals.employees} staff on WhatsApp/app?`)) return;
+    if (!window.confirm(`Send salary slips for ${formatMonth(r.month)} to ${r.totals.employees} staff on WhatsApp/app?`)) return;
     const res = await action.run("send", () => api.post<{ queued: number }>("/payslips/send", { runId: r.id }));
     if (res.ok) {
-      toast(`${res.value?.queued ?? 0} payslip(s) queued for sending`);
+      toast(`${res.value?.queued ?? 0} salary slip(s) queued for sending`);
       run.reload();
     }
   }
@@ -65,7 +69,7 @@ export default function PayrollPage() {
     <div className="space-y-5">
       <PageHeader
         title={t("nav_payroll")}
-        subtitle={readOnly ? t("readOnly") : "Draft → check anomalies → approve → send payslips → mark paid."}
+        subtitle={readOnly ? t("readOnly") : "Draft → check anomalies → approve → send salary slips → mark paid."}
         actions={
           <div className="flex items-end gap-2">
             <Field label={t("month")} className="w-44">
@@ -124,18 +128,14 @@ export default function PayrollPage() {
                     act("recompute", () => api.post<PayrollRun>(`/payroll/runs/${current.id}/recompute`), "Recomputed with latest attendance")
                   }
                   onApprove={() => {
-                    if (window.confirm("Approve salaries? Payslip PDFs will be generated.")) {
+                    if (window.confirm("Approve salaries? Salary slip PDFs will be generated.")) {
                       void act("approve", () => api.post<PayrollRun>(`/payroll/runs/${current.id}/approve`), "Salaries approved");
                     }
                   }}
                   onSend={() => void sendPayslips(current)}
-                  onPaid={() => {
-                    if (window.confirm("Mark this month's salaries as paid?")) {
-                      void act("paid", () => api.post<PayrollRun>(`/payroll/runs/${current.id}/mark-paid`), "Marked as paid");
-                    }
-                  }}
+                  onPaid={() => setPaying(true)}
                   onRevise={() => {
-                    if (window.confirm("Create a new revision? The current payslips stay as they are; corrections go into a new draft.")) {
+                    if (window.confirm("Create a new revision? The current salary slips stay as they are; corrections go into a new draft.")) {
                       void act("revise", () => api.post<PayrollRun>(`/payroll/runs/${current.id}/revise`), "New draft revision created");
                     }
                   }}
@@ -152,9 +152,25 @@ export default function PayrollPage() {
             <div className="mt-3 flex flex-wrap gap-4 text-xs text-slate-500">
               <span>Engine {current.engineVersion}</span>
               {current.approvedAt && <span>Approved {formatDateTime(current.approvedAt)}</span>}
-              {current.paidAt && <span>Paid {formatDateTime(current.paidAt)}</span>}
+              {current.paidAt && (
+                <span>
+                  {t("paid_on")} {formatDate(current.paidOn ?? current.paidAt.slice(0, 10))}
+                  {current.paymentMethod && ` · ${t(methodKey(current.paymentMethod))}`}
+                </span>
+              )}
             </div>
           </Card>
+
+          <MarkPaidModal
+            open={paying}
+            staff={current.totals.employees}
+            busy={action.busy === "paid"}
+            onClose={() => setPaying(false)}
+            onConfirm={async (method, paidOn) => {
+              await act("paid", () => api.post<PayrollRun>(`/payroll/runs/${current.id}/mark-paid`, { method, paidOn }), "Marked as paid");
+              setPaying(false);
+            }}
+          />
 
           {current.anomalies.length > 0 && (
             <Card title={<span className="flex items-center gap-2">{t("payroll_anomalies")} <Badge tone="amber">{current.anomalies.length}</Badge></span>}>
@@ -231,6 +247,64 @@ function RunActions({
   );
 }
 
+function MarkPaidModal({
+  open,
+  staff,
+  busy,
+  onClose,
+  onConfirm,
+}: {
+  open: boolean;
+  staff: number;
+  busy: boolean;
+  onClose: () => void;
+  onConfirm: (method: PaymentMethod, paidOn: string) => void;
+}) {
+  const { t } = useI18n();
+  const [method, setMethod] = useState<PaymentMethod>("cash");
+  const [paidOn, setPaidOn] = useState(() => todayStr());
+  return (
+    <Modal
+      open={open}
+      title={t("paid_question")}
+      onClose={onClose}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>
+            {t("cancel")}
+          </Button>
+          <Button onClick={() => onConfirm(method, paidOn)} loading={busy} disabled={!paidOn}>
+            ✓ {t("paid_confirm")} ({staff})
+          </Button>
+        </>
+      }
+    >
+      <p className="mb-4 text-sm text-slate-600">{t("paid_note")}</p>
+      <div className="mb-1 text-sm font-medium">{t("paid_how")}</div>
+      <div className="mb-4 flex flex-wrap gap-2" role="radiogroup">
+        {METHODS.map((m) => (
+          <button
+            key={m}
+            type="button"
+            role="radio"
+            aria-checked={method === m}
+            onClick={() => setMethod(m)}
+            className={cx(
+              "rounded-full px-3 py-1.5 text-sm ring-1",
+              method === m ? "bg-mint-600 text-white ring-mint-600" : "bg-white text-slate-700 ring-slate-300 hover:bg-slate-50",
+            )}
+          >
+            {t(methodKey(m))}
+          </button>
+        ))}
+      </div>
+      <Field label={t("paid_on")} className="w-48">
+        {(id) => <Input id={id} type="date" value={paidOn} max={todayStr()} onChange={(e) => setPaidOn(e.target.value)} />}
+      </Field>
+    </Modal>
+  );
+}
+
 function PayslipTable({ payslips }: { payslips: Payslip[] }) {
   const { t } = useI18n();
   const [open, setOpen] = useState<Record<string, boolean>>({});
@@ -239,12 +313,12 @@ function PayslipTable({ payslips }: { payslips: Payslip[] }) {
 
   return (
     <Card
-      title={`Payslips (${payslips.length})`}
+      title={`Salary slips (${payslips.length})`}
       actions={<Input className="h-8 w-56 py-1" placeholder={t("search")} value={filter} onChange={(e) => setFilter(e.target.value)} />}
       padded={false}
     >
       {payslips.length === 0 ? (
-        <EmptyState>No payslips in this run.</EmptyState>
+        <EmptyState>No salary slips in this run.</EmptyState>
       ) : (
         <Table>
           <thead>
@@ -299,6 +373,7 @@ function PayslipTable({ payslips }: { payslips: Payslip[] }) {
 }
 
 function PayslipDetail({ payslip: p }: { payslip: Payslip }) {
+  const { t } = useI18n();
   const [explain, setExplain] = useState<{ text: string; lines: string[] } | null>(null);
   const action = useAction();
   const s = p.summary;
@@ -332,6 +407,16 @@ function PayslipDetail({ payslip: p }: { payslip: Payslip }) {
           )}
           {p.sentAt && <span className="text-xs text-slate-500">Sent {formatDateTime(p.sentAt)}</span>}
         </div>
+        <div className="mt-2">
+          {p.paidOn ? (
+            <Badge tone="mint">
+              {t("paid_on")} {formatDate(p.paidOn)}
+              {p.paymentMethod && ` · ${t(methodKey(p.paymentMethod))}`}
+            </Badge>
+          ) : (
+            <Badge tone="amber">{t("not_paid_yet")}</Badge>
+          )}
+        </div>
       </div>
       <div>
         <h4 className="mb-1 text-xs font-semibold uppercase text-slate-500">Lines</h4>
@@ -353,6 +438,17 @@ function PayslipDetail({ payslip: p }: { payslip: Payslip }) {
             <span>{formatPaise(p.netPaise)}</span>
           </li>
         </ul>
+        {(p.employerContributions?.length ?? 0) > 0 && (
+          <div className="mt-2 rounded-lg bg-sky-50 p-3 text-sm text-sky-900">
+            <div className="mb-1 text-xs font-semibold">{t("employer_on_top")}</div>
+            {p.employerContributions!.map((c) => (
+              <div key={c.code} className="flex justify-between">
+                <span>{c.label}</span>
+                <span className="font-medium">{formatPaise(c.amountPaise)}</span>
+              </div>
+            ))}
+          </div>
+        )}
         <div className="mt-2">
           {explain ? (
             <div className="rounded-lg bg-mint-50 p-3 text-sm text-mint-900">

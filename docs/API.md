@@ -42,13 +42,24 @@ LeaveBalance { employeeId, year, paid, sick, usedPaid, usedSick }
 Advance   { id, employeeId, employeeName, amountPaise, date, mode:'installments'|'full_next', installments, installmentPaise, repaidPaise, balancePaise,
             status:'active'|'closed', skipMonths:string[], note? }
 Adjustment { id, employeeId, employeeName, month, type:'bonus'|'deduction', amountPaise, note? }
-PayslipLine { code, kind:'earning'|'deduction', label, amountPaise, explanation }
+PayslipLine { code:'basic'|'allowance'|'bonus'|'deduction'|'advance'|'pf'|'esi'|'pt', kind:'earning'|'deduction'|'employer', label, amountPaise, explanation }
 Payslip   { id, runId, employeeId, employeeName, month, revision, wageType, ratePaise, payableDays, daysInMonth, divisor,
             summary:{ present, halfDay, absent, paidLeave, unpaidLeave, holidays, weekOffs, unmarked },
-            lines: PayslipLine[], grossPaise, deductionsPaise, netPaise, status:'draft'|'final'|'sent', pdfUrl:string|null, sentAt? }
+            lines: PayslipLine[], grossPaise, deductionsPaise, netPaise, status:'draft'|'final'|'sent', pdfUrl:string|null, sentAt?,
+            employerContributions: PayslipLine[],   // employer PF / ESI on top of salary; [] when PF/ESI are off
+            employeeInfo: { code, designation, joiningDate, uan, esicNumber, panMasked, bankLast4, upiId, language },
+            paidOn: 'YYYY-MM-DD'|null, paymentMethod: 'cash'|'upi'|'bank'|'mixed'|null }
+            // Shown to people as "Salary slip" / "सैलरी स्लिप". The PDF is a formal A4 slip: Earnings | Deductions, Gross, Net in words, paid date + method.
+Statutory { pfEnabled, pfNumber, basicPercent, pfRatePercent, pfWageCeilingPaise, pfCapAtCeiling,
+            esiEnabled, esiNumber, esiEmployeePercent, esiEmployerPercent, esiWageLimitPaise,
+            ptEnabled, ptState, ptMonthlyPaise, ptMinGrossPaise }
+            // All off by default (small shop slip: Basic + bonus/deductions/advance). With PF on, salary splits into Basic (basicPercent) + "HRA & allowances";
+            // PF 12% of Basic (capped at ₹15,000 unless pfCapAtCeiling=false); ESI 0.75% / 3.25% employer, rounded up, only when ESI wages ≤ ₹21,000;
+            // PT a fixed monthly amount (optionally only above ptMinGrossPaise). Statutory comes before advances; net never goes below zero.
+EmployeeStatutory { employeeCode, uan, esicNumber, panMasked, pfExempt, esiExempt }
 PayrollRun { id, month, revision, status:'draft'|'approved'|'paid'|'superseded', engineVersion,
              totals:{ grossPaise, deductionsPaise, netPaise, employees }, anomalies:{ employeeId, employeeName, code, message }[],
-             approvedAt?, paidAt?, payslips?: Payslip[] }   // anomaly `message` is in the caller's Accept-Language (en | hi)
+             approvedAt?, paidAt?, paidOn?, paymentMethod?, payslips?: Payslip[] }   // anomaly `message` is in the caller's Accept-Language (en | hi)
 AssistantReply { sessionId, kind:'answer'|'confirm'|'choose'|'done'|'cancelled'|'error', text,
                  options?: {id,label}[], pendingActionId?, preview?: {title, rows:{label,value}[]}, data?: any, attachment?: {url, filename} }
 AuditLog  { id, actorId, actorName, channel:'app'|'web'|'assistant'|'whatsapp'|'system'|'import', action, entity, entityId, before, after, at }
@@ -93,6 +104,8 @@ Phone: E.164 (`+919876543210`) or 10-digit Indian (`9876543210`, normalised serv
 | GET | /company | — | `Company` |
 | PATCH | /company | `{name?, businessType?, location?}` | `Company` |
 | PATCH | /company/settings | partial `settings` | `Company` |
+| GET | /company/statutory | — (owner, ca) | `Statutory` |
+| PATCH | /company/statutory | `{pfEnabled?, pfNumber?, basicPercent? (30–100), pfCapAtCeiling?, esiEnabled?, esiNumber?, ptEnabled?, ptState?, ptMonthlyPaise? (≤ ₹2,500), ptMinGrossPaise?}` (owner; rates are fixed) | `Statutory`; applies from the next salary calculated |
 | GET | /company/rules | — | `{rules: {key, text}[]}` plain-language (hi/en by Accept-Language) |
 | POST | /company/accountants | `{phone, name}` (Pro plan) | CA access to reports/payroll/export. An existing StaffMint user gets one more account (`ca` membership) |
 | GET/POST | /branches | `{name, location, radiusM?}` | `Branch[]` / `Branch` |
@@ -110,7 +123,8 @@ Phone: E.164 (`+919876543210`) or 10-digit Indian (`9876543210`, normalised serv
 | GET | /employees | `?search&status=active\|inactive\|all&branchId` | `Employee[]` |
 | POST | /employees | `{name, phone, wageType?, ratePaise?, branchId?, shiftId?, designation?, joiningDate?}` | `Employee` (402 `PLAN_LIMIT` when over plan staff limit) |
 | POST | /employees/bulk | `{employees: [...same as above]}` (contacts picker) | `{created: Employee[], skipped: {phone, reason}[]}` |
-| GET | /employees/:id | — | `Employee & {leaveBalance, advanceBalancePaise, bank: BankMasked\|null, emergencyContact}` (bank and emergency contact hidden from CA) |
+| GET | /employees/:id | — | `Employee & {leaveBalance, advanceBalancePaise, bank: BankMasked\|null, emergencyContact, statutory: EmployeeStatutory}` (bank and emergency contact hidden from CA) |
+| PATCH | /employees/:id/statutory | `{employeeCode?, uan? (12 digits), esicNumber? (10 or 17 digits), pan?, pfExempt?, esiExempt?}` (owner; `null` clears; PAN stored encrypted, returned masked) | `EmployeeStatutory` |
 | PATCH | /employees/:id | partial + `effectiveFrom?` (for rate change → new salary structure version) | `Employee` |
 | POST | /employees/:id/deactivate | `{reason?}` | `Employee` |
 | POST | /employees/:id/reset-device | — | `Employee` |
@@ -164,7 +178,7 @@ Fields: `name, phone, ratePaise, wageType, designation, joiningDate, branch, adv
 | GET | /payroll/runs/:id | | `PayrollRun` (with payslips) |
 | POST | /payroll/runs/:id/recompute | | `PayrollRun` |
 | POST | /payroll/runs/:id/approve | | `PayrollRun` (payslip PDFs generated) |
-| POST | /payroll/runs/:id/mark-paid | | `PayrollRun` |
+| POST | /payroll/runs/:id/mark-paid | `{paidOn?: 'YYYY-MM-DD', method?: 'cash'\|'upi'\|'bank'\|'mixed'}` | `PayrollRun`; slips show "Paid on … by …" (PDFs regenerated), staff get a `salary_paid` message |
 | POST | /payroll/runs/:id/revise | | `PayrollRun` (new draft, revision+1) |
 | POST | /payroll/runs/:id/compare | multipart `file` (old app's salary report xlsx/csv) | `{rows: {employeeName, ours, theirs, diffPaise, reasons:string[]}[], matched, unmatched}` |
 | GET | /payslips | `?month&employeeId` (employee → own, final/sent only) | `Payslip[]` |

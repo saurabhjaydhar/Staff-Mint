@@ -26,6 +26,30 @@ const settingsSchema = new Schema(
     minGpsAccuracyM: { type: Number, default: 150 },
     /** Removed or departed staff can still see their own payslips for 12 months (PRD F14 row 21). */
     exStaffPayslips: { type: Boolean, default: true },
+    /** PF / ESI / Professional Tax. All off by default: most small shops are below the limits. */
+    statutory: {
+      type: new Schema(
+        {
+          pfEnabled: { type: Boolean, default: false },
+          pfNumber: { type: String, default: null },
+          basicPercent: { type: Number, default: 50 },
+          pfRatePercent: { type: Number, default: 12 },
+          pfWageCeilingPaise: { type: Number, default: 1500000 },
+          pfCapAtCeiling: { type: Boolean, default: true },
+          esiEnabled: { type: Boolean, default: false },
+          esiNumber: { type: String, default: null },
+          esiEmployeePercent: { type: Number, default: 0.75 },
+          esiEmployerPercent: { type: Number, default: 3.25 },
+          esiWageLimitPaise: { type: Number, default: 2100000 },
+          ptEnabled: { type: Boolean, default: false },
+          ptState: { type: String, default: null },
+          ptMonthlyPaise: { type: Number, default: 20000 },
+          ptMinGrossPaise: { type: Number, default: 0 },
+        },
+        { _id: false },
+      ),
+      default: () => ({}),
+    },
   },
   { _id: false },
 );
