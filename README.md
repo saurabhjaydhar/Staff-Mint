@@ -33,7 +33,7 @@ cd backend && npm run admin:create -- --email you@example.com --password 'long-p
 cd admin && npm install && npm run dev
 
 # 5. Mobile (Android emulator)
-cd mobile && flutter pub get && flutter run --dart-define=API_BASE_URL=http://10.0.2.2:4000/api/v1
+cd mobile && flutter pub get && flutter run --dart-define-from-file=config/local.json
 ```
 Or run the whole stack with `docker compose up -d --build` (copy `backend/.env.example` to `backend/.env` first).
 

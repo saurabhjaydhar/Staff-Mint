@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 import '../utils/json.dart';
 
@@ -90,6 +91,13 @@ class ApiException implements Exception {
 
   factory ApiException.fromDio(DioException e) {
     final inner = e.error;
+    // The UI shows a short friendly message; keep the real cause (or the server's error body) in debug logs.
+    if (kDebugMode) {
+      final cause = e.type == DioExceptionType.badResponse
+          ? '${e.response?.statusCode} ${e.response?.data}'
+          : '${inner ?? e.message}';
+      debugPrint('[api] ${e.type.name} ${e.requestOptions.method} ${e.requestOptions.uri}: $cause');
+    }
     if (inner is ApiException) return inner;
     switch (e.type) {
       case DioExceptionType.connectionTimeout:

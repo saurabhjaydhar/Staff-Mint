@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -103,6 +105,32 @@ Future<bool> confirmDialog(
     ),
   );
   return result ?? false;
+}
+
+/// [showDialog] for a dialog whose text fields use [controllers]. They are disposed only once
+/// the dialog has fully closed: disposing right after `await showDialog` throws, because the
+/// fields still rebuild during the exit animation. Read their values right after the await.
+Future<T?> showDialogWithControllers<T>(
+  BuildContext context,
+  List<ChangeNotifier> controllers,
+  WidgetBuilder builder,
+) async {
+  Future<dynamic>? closed;
+  final result = await showDialog<T>(
+    context: context,
+    builder: (ctx) {
+      closed ??= ModalRoute.of(ctx)?.completed;
+      return builder(ctx);
+    },
+  );
+  unawaited(
+    (closed ?? Future<void>.value()).whenComplete(() {
+      for (final c in controllers) {
+        c.dispose();
+      }
+    }),
+  );
+  return result;
 }
 
 Future<void> openUrl(BuildContext context, String url) async {

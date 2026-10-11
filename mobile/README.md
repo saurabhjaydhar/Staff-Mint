@@ -26,21 +26,23 @@ flutter test         # unit + widget tests
 
 ## Running against a backend
 
-The API base URL is a compile-time define and **must include `/api/v1`**:
+The API base URL is a compile-time define (**must include `/api/v1`**) and comes from one file per
+environment in `config/`. There is no default — the app stops at startup if none is passed.
+
+| File | API |
+|---|---|
+| `config/local.json` | Backend on your laptop, from the Android emulator (`10.0.2.2:4000`) |
+| `config/production.json` | Live server |
 
 ```bash
-# Android emulator → backend on your laptop (default if you pass nothing)
-flutter run --dart-define=API_BASE_URL=http://10.0.2.2:4000/api/v1
-
-# Real phone on the same Wi-Fi as your laptop
-flutter run --dart-define=API_BASE_URL=http://192.168.1.20:4000/api/v1
-
-# Staging / production (HTTPS)
-flutter run --release --dart-define=API_BASE_URL=https://api.staffmint.app/api/v1
-
-# Live server (URL kept in config/production.json)
+flutter run --dart-define-from-file=config/production.json   # debug against the live server
+flutter run --dart-define-from-file=config/local.json        # debug against your laptop
 flutter build apk --release --dart-define-from-file=config/production.json
 ```
+
+In VS Code, pick **mobile (prod API)** or **mobile (local API)** in Run and Debug (`.vscode/launch.json`).
+Defines are fixed at build time: after switching, stop the app and launch again — hot restart keeps the old URL.
+For a real phone against your laptop, copy `local.json` with your laptop's Wi-Fi IP (e.g. `http://192.168.1.20:4000/api/v1`).
 
 `config/production.json` currently points at the Coolify sslip.io address, which has no TLS certificate,
 so release builds allow plain HTTP to `*.sslip.io` only
