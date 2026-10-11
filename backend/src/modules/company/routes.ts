@@ -69,6 +69,34 @@ const settingsSchema = z
   .partial()
   .strict();
 
+// PF / ESI / Professional Tax (off by default; most small shops are below the limits).
+companyRouter.get('/company/statutory', authenticate, requireRole('owner', 'ca'), async (req, res) => {
+  const { getStatutory } = await import('../statutory/service.js');
+  res.json({ data: await getStatutory(ctxOf(req)) });
+});
+companyRouter.patch('/company/statutory', authenticate, requireRole('owner'), async (req, res) => {
+  const b = body(
+    req,
+    z
+      .object({
+        pfEnabled: z.boolean(),
+        pfNumber: z.string().max(40).nullable(),
+        basicPercent: z.number().int().min(30).max(100),
+        pfCapAtCeiling: z.boolean(),
+        esiEnabled: z.boolean(),
+        esiNumber: z.string().max(40).nullable(),
+        ptEnabled: z.boolean(),
+        ptState: z.string().max(40).nullable(),
+        ptMonthlyPaise: z.number().int().min(0).max(250000),
+        ptMinGrossPaise: z.number().int().min(0),
+      })
+      .partial()
+      .strict(),
+  );
+  const { updateStatutory } = await import('../statutory/service.js');
+  res.json({ data: await updateStatutory(ctxOf(req), b) });
+});
+
 companyRouter.patch('/company/settings', authenticate, requireRole('owner'), async (req, res) => {
   res.json({ data: await svc.companyView(await svc.updateSettings(ctxOf(req), body(req, settingsSchema))) });
 });

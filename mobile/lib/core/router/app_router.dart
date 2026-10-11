@@ -29,6 +29,7 @@ import '../../features/owner/more/more_screen.dart';
 import '../../features/owner/more/reports_screen.dart';
 import '../../features/owner/more/settings_screen.dart';
 import '../../features/owner/more/shifts_screen.dart';
+import '../../features/owner/more/statutory_screen.dart';
 import '../../features/owner/salary/salary_screen.dart';
 import '../../features/owner/shell/owner_shell.dart';
 import '../../features/owner/staff/add_staff_screen.dart';
@@ -131,6 +132,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                       GoRoute(path: 'holidays', builder: (_, _) => const HolidaysScreen()),
                       GoRoute(path: 'accountants', builder: (_, _) => const AccountantsScreen()),
                       GoRoute(path: 'owners', builder: (_, _) => const OwnersScreen()),
+                      GoRoute(path: 'statutory', builder: (_, _) => const StatutoryScreen()),
                     ],
                   ),
                   GoRoute(path: 'billing', builder: (_, _) => const BillingScreen()),

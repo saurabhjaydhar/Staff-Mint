@@ -41,6 +41,10 @@ class EmployeesApi {
   Future<Employee> update(String id, Json partial) async =>
       Employee.fromJson(asMap(await _c.patch('/employees/$id', body: partial)));
 
+  /// Employee ID, UAN, ESIC, PAN and PF/ESI exemption for the salary slip (owner only).
+  Future<EmployeeStatutory> updateStatutory(String id, Json partial) async =>
+      EmployeeStatutory.fromJson(asMap(await _c.patch('/employees/$id/statutory', body: partial)));
+
   Future<Employee> deactivate(String id, {String? reason}) async => Employee.fromJson(
     asMap(
       await _c.post('/employees/$id/deactivate', body: {if (reason != null && reason.isNotEmpty) 'reason': reason}),

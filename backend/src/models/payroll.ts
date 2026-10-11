@@ -14,6 +14,9 @@ const payrollRunSchema = new Schema(
     approvedAt: Date,
     approvedBy: { type: Schema.Types.ObjectId, ref: 'User' },
     paidAt: Date,
+    /** Day the owner says salary was handed over, and how. StaffMint records it; it doesn't move money. */
+    paidOn: { type: String, default: null },
+    paymentMethod: { type: String, enum: ['cash', 'upi', 'bank', 'mixed', null], default: null },
     previousRunId: { type: Schema.Types.ObjectId, default: null },
   },
   { timestamps: true },
@@ -53,6 +56,22 @@ const payslipSchema = new Schema(
     grossPaise: Number,
     deductionsPaise: Number,
     netPaise: Number,
+    /** PF/ESI paid by the employer on top of salary (shown on the slip, not deducted). */
+    employerContributions: { type: [{ code: String, amountPaise: Number, label: { en: String, hi: String }, explanation: { en: String, hi: String }, _id: false }], default: [] },
+    /** Details printed on the salary slip, as they were when it was made. */
+    employeeInfo: {
+      code: String,
+      designation: String,
+      joiningDate: String,
+      uan: String,
+      esicNumber: String,
+      panMasked: String,
+      bankLast4: String,
+      upiId: String,
+      language: String,
+    },
+    paidOn: { type: String, default: null },
+    paymentMethod: { type: String, default: null },
     inputs: { type: Schema.Types.Mixed }, // snapshot for reproducibility
     status: { type: String, enum: ['draft', 'final', 'sent'], default: 'draft' },
     pdfKey: { type: String, default: null },
@@ -65,7 +84,7 @@ payslipSchema.pre(['updateOne', 'findOneAndUpdate', 'updateMany'], async functio
   // Payslips are immutable once sent; only delivery metadata may be touched.
   const update = this.getUpdate() ?? {};
   const set = { ...(update.$set ?? {}), ...Object.fromEntries(Object.entries(update).filter(([k]) => !k.startsWith('$'))) };
-  const allowed = new Set(['status', 'sentAt', 'pdfKey', 'updatedAt']);
+  const allowed = new Set(['status', 'sentAt', 'pdfKey', 'updatedAt', 'paidOn', 'paymentMethod']);
   const touchesContent = Object.keys(set).some((k) => !allowed.has(k));
   if (!touchesContent) return;
   const existing = await this.model.findOne(this.getFilter()).setOptions({ skipTenant: true }).select('status').lean();

@@ -20,8 +20,10 @@ class PayrollApi {
 
   Future<PayrollRun> approve(String id) async => PayrollRun.fromJson(asMap(await _c.post('/payroll/runs/$id/approve')));
 
-  Future<PayrollRun> markPaid(String id) async =>
-      PayrollRun.fromJson(asMap(await _c.post('/payroll/runs/$id/mark-paid')));
+  /// Records that salary was handed over (StaffMint doesn't move money). [method]: cash | upi | bank | mixed.
+  Future<PayrollRun> markPaid(String id, {String? paidOn, String? method}) async => PayrollRun.fromJson(
+    asMap(await _c.post('/payroll/runs/$id/mark-paid', body: {'paidOn': ?paidOn, 'method': ?method})),
+  );
 
   Future<PayrollRun> revise(String id) async => PayrollRun.fromJson(asMap(await _c.post('/payroll/runs/$id/revise')));
 

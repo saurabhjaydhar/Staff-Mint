@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { body, param, query } from '../../lib/http.js';
-import { zMonth } from '../../lib/schemas.js';
+import { zDate, zMonth } from '../../lib/schemas.js';
 import { authenticate, ctxOf, requireFeature, requireRole } from '../../middleware/auth.js';
 import { AppError } from '../../lib/errors.js';
 import { upload } from '../imports/routes.js';
@@ -33,7 +33,6 @@ payrollRouter.get('/payroll/runs/:id', requireRole('owner', 'ca'), async (req, r
 for (const [path, fn] of [
   ['recompute', svc.recompute],
   ['approve', svc.approve],
-  ['mark-paid', svc.markPaid],
   ['revise', svc.revise],
 ] as const) {
   payrollRouter.post(`/payroll/runs/:id/${path}`, requireRole('owner'), requireFeature('payroll'), async (req, res) => {
@@ -41,6 +40,12 @@ for (const [path, fn] of [
     res.json({ data: await svc.runView(await fn(ctx, param(req, 'id')), true, ctx.language) });
   });
 }
+
+payrollRouter.post('/payroll/runs/:id/mark-paid', requireRole('owner'), requireFeature('payroll'), async (req, res) => {
+  const ctx = ctxOf(req);
+  const b = body(req, z.object({ paidOn: zDate.optional(), method: z.enum(['cash', 'upi', 'bank', 'mixed']).optional() }));
+  res.json({ data: await svc.runView(await svc.markPaid(ctx, param(req, 'id'), b), true, ctx.language) });
+});
 
 payrollRouter.post('/payroll/runs/:id/compare', requireRole('owner'), upload.single('file'), async (req, res) => {
   if (!req.file) throw new AppError('VALIDATION_ERROR', 'Upload the old app salary report as file');

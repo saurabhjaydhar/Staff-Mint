@@ -5,7 +5,7 @@
  */
 import { formatMoney, roundToRupee } from '../../lib/money.js';
 
-export const ENGINE_VERSION = '1.0.0';
+export const ENGINE_VERSION = '1.1.0';
 
 export type DayStatus = 'present' | 'absent' | 'half_day' | 'leave' | 'holiday' | 'week_off' | null;
 export type LeaveType = 'paid' | 'sick' | 'unpaid';
@@ -17,7 +17,45 @@ export interface PayrollSettings {
   sickLeavePaid: boolean;
   dailyPaysOffDays: boolean;
   roundToRupee: boolean;
+  /** PF / ESI / Professional Tax. Absent or all off = the simple shop salary slip (most small shops). */
+  statutory?: StatutorySettings | null;
 }
+
+/** Indian statutory deductions. Rates and limits are settings so they can follow rule changes without a release. */
+export interface StatutorySettings {
+  pfEnabled: boolean;
+  /** Part of the earned salary shown as Basic (PF is on Basic); the rest is "HRA & allowances". */
+  basicPercent: number;
+  pfRatePercent: number;
+  pfWageCeilingPaise: number;
+  /** Calculate PF on at most the wage ceiling (the usual choice). */
+  pfCapAtCeiling: boolean;
+  esiEnabled: boolean;
+  esiEmployeePercent: number;
+  esiEmployerPercent: number;
+  /** ESI applies when the month's ESI wages are at or below this. */
+  esiWageLimitPaise: number;
+  ptEnabled: boolean;
+  /** State Professional Tax for the month (owner enters their state's amount). */
+  ptMonthlyPaise: number;
+  /** Charge PT only when gross is at least this (state slab). */
+  ptMinGrossPaise: number;
+}
+
+export const DEFAULT_STATUTORY: StatutorySettings = {
+  pfEnabled: false,
+  basicPercent: 50,
+  pfRatePercent: 12,
+  pfWageCeilingPaise: 1500000,
+  pfCapAtCeiling: true,
+  esiEnabled: false,
+  esiEmployeePercent: 0.75,
+  esiEmployerPercent: 3.25,
+  esiWageLimitPaise: 2100000,
+  ptEnabled: false,
+  ptMonthlyPaise: 20000,
+  ptMinGrossPaise: 0,
+};
 
 export interface EngineAdvance {
   id: string;
@@ -49,6 +87,9 @@ export interface EmployeePayrollInput {
   adjustments: EngineAdjustment[];
   advances: EngineAdvance[];
   lastNetPaise?: number | null;
+  /** This person is outside PF / ESI (e.g. opted out, or covered elsewhere). */
+  pfExempt?: boolean;
+  esiExempt?: boolean;
 }
 
 export interface EngineInput {
@@ -66,7 +107,7 @@ export interface Bilingual {
 }
 
 export interface EngineLine {
-  code: 'basic' | 'bonus' | 'deduction' | 'advance';
+  code: 'basic' | 'allowance' | 'bonus' | 'deduction' | 'advance' | 'pf' | 'esi' | 'pt';
   kind: 'earning' | 'deduction';
   amountPaise: number;
   label: Bilingual;
@@ -105,6 +146,8 @@ export interface EngineResult {
   netPaise: number;
   anomalies: EngineAnomaly[];
   advanceDeductions: { advanceId: string; amountPaise: number }[];
+  /** Paid by the employer on top of salary (not cut from the staff member). Shown on the slip for PF/ESI. */
+  employerContributions: { code: 'pf' | 'esi'; amountPaise: number; label: Bilingual; explanation: Bilingual }[];
 }
 
 const fmtDays = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
@@ -179,15 +222,38 @@ export function computePayslip(input: EngineInput): EngineResult {
     };
   }
 
+  const st = settings.statutory ?? null;
+  const pfOn = !!st?.pfEnabled && !e.pfExempt;
+  const esiOn = !!st?.esiEnabled && !e.esiExempt;
+  const ptOn = !!st?.ptEnabled && (st?.ptMonthlyPaise ?? 0) > 0;
+  // With PF, the earned salary is shown as Basic + HRA & allowances (PF is calculated on Basic).
+  const basicPercent = pfOn ? Math.min(100, Math.max(1, st!.basicPercent)) : 100;
+  const basicPart = basicPercent < 100 ? round((basic * basicPercent) / 100) : basic;
+  const allowancePart = basic - basicPart;
   const lines: EngineLine[] = [
     {
       code: 'basic',
       kind: 'earning',
-      amountPaise: basic,
-      label: { en: `Salary for ${fmtDays(payable)} days`, hi: `${fmtDays(payable)} दिन का वेतन` },
-      explanation: basicExplain,
+      amountPaise: basicPart,
+      label:
+        allowancePart > 0
+          ? { en: `Basic (${fmtDays(payable)} days)`, hi: `बेसिक (${fmtDays(payable)} दिन)` }
+          : { en: `Salary for ${fmtDays(payable)} days`, hi: `${fmtDays(payable)} दिन का वेतन` },
+      explanation:
+        allowancePart > 0
+          ? { en: `${basicExplain.en}. ${basicPercent}% of it is Basic.`, hi: `${basicExplain.hi}। इसका ${basicPercent}% बेसिक है।` }
+          : basicExplain,
     },
   ];
+  if (allowancePart > 0) {
+    lines.push({
+      code: 'allowance',
+      kind: 'earning',
+      amountPaise: allowancePart,
+      label: { en: 'HRA & allowances', hi: 'मकान किराया भत्ता व अन्य भत्ते' },
+      explanation: { en: `The other ${100 - basicPercent}% of the salary earned (${money(basic)}).`, hi: `कमाए गए वेतन (${money(basic)}) का बाकी ${100 - basicPercent}%।` },
+    });
+  }
 
   for (const a of e.adjustments.filter((x) => x.type === 'bonus')) {
     lines.push({
@@ -213,6 +279,62 @@ export function computePayslip(input: EngineInput): EngineResult {
   const gross = lines.filter((l) => l.kind === 'earning').reduce((s, l) => s + l.amountPaise, 0);
   let deductions = lines.filter((l) => l.kind === 'deduction').reduce((s, l) => s + l.amountPaise, 0);
   const anomalies: EngineAnomaly[] = [];
+
+  // ---- Statutory deductions (PF, ESI, Professional Tax): before advances, never below zero ----
+  const employerContributions: EngineResult['employerContributions'] = [];
+  const toRupee = (p: number) => Math.round(p / 100) * 100;
+  const upToRupee = (p: number) => Math.ceil(p / 100) * 100;
+  const addStatutory = (code: 'pf' | 'esi' | 'pt', amount: number, label: Bilingual, explanation: Bilingual) => {
+    const take = Math.min(amount, Math.max(0, gross - deductions));
+    if (take <= 0) return;
+    deductions += take;
+    lines.push({ code, kind: 'deduction', amountPaise: take, label, explanation });
+  };
+  if (st && pfOn && basicPart > 0) {
+    const base = st.pfCapAtCeiling ? Math.min(basicPart, st.pfWageCeilingPaise) : basicPart;
+    const pf = toRupee((base * st.pfRatePercent) / 100);
+    const capped = st.pfCapAtCeiling && basicPart > st.pfWageCeilingPaise;
+    addStatutory(
+      'pf',
+      pf,
+      { en: 'Provident Fund (PF)', hi: 'भविष्य निधि (PF)' },
+      {
+        en: `${st.pfRatePercent}% of Basic ${money(base)}${capped ? ` (capped at ${money(st.pfWageCeilingPaise)})` : ''}. Saved in your PF account.`,
+        hi: `बेसिक ${money(base)} का ${st.pfRatePercent}%${capped ? ` (${money(st.pfWageCeilingPaise)} तक)` : ''}। आपके PF खाते में जमा।`,
+      },
+    );
+    if (pf > 0)
+      employerContributions.push({
+        code: 'pf',
+        amountPaise: pf,
+        label: { en: 'Employer PF', hi: 'मालिक का PF' },
+        explanation: { en: `${st.pfRatePercent}% of Basic, paid by the employer (EPF + pension)`, hi: `बेसिक का ${st.pfRatePercent}%, मालिक देता है (EPF + पेंशन)` },
+      });
+  }
+  const esiWages = lines.filter((l) => l.kind === 'earning' && l.code !== 'bonus').reduce((a, l) => a + l.amountPaise, 0);
+  if (st && esiOn && esiWages > 0 && esiWages <= st.esiWageLimitPaise) {
+    const esi = upToRupee((esiWages * st.esiEmployeePercent) / 100);
+    addStatutory(
+      'esi',
+      esi,
+      { en: 'ESI', hi: 'ESI (कर्मचारी राज्य बीमा)' },
+      { en: `${st.esiEmployeePercent}% of ${money(esiWages)}. Covers medical care for you and your family.`, hi: `${money(esiWages)} का ${st.esiEmployeePercent}%। आपके और परिवार के इलाज के लिए।` },
+    );
+    employerContributions.push({
+      code: 'esi',
+      amountPaise: upToRupee((esiWages * st.esiEmployerPercent) / 100),
+      label: { en: 'Employer ESI', hi: 'मालिक का ESI' },
+      explanation: { en: `${st.esiEmployerPercent}% of ${money(esiWages)}, paid by the employer`, hi: `${money(esiWages)} का ${st.esiEmployerPercent}%, मालिक देता है` },
+    });
+  }
+  if (st && ptOn && gross > 0 && gross >= st.ptMinGrossPaise) {
+    addStatutory(
+      'pt',
+      st.ptMonthlyPaise,
+      { en: 'Professional Tax', hi: 'प्रोफ़ेशनल टैक्स' },
+      { en: `State Professional Tax for the month: ${money(st.ptMonthlyPaise)}`, hi: `इस महीने का राज्य प्रोफ़ेशनल टैक्स: ${money(st.ptMonthlyPaise)}` },
+    );
+  }
 
   // ---- Advances (udhaar): oldest first, never push net below zero ----
   const advanceDeductions: { advanceId: string; amountPaise: number }[] = [];
@@ -278,6 +400,7 @@ export function computePayslip(input: EngineInput): EngineResult {
     netPaise: net,
     anomalies,
     advanceDeductions,
+    employerContributions,
   };
 }
 

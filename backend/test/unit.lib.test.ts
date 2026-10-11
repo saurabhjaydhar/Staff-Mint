@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { rupeesInWordsEn, rupeesInWordsHi } from '../src/lib/words.js';
 import { formatINR, parseAmountToPaise, roundToRupee } from '../src/lib/money.js';
 import { normalizePhone } from '../src/lib/phone.js';
 import { daysInMonth, previousMonth, weekdayOf, zonedInstant } from '../src/lib/dates.js';
@@ -114,5 +115,22 @@ describe('import parsing & mapping', () => {
     expect(parseAttendanceCode('sl')).toEqual({ status: 'leave', leaveType: 'sick' });
     expect(parseAttendanceCode('??')).toBeUndefined();
     expect(dayColumns(['Name', '1', '02', '31', '32'], '2026-10')).toEqual({ '1': '2026-10-01', '02': '2026-10-02', '31': '2026-10-31' });
+  });
+});
+
+
+describe('amount in words (salary slips)', () => {
+  it('English, Indian style', () => {
+    expect(rupeesInWordsEn(1000000)).toBe('Rupees Ten Thousand Only');
+    expect(rupeesInWordsEn(1845000)).toBe('Rupees Eighteen Thousand Four Hundred Fifty Only');
+    expect(rupeesInWordsEn(12345678900)).toBe('Rupees Twelve Crore Thirty-Four Lakh Fifty-Six Thousand Seven Hundred Eighty-Nine Only');
+    expect(rupeesInWordsEn(10050)).toBe('Rupees One Hundred and Fifty Paise Only');
+    expect(rupeesInWordsEn(0)).toBe('Rupees Zero Only');
+  });
+  it('Hindi', () => {
+    expect(rupeesInWordsHi(1000000)).toBe('दस हज़ार रुपये');
+    expect(rupeesInWordsHi(1845000)).toBe('अठारह हज़ार चार सौ पचास रुपये');
+    expect(rupeesInWordsHi(250000000)).toBe('पच्चीस लाख रुपये');
+    expect(rupeesInWordsHi(9999900)).toBe('निन्यानवे हज़ार नौ सौ निन्यानवे रुपये');
   });
 });

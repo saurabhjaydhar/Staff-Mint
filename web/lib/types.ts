@@ -302,7 +302,7 @@ export interface Adjustment {
 
 export interface PayslipLine {
   code: string;
-  kind: "earning" | "deduction";
+  kind: "earning" | "deduction" | "employer";
   label: string;
   amountPaise: number;
   explanation: string;
@@ -337,6 +337,41 @@ export interface Payslip {
   status: "draft" | "final" | "sent";
   pdfUrl: string | null;
   sentAt?: string;
+  /** PF / ESI the owner pays on top of salary (empty for most small shops). */
+  employerContributions?: PayslipLine[];
+  paidOn?: string | null;
+  paymentMethod?: PaymentMethod | null;
+}
+
+export type PaymentMethod = "cash" | "upi" | "bank" | "mixed";
+
+/** The shop's PF / ESI / Professional Tax settings. */
+export interface StatutorySettings {
+  pfEnabled: boolean;
+  pfNumber: string | null;
+  basicPercent: number;
+  pfRatePercent: number;
+  pfWageCeilingPaise: number;
+  pfCapAtCeiling: boolean;
+  esiEnabled: boolean;
+  esiNumber: string | null;
+  esiEmployeePercent: number;
+  esiEmployerPercent: number;
+  esiWageLimitPaise: number;
+  ptEnabled: boolean;
+  ptState: string | null;
+  ptMonthlyPaise: number;
+  ptMinGrossPaise: number;
+}
+
+/** What a staff member's salary slip shows besides name and phone. PAN is masked. */
+export interface EmployeeStatutory {
+  employeeCode: string | null;
+  uan: string | null;
+  esicNumber: string | null;
+  panMasked: string | null;
+  pfExempt: boolean;
+  esiExempt: boolean;
 }
 
 export interface PayrollAnomaly {
@@ -356,6 +391,8 @@ export interface PayrollRun {
   anomalies: PayrollAnomaly[];
   approvedAt?: string;
   paidAt?: string;
+  paidOn?: string | null;
+  paymentMethod?: PaymentMethod | null;
   payslips?: Payslip[];
 }
 

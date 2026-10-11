@@ -56,6 +56,21 @@ class PayslipReceipt extends ConsumerWidget {
                 _days(s, p),
                 style: const TextStyle(fontSize: 13, color: AppColors.muted, fontWeight: FontWeight.w600),
               ),
+              if (p.paidOn != null) ...[
+                const SizedBox(height: 6),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    key: const Key('slipPaidOn'),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(color: AppColors.mintLight, borderRadius: BorderRadius.circular(999)),
+                    child: Text(
+                      '✓ ${s.paidOnVia(Dates.prettyApiDate(p.paidOn!, s.languageCode), s.paymentMethodLabel(p.paymentMethod ?? 'cash'))}',
+                      style: const TextStyle(color: AppColors.mintDark, fontWeight: FontWeight.w700, fontSize: 13),
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 8),
               for (final a in anomalies)
                 Padding(
@@ -77,6 +92,25 @@ class PayslipReceipt extends ConsumerWidget {
               for (final l in p.lines) _line(l),
               if (p.lines.every((l) => !l.isDeduction))
                 ReceiptRow(label: s.deductions, value: '− ${Money.format(0)}', valueColor: AppColors.red),
+              if (p.employerContributions.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Container(
+                  key: const Key('slipEmployer'),
+                  padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: AppColors.line),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(s.employerOnTop, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
+                      for (final c in p.employerContributions)
+                        ReceiptRow(label: c.label, value: Money.format(c.amountPaise)),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 8),
               _WhyBox(payslip: p),
             ],
@@ -90,7 +124,7 @@ class PayslipReceipt extends ConsumerWidget {
   Widget _line(PayslipLine l) {
     final amount = Money.format(l.amountPaise.abs());
     if (l.isDeduction) return ReceiptRow(label: l.label, value: '− $amount', valueColor: AppColors.red);
-    if (l.code == 'basic') return ReceiptRow(label: l.label, value: amount);
+    if (l.code == 'basic' || l.code == 'allowance') return ReceiptRow(label: l.label, value: amount);
     return ReceiptRow(label: l.label, value: '+ $amount', valueColor: AppColors.mint);
   }
 }

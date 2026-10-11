@@ -35,6 +35,7 @@ class Routes {
   static const ownerHolidays = '/owner/more/settings/holidays';
   static const ownerAccountants = '/owner/more/settings/accountants';
   static const ownerOwners = '/owner/more/settings/owners';
+  static const ownerStatutory = '/owner/more/settings/statutory';
   static const ownerBilling = '/owner/more/billing';
   static const ownerAudit = '/owner/more/audit';
   static const ownerHelp = '/owner/more/help';

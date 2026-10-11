@@ -57,6 +57,14 @@ employeesRouter.post('/:id/reset-device', requireRole('owner', 'manager'), async
   res.json({ data: employeeView(await svc.resetDevice(ctxOf(req), param(req, 'id'))) });
 });
 
+/** Staff number, PF UAN, ESIC number, PAN (stored encrypted, shown masked), PF/ESI exemption. */
+employeesRouter.patch('/:id/statutory', requireRole('owner'), async (req, res) => {
+  const opt = (n: number) => z.string().max(n).nullable().optional();
+  const b = body(req, z.object({ employeeCode: opt(20), uan: opt(20), esicNumber: opt(25), pan: opt(12), pfExempt: z.boolean().optional(), esiExempt: z.boolean().optional() }).strict());
+  const { updateEmployeeStatutory } = await import('../statutory/service.js');
+  res.json({ data: await updateEmployeeStatutory(ctxOf(req), param(req, 'id'), b) });
+});
+
 employeesRouter.post('/:id/role', requireRole('owner'), async (req, res) => {
   const b = body(req, z.object({ role: z.enum(['employee', 'manager']) }));
   res.json({ data: employeeView(await svc.setAppRole(ctxOf(req), param(req, 'id'), b.role)) });

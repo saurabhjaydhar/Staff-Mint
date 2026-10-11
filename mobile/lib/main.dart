@@ -14,7 +14,9 @@ import 'features/employee/punch/punch_queue.dart';
 
 Future<void> main() async {
   if (Env.apiBaseUrl.isEmpty) {
-    throw StateError('API_BASE_URL is not set. Run with --dart-define-from-file=config/local.json or config/production.json.');
+    throw StateError(
+      'API_BASE_URL is not set. Run with --dart-define-from-file=config/local.json or config/production.json.',
+    );
   }
   WidgetsFlutterBinding.ensureInitialized();
   if (kDebugMode) debugPrint('[api] base URL: ${Env.apiBaseUrl}');

@@ -465,8 +465,8 @@ class S {
   String get deductions => _t('Deductions', 'कटौती');
   String employeesCount(int n) => _t('$n staff', '$n स्टाफ़');
   String get anomalies => _t('Please check', 'कृपया जाँचें');
-  String get sendPayslips => _t('Send payslips', 'पेस्लिप भेजें');
-  String payslipsQueued(int n) => _t('$n payslips are being sent', '$n पेस्लिप भेजी जा रही हैं');
+  String get sendPayslips => _t('Send salary slips', 'सैलरी स्लिप भेजें');
+  String payslipsQueued(int n) => _t('$n salary slips are being sent', '$n सैलरी स्लिप भेजी जा रही हैं');
   String get markPaid => _t('Mark as paid', 'भुगतान हुआ मार्क करें');
   String get revise => _t('Make a correction', 'सुधार करें');
   String get reviseConfirm => _t(
@@ -474,7 +474,7 @@ class S {
     'मौजूदा हाज़िरी से नया ड्राफ़्ट (संशोधन) बनेगा।',
   );
   String payableDays(num d, num div) => _t('Payable days: $d / $div', 'भुगतान वाले दिन: $d / $div');
-  String get payslips => _t('Payslips', 'पेस्लिप');
+  String get payslips => _t('Salary slips', 'सैलरी स्लिप');
   String get advances => _t('Advances', 'एडवांस');
   String get bonusDeduction => _t('Bonus / deduction', 'बोनस / कटौती');
   String get noAdvances => _t('No advances', 'कोई एडवांस नहीं');
@@ -503,7 +503,7 @@ class S {
   String get billing => _t('Plan & billing', 'प्लान और बिलिंग');
   String get auditLog => _t('Audit log', 'बदलावों का रिकॉर्ड');
   String get exportData => _t('Export all data', 'सारा डेटा डाउनलोड करें');
-  String get exportHint => _t('Excel + payslip PDFs. Always free.', 'Excel + पेस्लिप PDF। हमेशा मुफ़्त।');
+  String get exportHint => _t('Excel + salary slip PDFs. Always free.', 'Excel + सैलरी स्लिप PDF। हमेशा मुफ़्त।');
   String exportSaved(String path) => _t('Saved to $path', '$path में सेव हुआ');
   String get language => _t('Language', 'भाषा');
   String get help => _t('Help', 'मदद');
@@ -631,7 +631,7 @@ class S {
       case 'advances':
         return _t('Advances', 'एडवांस');
       case 'payslips':
-        return _t('Payslips', 'पेस्लिप');
+        return _t('Salary slips', 'सैलरी स्लिप');
       case 'assistant':
         return _t('Mint AI assistant', 'Mint AI सहायक');
       case 'branches':
@@ -639,7 +639,7 @@ class S {
       case 'reports':
         return _t('Reports', 'रिपोर्ट');
       case 'whatsapp_payslips':
-        return _t('Payslips on WhatsApp', 'WhatsApp पर पेस्लिप');
+        return _t('Salary slips on WhatsApp', 'WhatsApp पर सैलरी स्लिप');
       case 'whatsapp_assistant':
         return _t('WhatsApp assistant', 'WhatsApp सहायक');
       case 'face_match':
@@ -673,8 +673,8 @@ class S {
   );
   String get faq3q => _t('How is salary calculated?', 'सैलरी कैसे निकलती है?');
   String get faq3a => _t(
-    'Monthly salary ÷ days (your setting) × payable days, plus bonus, minus advances and deductions. Every payslip line explains itself.',
-    'मासिक सैलरी ÷ दिन (आपकी सेटिंग) × भुगतान वाले दिन, plus बोनस, minus एडवांस और कटौती। पेस्लिप की हर लाइन का कारण लिखा होता है।',
+    'Monthly salary ÷ days (your setting) × payable days, plus bonus, minus advances and deductions. Every salary slip line explains itself.',
+    'मासिक सैलरी ÷ दिन (आपकी सेटिंग) × भुगतान वाले दिन, plus बोनस, minus एडवांस और कटौती। सैलरी स्लिप की हर लाइन का कारण लिखा होता है।',
   );
   String get faq4q => _t('What if there is no internet?', 'अगर इंटरनेट न हो तो?');
   String get faq4a => _t(
@@ -836,7 +836,7 @@ class S {
   String get runningEstimate => _t('This month so far (estimate)', 'इस महीने अब तक (अनुमान)');
   String get estimateNote =>
       _t('Final salary may change after owner approval.', 'मालिक की मंज़ूरी के बाद आख़िरी सैलरी बदल सकती है।');
-  String get noPayslips => _t('No payslips yet', 'अभी कोई पेस्लिप नहीं');
+  String get noPayslips => _t('No salary slips yet', 'अभी कोई सैलरी स्लिप नहीं');
   String get myProfile => _t('My profile', 'मेरी प्रोफ़ाइल');
 
   // ---- Profile ----
@@ -1045,19 +1045,90 @@ class S {
   String get change => _t('Change', 'बदलें');
   Bi othersFine(int n) => _b('$n others look fine', 'बाकी $n staff में कोई दिक्कत नहीं');
   Bi allFine(int n) => _b('All $n staff look fine', 'सभी $n staff ठीक हैं');
-  String get slideApproveSend => _t('Slide to approve & send payslips', 'स्लाइड करें · Approve & send');
+  String get slideApproveSend => _t('Slide to approve & send salary slips', 'स्लाइड करें · Approve & send');
   String get slideMarkPaid => _t('Slide to mark as paid', 'स्लाइड करें · Mark as paid');
   String get slideA11yHint => _t('Double-tap and hold to confirm', 'पक्का करने के लिए दबाए रखें');
   Bi get salaryApprovedBi => _b('Salary approved!', 'सैलरी मंज़ूर!');
-  String payslipsSentTo(int n) => _t('Payslips are going to $n staff', '$n staff को पेस्लिप भेजी जा रही हैं');
+  String payslipsSentTo(int n) => _t('Salary slips are going to $n staff', '$n staff को सैलरी स्लिप भेजी जा रही हैं');
   Bi get salaryPaidBi => _b('Marked as paid', 'भुगतान दर्ज हुआ');
   String get paidBanner => _t('Salary for this month is paid', 'इस महीने की सैलरी दे दी गई');
-  String get sendAgain => _t('Send payslips again', 'पेस्लिप फिर भेजें');
+  String get sendAgain => _t('Send salary slips again', 'सैलरी स्लिप फिर भेजें');
   String daysOf(num p, num d) => _t('$p of $d days', '$d में से $p दिन');
   String daysOnly(num p) => _t('$p days', '$p दिन');
 
-  // -------------------------------------------------------------- Payslip
-  Bi get payslipBi => _b('Payslip', 'वेतन पर्ची');
+  // -------------------------------------------------------------- Mark as paid
+  String get paidQuestion => _t('Have you paid everyone?', 'क्या सबको सैलरी दे दी?');
+  String get paidNoMoneyNote => _t(
+    'StaffMint doesn\'t send money. This records that you paid, so salary slips show "Paid".',
+    'StaffMint पैसे नहीं भेजता। यह सिर्फ़ दर्ज करता है कि आपने सैलरी दे दी, ताकि स्लिप पर "भुगतान हो गया" दिखे।',
+  );
+  String get howDidYouPay => _t('How did you pay?', 'कैसे दिया?');
+  String get paidOnLabel => _t('Paid on', 'किस दिन दिया');
+  String yesAllPaid(int n) => _t('Yes, all $n are paid', 'हाँ, सभी $n को दे दिया');
+  String paymentMethodLabel(String m) {
+    switch (m) {
+      case 'upi':
+        return 'UPI';
+      case 'bank':
+        return _t('Bank transfer', 'बैंक ट्रांसफ़र');
+      case 'mixed':
+        return _t('Mixed', 'मिला-जुला');
+      default:
+        return _t('Cash', 'नकद');
+    }
+  }
+
+  String paidOnVia(String date, String method) => _t('Paid on $date · $method', '$date को दिया · $method');
+  String get notPaidYet => _t('Not paid yet', 'अभी भुगतान नहीं हुआ');
+  String get employerOnTop => _t('Paid by your employer on top of salary', 'सैलरी के अलावा मालिक द्वारा जमा');
+
+  // -------------------------------------------------------------- PF / ESI / Professional Tax
+  Bi get statutoryBi => _b('PF, ESI & Professional Tax', 'PF, ESI और प्रोफ़ेशनल टैक्स');
+  String get statutoryHint =>
+      _t('Only if your shop is registered for them', 'सिर्फ़ अगर आपकी दुकान इनमें रजिस्टर्ड है');
+  String get statutoryIntro => _t(
+    'Most small shops don\'t need these. PF is usually for 20+ staff, ESI for 10+ staff earning up to ₹21,000. Ask your CA if unsure. Changes apply from the next salary.',
+    'ज़्यादातर छोटी दुकानों को इनकी ज़रूरत नहीं। PF आमतौर पर 20+ स्टाफ़ पर, ESI 10+ स्टाफ़ (₹21,000 तक सैलरी) पर लगता है। शक हो तो CA से पूछें। बदलाव अगली सैलरी से लागू होंगे।',
+  );
+  String get pfTitle => _t('Provident Fund (PF)', 'भविष्य निधि (PF)');
+  String get pfExample => _t(
+    '12% of Basic from staff, 12% from you. Basic is capped at ₹15,000, so at most ₹1,800 each.',
+    'बेसिक का 12% स्टाफ़ से, 12% आपसे। बेसिक ₹15,000 तक गिना जाता है, यानी हर तरफ़ ज़्यादा से ज़्यादा ₹1,800।',
+  );
+  String get pfNumberLabel => _t('PF establishment code', 'PF कोड');
+  String get basicPercentLabel => _t('Basic is what % of salary?', 'सैलरी का कितना % बेसिक है?');
+  String get basicPercentHint =>
+      _t('The rest shows as HRA & allowances. 50% is common.', 'बाकी HRA व भत्ते में दिखेगा। 50% आम है।');
+  String get esiTitle => _t('ESI', 'ESI (कर्मचारी राज्य बीमा)');
+  String get esiExample => _t(
+    'For staff earning up to ₹21,000: 0.75% from staff, 3.25% from you.',
+    '₹21,000 तक सैलरी वाले स्टाफ़ के लिए: 0.75% स्टाफ़ से, 3.25% आपसे।',
+  );
+  String get esiNumberLabel => _t('ESI code', 'ESI कोड');
+  String get ptTitle => _t('Professional Tax', 'प्रोफ़ेशनल टैक्स');
+  String get ptExample => _t(
+    'A small state tax (e.g. ₹200 a month in Maharashtra, none in Delhi).',
+    'एक छोटा राज्य टैक्स (जैसे महाराष्ट्र में ₹200 महीना, दिल्ली में नहीं)।',
+  );
+  String get ptStateLabel => _t('State', 'राज्य');
+  String get ptAmountLabel => _t('Amount per month (₹)', 'हर महीने (₹)');
+  String get ptMinLabel => _t('Only if salary is at least (₹)', 'सिर्फ़ जब सैलरी कम से कम हो (₹)');
+
+  // Staff details for slips
+  Bi get slipDetailsBi => _b('Details on salary slip', 'सैलरी स्लिप पर विवरण');
+  String get employeeCodeLabel => _t('Employee ID', 'कर्मचारी ID');
+  String get uanLabel => _t('PF UAN (12 digits)', 'PF UAN (12 अंक)');
+  String get esicLabel => _t('ESIC number', 'ESIC नंबर');
+  String get panLabel => _t('PAN', 'PAN');
+  String get pfExemptLabel => _t('Not in PF', 'PF में नहीं');
+  String get esiExemptLabel => _t('Not in ESI', 'ESI में नहीं');
+  String get slipDetailsHint => _t(
+    'Employee ID, PF UAN, ESIC, PAN. Optional — fill only what your shop uses.',
+    'कर्मचारी ID, PF UAN, ESIC, PAN. ज़रूरी नहीं — जो आपकी दुकान में चलता है वही भरें।',
+  );
+
+  // -------------------------------------------------------------- Salary slip
+  Bi get payslipBi => _b('Salary slip', 'सैलरी स्लिप');
   Bi get netPayBi => _b('Net pay', 'हाथ में वेतन');
   String get why => _t('Why?', 'क्यों?');
   String get sendOnWhatsApp => _t('Send on WhatsApp', 'WhatsApp पर भेजें');
@@ -1066,8 +1137,8 @@ class S {
   String get stampApproved => _t('APPROVED', 'मंज़ूर');
   String get pdfAfterApproval => _t('PDF is made after approval', 'PDF मंज़ूरी के बाद बनेगी');
   String waPayslipMessage(String name, String month, String net, String? url) => _t(
-    'Namaste $name, your salary for $month: $net (net).${url == null ? '' : ' Payslip: $url'}',
-    'नमस्ते $name, $month की सैलरी: $net (हाथ में)।${url == null ? '' : ' पेस्लिप: $url'}',
+    'Namaste $name, your salary for $month: $net (in hand).${url == null ? '' : ' Salary slip: $url'}',
+    'नमस्ते $name, $month की सैलरी: $net (हाथ में)।${url == null ? '' : ' सैलरी स्लिप: $url'}',
   );
 
   // ---------------------------------------------------------------- Setup
@@ -1243,9 +1314,9 @@ class S {
     'आपका लॉगिन और प्रोफ़ाइल हट जाएगी। मालिक क़ानून के अनुसार सैलरी रिकॉर्ड रखेंगे। मालिकों को पहले बिज़नेस सौंपना या बंद करना होगा।',
   );
   String get deleteForever => _t('Delete forever', 'हमेशा के लिए हटाएँ');
-  Bi get pastPayslipsBi => _b('Past payslips', 'पुरानी पेस्लिप');
+  Bi get pastPayslipsBi => _b('Past salary slips', 'पुरानी सैलरी स्लिप');
   String get exStaffPayslips =>
-      _t('Ex-staff can see their old payslips (12 months)', 'पुराने स्टाफ़ अपनी पेस्लिप देख सकें (12 महीने)');
+      _t('Ex-staff can see their old salary slips (12 months)', 'पुराने स्टाफ़ अपनी सैलरी स्लिप देख सकें (12 महीने)');
 
   // ----------------------------------------------------- Accounts at scale
   String get searchBusinesses => _t('Search businesses', 'बिज़नेस खोजें');
