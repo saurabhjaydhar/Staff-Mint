@@ -1,0 +1,1014 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>StaffMint · Easier to use — mock-up flows</title>
+<style>
+  :root {
+    --ink: #1c1a17; --paper: #fffdf7; --line: #ede5d3; --soft: #f3eddf; --muted: #7b7262;
+    --mint: #1e9e64; --mintDark: #157a4c; --mintLight: #e3f5ec; --mintFaint: #f0faf4;
+    --red: #d64545; --redLight: #fce9e7; --amber: #e39a0b; --amberDark: #a86e00; --amberLight: #fff2d6;
+    --indigo: #5146e0; --indigoLight: #ecebff; --grey: #f1eee6; --note: #ffd84d;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Mukta", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif; background: #f4f1ea; color: var(--ink); }
+  a { color: inherit; }
+  .page { max-width: 1280px; margin: 0 auto; padding: 24px 16px 80px; }
+  header.top { background: var(--ink); color: #fff; border-radius: 24px; padding: 28px; margin-bottom: 20px; }
+  header.top h1 { margin: 0 0 6px; font-size: 28px; }
+  header.top p { margin: 4px 0; color: #d9d4c7; max-width: 900px; line-height: 1.5; }
+  .toc { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .toc a { text-decoration: none; background: #ffffff1a; color: #fff; padding: 6px 12px; border-radius: 999px; font-size: 14px; }
+  .principles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 24px; }
+  .principles div { background: #fff; border-radius: 16px; padding: 14px 16px; border: 1px solid var(--line); font-size: 14px; line-height: 1.45; }
+  .principles b { display: block; font-size: 15px; margin-bottom: 2px; }
+  section.flow { background: #fff; border-radius: 24px; padding: 22px; margin: 22px 0; border: 1px solid var(--line); }
+  section.flow h2 { margin: 0 0 4px; font-size: 22px; }
+  section.flow > p.why { margin: 0 0 16px; color: var(--muted); max-width: 900px; line-height: 1.5; }
+  .steps { display: flex; gap: 14px; overflow-x: auto; padding: 6px 4px 14px; align-items: flex-start; scroll-snap-type: x mandatory; }
+  .step { flex: 0 0 auto; width: 300px; scroll-snap-align: start; }
+  .arrow { flex: 0 0 auto; align-self: center; font-size: 28px; color: var(--mint); margin-top: -120px; }
+  .step h3 { font-size: 15px; margin: 0 0 8px; }
+  .step h3 .tag { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; margin-right: 6px; vertical-align: 2px; }
+  .tag.before { background: var(--redLight); color: var(--red); }
+  .tag.after { background: var(--mintLight); color: var(--mintDark); }
+  ol.notes { margin: 10px 0 0; padding: 0; list-style: none; font-size: 13.5px; line-height: 1.45; }
+  ol.notes li { position: relative; padding-left: 26px; margin: 7px 0; }
+  ol.notes li > .n:first-child { position: absolute; left: 0; top: 1px; }
+  ol.notes li:not(:has(> .n:first-child)) { padding-left: 0; }
+
+  /* Phone */
+  .phone { width: 300px; height: 660px; border-radius: 34px; border: 9px solid var(--ink); background: var(--paper); position: relative; overflow: hidden; box-shadow: 0 10px 30px #0000001a; font-size: 13px; }
+  .phone.before { filter: saturate(.85); }
+  .sb { height: 22px; display: flex; justify-content: space-between; padding: 4px 16px 0; font-size: 10.5px; font-weight: 700; }
+  .scr { position: absolute; top: 22px; left: 0; right: 0; bottom: 58px; overflow: hidden; padding: 6px 12px; }
+  .scr.full { bottom: 0; }
+  .tabs { position: absolute; left: 0; right: 0; bottom: 0; height: 58px; border-top: 1px solid var(--line); background: #fff; display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; text-align: center; font-size: 10.5px; color: var(--muted); }
+  .tabs.four { grid-template-columns: repeat(4, 1fr); }
+  .tabs .on { color: var(--ink); font-weight: 800; }
+  .tabs i { display: block; font-style: normal; font-size: 17px; line-height: 1.1; }
+  .mic { width: 50px; height: 50px; margin: -22px auto 0; border-radius: 50%; background: var(--mint); color: #fff; display: grid; place-items: center; font-size: 20px; border: 4px solid #fff; box-shadow: 0 2px 8px #0002; }
+  .mic-label { font-size: 10px; color: var(--mintDark); font-weight: 800; margin-top: 1px; }
+  .hdr { display: flex; align-items: flex-start; gap: 8px; margin: 2px 0 8px; }
+  .hdr .t { flex: 1; min-width: 0; }
+  .hdr small { color: var(--muted); font-size: 11px; display: block; }
+  .hdr b { font-size: 19px; line-height: 1.15; display: block; }
+  .lang { border: 1.5px solid var(--ink); border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+  .icon-btn { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; background: var(--grey); font-size: 15px; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 10px 11px; margin: 7px 0; }
+  .card.mint { background: var(--mintFaint); border-color: #bfe6d1; }
+  .card.amber { background: var(--amberLight); border-color: #f6d58a; }
+  .card.dark { background: var(--ink); color: #fff; border: 0; }
+  .card.red { background: var(--redLight); border-color: #f4c3be; }
+  .card h4 { margin: 0 0 3px; font-size: 13.5px; }
+  .card p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.35; }
+  .card.dark p { color: #cfc9bb; }
+  .row { display: flex; align-items: center; gap: 8px; }
+  .row .grow { flex: 1; min-width: 0; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 4px; border-radius: 10px; padding: 7px 11px; font-weight: 700; font-size: 12px; background: var(--mint); color: #fff; white-space: nowrap; }
+  .btn.ghost { background: transparent; color: var(--mintDark); padding: 7px 4px; }
+  .btn.line { background: #fff; color: var(--ink); border: 1.5px solid var(--line); }
+  .btn.dark { background: var(--ink); }
+  .btn.red { background: var(--red); }
+  .btn.block { display: flex; width: 100%; padding: 10px; font-size: 13px; }
+  .seg { display: flex; background: var(--grey); border-radius: 10px; padding: 3px; gap: 3px; font-size: 12px; font-weight: 700; }
+  .seg span { flex: 1; text-align: center; padding: 5px 4px; border-radius: 8px; color: var(--muted); }
+  .seg span.on { background: #fff; color: var(--ink); box-shadow: 0 1px 2px #0001; }
+  .datebar { display: flex; align-items: center; justify-content: space-between; margin: 6px 0; font-size: 12px; }
+  .datebar .mid { border: 1.5px solid var(--line); border-radius: 999px; padding: 4px 10px; font-weight: 700; background: #fff; }
+  .datebar .nav { color: var(--muted); font-weight: 700; font-size: 11.5px; }
+  .summary { display: flex; flex-wrap: wrap; gap: 5px; margin: 6px 0; }
+  .chip { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: var(--grey); color: var(--ink); white-space: nowrap; }
+  .chip.p { background: var(--mintLight); color: var(--mintDark); }
+  .chip.l { background: var(--amberLight); color: var(--amberDark); }
+  .chip.a { background: var(--redLight); color: var(--red); }
+  .chip.lv { background: var(--indigoLight); color: var(--indigo); }
+  .chip.sel { background: var(--ink); color: #fff; }
+  .list { background: #fff; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; margin: 6px 0; }
+  .list .head { display: flex; font-size: 10.5px; color: var(--muted); font-weight: 700; padding: 6px 10px; background: var(--soft); text-transform: uppercase; letter-spacing: .03em; }
+  .list .item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-top: 1px solid var(--soft); }
+  .list .item:first-child { border-top: 0; }
+  .time { width: 52px; font-size: 11.5px; color: var(--muted); }
+  .time b { color: var(--ink); font-size: 12px; display: block; }
+  .name { flex: 1; min-width: 0; font-weight: 700; font-size: 12.5px; }
+  .name small { display: block; font-weight: 500; color: var(--muted); font-size: 11px; }
+  .status { font-size: 11px; font-weight: 800; padding: 4px 8px; border-radius: 999px; white-space: nowrap; flex-shrink: 0; }
+  .status::after { content: " ▾"; font-size: 9px; opacity: .7; }
+  .status.p { background: var(--mintLight); color: var(--mintDark); }
+  .status.l { background: var(--amberLight); color: var(--amberDark); }
+  .status.a { background: var(--redLight); color: var(--red); }
+  .status.n { background: var(--grey); color: var(--muted); }
+  .status.lv { background: var(--indigoLight); color: var(--indigo); }
+  .status.wo { background: var(--grey); color: var(--muted); }
+  .status.plain::after { content: ""; }
+  .avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--mintLight); color: var(--mintDark); display: grid; place-items: center; font-weight: 800; font-size: 11px; flex: 0 0 auto; }
+  .tip { position: absolute; z-index: 5; background: var(--ink); color: #fff; font-size: 11.5px; line-height: 1.35; padding: 8px 10px; border-radius: 10px; width: 190px; box-shadow: 0 6px 18px #0004; }
+  .tip b { color: var(--note); }
+  .tip .x { display: block; margin-top: 5px; color: var(--note); font-weight: 800; text-align: right; }
+  .tip::after { content: ""; position: absolute; width: 10px; height: 10px; background: var(--ink); transform: rotate(45deg); }
+  .tip.up::after { top: -5px; right: 26px; }
+  .tip.down::after { bottom: -5px; left: 50%; margin-left: -5px; }
+  .tip.upl::after { top: -5px; left: 22px; }
+  .dim { position: absolute; inset: 0; background: #1c1a1766; z-index: 4; }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--paper); border-radius: 22px 22px 0 0; z-index: 6; padding: 8px 14px 14px; box-shadow: 0 -6px 20px #0003; }
+  .sheet .grab { width: 36px; height: 4px; border-radius: 4px; background: var(--line); margin: 0 auto 8px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 6px 0; }
+  .opt { border-radius: 12px; padding: 9px 4px; text-align: center; font-weight: 800; font-size: 11.5px; border: 2px solid transparent; }
+  .opt i { display: block; font-style: normal; font-size: 16px; }
+  .opt small { display: block; font-weight: 500; font-size: 9.5px; opacity: .8; }
+  .opt.p { background: var(--mintLight); color: var(--mintDark); }
+  .opt.h { background: #ffe9d6; color: #c2570c; }
+  .opt.a { background: var(--redLight); color: var(--red); }
+  .opt.lv { background: var(--indigoLight); color: var(--indigo); }
+  .opt.g { background: var(--grey); color: var(--muted); }
+  .opt.sel { border-color: var(--ink); }
+  .label { font-size: 11.5px; font-weight: 800; margin: 8px 0 4px; }
+  .muted { color: var(--muted); }
+  .small { font-size: 11px; }
+  .toast { position: absolute; left: 12px; right: 12px; bottom: 66px; z-index: 7; background: var(--ink); color: #fff; border-radius: 12px; padding: 9px 12px; font-size: 12px; display: flex; justify-content: space-between; }
+  .toast b { color: var(--note); }
+  .n { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--note); color: var(--ink); font-size: 11px; font-weight: 900; flex: 0 0 auto; box-shadow: 0 0 0 2px #fff; vertical-align: middle; }
+  .phone .n { position: relative; z-index: 3; }
+  .progress { height: 7px; border-radius: 7px; background: var(--soft); overflow: hidden; margin: 6px 0; }
+  .progress span { display: block; height: 100%; background: var(--mint); border-radius: 7px; }
+  .check { display: flex; gap: 8px; align-items: center; padding: 6px 0; border-top: 1px dashed var(--line); font-size: 12px; }
+  .check:first-of-type { border-top: 0; }
+  .check .box { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; font-size: 11px; flex: 0 0 auto; }
+  .check.done .box { background: var(--mint); border-color: var(--mint); color: #fff; }
+  .check.done span.txt { color: var(--muted); text-decoration: line-through; }
+  .check.next { font-weight: 800; }
+  .menu .mi { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-top: 1px solid var(--soft); font-size: 12.5px; }
+  .menu .mi:first-child { border-top: 0; }
+  .menu .mi .ic { width: 26px; height: 26px; border-radius: 8px; background: var(--mintLight); display: grid; place-items: center; font-size: 13px; }
+  .menu .mi small { display: block; color: var(--muted); font-size: 10.5px; }
+  .menu .mi::after { content: "›"; color: var(--muted); margin-left: auto; font-size: 16px; }
+  .grouptitle { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 8px 2px 3px; }
+  .search { border: 1.5px solid var(--line); background: #fff; border-radius: 12px; padding: 8px 10px; color: var(--muted); font-size: 12px; }
+  .cal { width: 100%; border-collapse: separate; border-spacing: 2px; font-size: 10px; }
+  .cal th { color: var(--muted); font-weight: 700; padding: 2px 0; }
+  .cal td { text-align: center; border-radius: 5px; padding: 3px 0; font-weight: 800; }
+  .cal td.nm { text-align: left; font-weight: 700; font-size: 10.5px; padding-right: 2px; white-space: nowrap; }
+  .c-p { background: var(--mintLight); color: var(--mintDark); }
+  .c-l { background: var(--amberLight); color: var(--amberDark); }
+  .c-a { background: var(--redLight); color: var(--red); }
+  .c-h { background: #ffe9d6; color: #c2570c; }
+  .c-lv { background: var(--indigoLight); color: var(--indigo); }
+  .c-wo { background: var(--grey); color: var(--muted); }
+  .c-today { outline: 2px solid var(--ink); }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 8px; font-size: 10px; margin: 4px 0; }
+  .legend span { display: inline-flex; align-items: center; gap: 3px; }
+  .legend i { font-style: normal; font-weight: 800; padding: 1px 4px; border-radius: 4px; }
+  .field { border: 1.5px solid var(--line); background: #fff; border-radius: 10px; padding: 7px 9px; margin: 4px 0; font-size: 12px; }
+  .field small { display: block; color: var(--muted); font-size: 10px; }
+  .toggle { width: 34px; height: 20px; border-radius: 999px; background: var(--mint); position: relative; flex: 0 0 auto; }
+  .toggle::after { content: ""; position: absolute; right: 2px; top: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; }
+  .toggle.off { background: #cfc8b8; }
+  .toggle.off::after { left: 2px; right: auto; }
+  .example { background: var(--soft); border-radius: 8px; padding: 5px 7px; font-size: 10.5px; color: var(--ink); margin-top: 4px; }
+  .big { font-size: 26px; font-weight: 900; line-height: 1; }
+  .stepper { display: flex; gap: 4px; margin: 6px 0; }
+  .stepper div { flex: 1; text-align: center; font-size: 10px; font-weight: 700; color: var(--muted); }
+  .stepper div::before { content: ""; display: block; height: 5px; border-radius: 5px; background: var(--soft); margin-bottom: 3px; }
+  .stepper div.done::before { background: var(--mint); }
+  .stepper div.cur { color: var(--ink); }
+  .stepper div.cur::before { background: var(--amber); }
+  .bigbtn { width: 150px; height: 150px; border-radius: 50%; margin: 10px auto 6px; background: var(--mint); color: #fff; display: grid; place-items: center; text-align: center; font-weight: 900; font-size: 20px; box-shadow: 0 0 0 10px var(--mintLight), 0 0 0 20px var(--mintFaint); }
+  .bigbtn small { display: block; font-size: 11px; font-weight: 600; opacity: .9; }
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; margin-top: 12px; }
+  .compare div { border-radius: 12px; padding: 10px 12px; line-height: 1.45; }
+  .compare .b { background: var(--redLight); }
+  .compare .a { background: var(--mintLight); }
+  .compare b { display: block; margin-bottom: 4px; }
+
+  /* User-journey section */
+  .ux { background: #fff; border-radius: 24px; padding: 22px; margin: 0 0 22px; border: 1px solid var(--line); }
+  .ux h2 { margin: 0 0 4px; font-size: 22px; }
+  .ux > p.why { margin: 0 0 14px; color: var(--muted); max-width: 900px; line-height: 1.5; }
+  .personas { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 18px; }
+  .persona { border: 1px solid var(--line); border-radius: 18px; padding: 14px 16px; background: var(--paper); font-size: 14px; line-height: 1.5; }
+  .persona .who { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .persona .face { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-size: 22px; background: var(--mintLight); }
+  .persona b.nm { font-size: 16px; display: block; }
+  .persona ul { margin: 6px 0 0; padding-left: 18px; }
+  table.tasks { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table.tasks th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); padding: 8px; border-bottom: 2px solid var(--line); }
+  table.tasks td { padding: 9px 8px; border-bottom: 1px solid var(--soft); vertical-align: top; line-height: 1.4; }
+  table.tasks td.path { color: var(--muted); font-size: 13px; }
+  .taps { display: inline-block; min-width: 26px; text-align: center; font-weight: 900; border-radius: 8px; padding: 1px 6px; }
+  .taps.b { background: var(--redLight); color: var(--red); }
+  .taps.a { background: var(--mintLight); color: var(--mintDark); }
+  .journey { display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px; margin: 10px 0 18px; }
+  .journey .j { flex: 1 1 150px; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; font-size: 13.5px; line-height: 1.4; position: relative; }
+  .journey .j small { display: block; color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; font-weight: 800; margin-bottom: 3px; }
+  .journey .j.goal { background: var(--mintLight); border-color: #bfe6d1; }
+  .journey .to { align-self: center; color: var(--mint); font-size: 20px; font-weight: 900; }
+  .jtitle { font-weight: 800; font-size: 16px; margin: 14px 0 0; }
+  .jtitle span { font-weight: 500; color: var(--muted); font-size: 14px; }
+  .checklist { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px; }
+  .checklist div { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 13.5px; line-height: 1.45; }
+  .checklist div::before { content: "✓ "; color: var(--mint); font-weight: 900; }
+  footer { text-align: center; color: var(--muted); font-size: 13px; margin-top: 30px; }
+  @media (max-width: 700px) { header.top h1 { font-size: 22px; } .arrow { display: none; } }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header class="top">
+  <h1>StaffMint, made easier to understand — mock-up flows</h1>
+  <p>Design only, nothing in the app has changed yet. Each section is one real task, shown screen by screen in the order a person would tap. <b style="color:#ffd84d">Yellow numbers</b> point at what changed; the notes under each phone explain why.</p>
+  <p>Scroll sideways inside a section to follow the flow. Hindi works the same way: every label below has a Hindi version.</p>
+  <nav class="toc">
+    <a href="#journeys">Who & what (journeys)</a>
+    <a href="#principles">The 6 rules</a>
+    <a href="#f1">1 · First day as a new owner</a>
+    <a href="#f2">2 · Owner home every day</a>
+    <a href="#f3">3 · Fix someone's attendance</a>
+    <a href="#f4">4 · Month calendar</a>
+    <a href="#f5">5 · Approvals</a>
+    <a href="#f6">6 · Staff, partners, managers, CA</a>
+    <a href="#f7">7 · Salary day</a>
+    <a href="#f8">8 · More & settings</a>
+    <a href="#f9">9 · Staff app: check in</a>
+    <a href="#f10">10 · Staff app: attendance, leave, salary</a>
+    <a href="#f11">11 · Help: tips & Ask Mint</a>
+  </nav>
+</header>
+
+
+<section class="ux" id="journeys">
+  <h2>Who uses StaffMint, and what they come to do</h2>
+  <p class="why">Every screen below is designed around two real people and the few things they open the app for. The test for each screen: can they finish their task <b>without help, in under a minute, the first time</b>?</p>
+
+  <div class="personas">
+    <div class="persona">
+      <div class="who"><span class="face">👨🏽‍💼</span><div><b class="nm">Rakesh, shop owner, 45</b><span class="muted">Medical store · 9 staff · Hindi first · busy at the counter</span></div></div>
+      <ul>
+        <li>Opens the app 3–4 times a day, for 30 seconds each, between customers.</li>
+        <li>Wants to know <b>"who came, who didn't"</b> at a glance, and fix it in one tap.</li>
+        <li>Once a month: <b>pay salary</b> without doing maths, and send payslips.</li>
+        <li>Doesn't read long text, doesn't know words like "geofence" or "audit log". Comfortable with WhatsApp and voice notes.</li>
+      </ul>
+    </div>
+    <div class="persona">
+      <div class="who"><span class="face">👩🏽</span><div><b class="nm">Pooja, staff, 24</b><span class="muted">Cashier · cheap Android phone · patchy internet</span></div></div>
+      <ul>
+        <li>Opens the app twice a day: <b>check in, check out</b>. Should take 5 seconds.</li>
+        <li>Sometimes: <b>ask for leave</b>, see <b>how much salary</b> she's earned, and why.</li>
+        <li>Worried about being marked absent by mistake; wants to see what the owner sees.</li>
+        <li>Needs big buttons, clear words, and to know <b>why</b> the app wants location or a selfie.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3 style="margin:0 0 6px">The tasks that matter most: taps today vs after</h3>
+  <table class="tasks">
+    <thead><tr><th>Task</th><th>Who</th><th>Today</th><th>After</th><th>New path</th></tr></thead>
+    <tbody>
+      <tr><td>See who came in today</td><td>Owner</td><td><span class="taps b">0</span> but hard to read</td><td><span class="taps a">0</span></td><td class="path">Opens on Today: "6 of 9 at work" in words</td></tr>
+      <tr><td>Mark someone absent / present</td><td>Owner</td><td><span class="taps b">2</span> saves by accident</td><td><span class="taps a">3</span> or say it</td><td class="path">Status ▾ → pick → Save (Undo 5 s) · or Ask Mint: "Raju absent"</td></tr>
+      <tr><td>Approve a leave request</td><td>Owner</td><td><span class="taps b">3</span></td><td><span class="taps a">2</span></td><td class="path">Today → Review → Approve</td></tr>
+      <tr><td>See one person's month</td><td>Owner</td><td><span class="taps b">?</span> unlabelled icon, sideways scroll</td><td><span class="taps a">2</span></td><td class="path">Month → tap the person</td></tr>
+      <tr><td>Add your CA</td><td>Owner</td><td><span class="taps b">4</span> + scroll, under Settings</td><td><span class="taps a">3</span></td><td class="path">Staff → Team &amp; access → Add your CA</td></tr>
+      <tr><td>Make someone a manager</td><td>Owner</td><td><span class="taps b">✕</span> not possible</td><td><span class="taps a">4</span></td><td class="path">Staff → Team &amp; access → Make manager → confirm</td></tr>
+      <tr><td>Change "late after 15 min"</td><td>Owner</td><td><span class="taps b">2</span> + long scroll</td><td><span class="taps a">2</span> or search</td><td class="path">More → Attendance rules (shows an example)</td></tr>
+      <tr><td>Pay this month's salary</td><td>Owner</td><td><span class="taps b">4</span> unclear steps</td><td><span class="taps a">3</span> numbered</td><td class="path">Salary → Approve → "I've paid"</td></tr>
+      <tr><td>Check in</td><td>Staff</td><td><span class="taps b">1</span> confusing messages</td><td><span class="taps a">1</span></td><td class="path">Home → Check in (says why location is needed)</td></tr>
+      <tr><td>Ask for leave</td><td>Staff</td><td><span class="taps b">4</span></td><td><span class="taps a">4</span> with balance shown</td><td class="path">Leave → dates → type → Send (sees leave left first)</td></tr>
+      <tr><td>"Why is my salary this much?"</td><td>Staff</td><td><span class="taps b">?</span></td><td><span class="taps a">1</span></td><td class="path">Salary tab: every line explained in words</td></tr>
+    </tbody>
+  </table>
+  <p class="small muted" style="margin-top:6px">"Mark someone" gets one extra tap on purpose: a Save button stops accidental changes to someone's attendance. Voice (Ask Mint) stays the fastest way.</p>
+
+  <p class="jtitle">Journey A · Rakesh's first 5 minutes <span>(new owner, never used an app like this)</span></p>
+  <div class="journey">
+    <div class="j"><small>Opens app</small>Logs in with OTP, names his shop, picks location.</div><div class="to">→</div>
+    <div class="j"><small>Lands on Home</small>Sees "Let's get your shop running · 1 of 5". Knows what to do next.</div><div class="to">→</div>
+    <div class="j"><small>Taps "Add"</small>Picks 9 staff from contacts in one go. Sees "each gets a WhatsApp invite".</div><div class="to">→</div>
+    <div class="j"><small>Back on Home</small>"2 of 9 joined · Remind". Rows say "hasn't installed the app".</div><div class="to">→</div>
+    <div class="j goal"><small>Done</small>Feels in control. Knows staff will appear as they check in. No help needed.</div>
+  </div>
+
+  <p class="jtitle">Journey B · Rakesh's morning check <span>(30 seconds at the counter)</span></p>
+  <div class="journey">
+    <div class="j"><small>Notification 9:30</small>"6 of 9 came in · 1 late · Amit asked for leave".</div><div class="to">→</div>
+    <div class="j"><small>Opens Today</small>Summary in words at the top, list with "In at" times below.</div><div class="to">→</div>
+    <div class="j"><small>Taps "Review"</small>"Amit wants leave Wed–Thu · 4 left". Taps Approve.</div><div class="to">→</div>
+    <div class="j"><small>Taps "Late ▾" on Pooja</small>"Late bus" → Present → Save. Sees Undo.</div><div class="to">→</div>
+    <div class="j goal"><small>Done</small>Back to customers. Nothing left waiting.</div>
+  </div>
+
+  <p class="jtitle">Journey C · Pooja's day <span>(staff)</span></p>
+  <div class="journey">
+    <div class="j"><small>8:55 near shop</small>"You're 400 m from the shop" + Try again. Understands why it's grey.</div><div class="to">→</div>
+    <div class="j"><small>9:02 inside</small>"You're at the shop ✓" → taps Check in → selfie → "Marked present 9:02".</div><div class="to">→</div>
+    <div class="j"><small>Lunch</small>Opens Salary: "Earned till today ₹3,387", each line explained.</div><div class="to">→</div>
+    <div class="j"><small>Needs 2 days off</small>Leave → sees "4 paid left" → picks dates → Send.</div><div class="to">→</div>
+    <div class="j goal"><small>Done</small>Trusts the app: she can see the same numbers the owner sees.</div>
+  </div>
+
+  <p class="jtitle">Journey D · Salary day <span>(owner, once a month)</span></p>
+  <div class="journey">
+    <div class="j"><small>1st of month</small>Notification: "September salary is ready to check".</div><div class="to">→</div>
+    <div class="j"><small>Step 1</small>"Suresh has 3 days with no attendance. Count as absent?" → Yes.</div><div class="to">→</div>
+    <div class="j"><small>Step 2</small>"Approve & send payslips" → staff get them on WhatsApp.</div><div class="to">→</div>
+    <div class="j"><small>Step 3</small>Pays cash/UPI as usual → taps "I've paid".</div><div class="to">→</div>
+    <div class="j goal"><small>Done</small>No calculator, no arguments: every payslip line explains itself.</div>
+  </div>
+
+  <h3 style="margin:6px 0 8px">Checklist every screen must pass</h3>
+  <div class="checklist">
+    <div>One main job per screen, and its main button says that job as a verb ("Approve", "Check in", "I've paid").</div>
+    <div>Readable by someone who never saw it: plain Hindi/English, no codes or technical words.</div>
+    <div>Every icon that does something has a word with it.</div>
+    <div>Anything tappable looks tappable (button shape, ▾ or ›).</div>
+    <div>Before a change: show what will happen ("salary will be ₹10,000"). After: confirm, and offer Undo.</div>
+    <div>Empty or blocked states say why and what to do next, with a button.</div>
+    <div>Big tap targets (at least 48 px) for use with one thumb at a counter.</div>
+    <div>Works the same in Hindi; words fit without cutting.</div>
+    <div>Fastest path for experts too: voice with Ask Mint, search in More.</div>
+  </div>
+</section>
+
+<div class="principles" id="principles">
+  <div><b>1. Words, not just icons</b>Every button that matters has a word under or next to it. No mystery grid or mic icons.</div>
+  <div><b>2. Words, not codes</b>"Present", "Late", "On leave" instead of P / L / LV. Where space forces codes, the legend is always on screen.</div>
+  <div><b>3. Tappable things look tappable</b>Statuses get a small ▾, dates say "change", cards have a clear button with a verb.</div>
+  <div><b>4. One screen, one job</b>Home shows today. Settings are split into small groups. People things sit together under Staff.</div>
+  <div><b>5. Explain the first time</b>A getting-started checklist for new owners, and 2–3 one-time tips per screen.</div>
+  <div><b>6. Less on top</b>One banner at a time. The trial reminder moves down until its last 3 days.</div>
+</div>
+
+<!-- ============ FLOW 1 ============ -->
+<section class="flow" id="f1">
+  <h2>1 · First day as a new owner</h2>
+  <p class="why">Today a new owner lands on an empty attendance list with no hint of what to do. Now Home shows a short checklist; each step opens the right screen and ticks itself when done. It goes away after the last step (or when dismissed).</p>
+  <div class="steps">
+    <div class="step">
+      <h3><span class="tag after">NEW</span>Home on day 1</h3>
+      <div class="phone"><div class="sb"><span>9:41</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><small>Sunday, 11 Oct</small><b>Namaste, Rakesh ji</b></div><span class="lang">हि / En</span></div>
+          <div class="card mint">
+            <div class="row"><h4 class="grow">Let's get your shop running <span class="n">1</span></h4><span class="small muted">1 of 5</span></div>
+            <div class="progress"><span style="width:20%"></span></div>
+            <div class="check done"><span class="box">✓</span><span class="txt">Create your business</span></div>
+            <div class="check next"><span class="box">2</span><span class="grow">Add your staff</span><span class="btn">Add</span></div>
+            <div class="check"><span class="box">3</span><span>Staff install the app & check in</span></div>
+            <div class="check"><span class="box">4</span><span>Set each person's salary</span></div>
+            <div class="check"><span class="box">5</span><span>Add your CA or partner <span class="muted">(optional)</span></span></div>
+          </div>
+          <div class="card"><h4>Today</h4><p>Your staff will appear here once you add them. <span class="n">2</span></p></div>
+          <div class="card"><div class="row"><span>✨</span><p class="grow"><b style="color:var(--ink)">Free trial: 14 days of every feature</b><br/>Nothing to pay now.</p></div></div>
+        </div>
+        <div class="tabs"><div class="on"><i>📖</i>Today</div><div><i>👥</i>Staff</div><div><div class="mic">🎤</div><div class="mic-label">Ask Mint</div></div><div><i>₹</i>Salary</div><div><i>☰</i>More</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>A checklist tells a new owner exactly what to do next, in order. It ticks itself.</li><li><span class="n">2</span>Empty screens say what will appear and how to fill them.</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">NEW</span>Add staff — 3 easy ways</h3>
+      <div class="phone"><div class="sb"><span>9:42</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><small>Step 2 of 5</small><b>Add your staff</b></div></div>
+          <div class="card"><div class="row"><span class="avatar">📇</span><div class="grow"><h4>Pick from contacts</h4><p>Fastest. Choose many at once.</p></div><span class="btn">Open</span></div></div>
+          <div class="card"><div class="row"><span class="avatar">✍️</span><div class="grow"><h4>Type name & phone</h4><p>One person at a time.</p></div><span class="btn line">Type</span></div></div>
+          <div class="card"><div class="row"><span class="avatar">📊</span><div class="grow"><h4>From Excel / SalaryBox <span class="n">1</span></h4><p>Easier on a computer: open <b>app.staffmint.app</b> → Import.</p></div></div></div>
+          <div class="label">What happens next <span class="n">2</span></div>
+          <div class="card mint"><p>✓ Each person gets a WhatsApp invite with the app link.<br/>✓ They log in with their own number, no password.<br/>✓ You'll see them here when they check in.</p></div>
+        </div>
+        <div class="tabs"><div><i>📖</i>Today</div><div class="on"><i>👥</i>Staff</div><div><div class="mic">🎤</div><div class="mic-label">Ask Mint</div></div><div><i>₹</i>Salary</div><div><i>☰</i>More</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>Excel import (web only today) is now mentioned in the app.</li><li><span class="n">2</span>"What happens next" removes the worry about how staff will join.</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">NEW</span>Home after adding staff</h3>
+      <div class="phone"><div class="sb"><span>10:05</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><small>Sunday, 11 Oct</small><b>Namaste, Rakesh ji</b></div><span class="lang">हि / En</span></div>
+          <div class="card mint">
+            <div class="row"><h4 class="grow">Let's get your shop running</h4><span class="small muted">2 of 5</span></div>
+            <div class="progress"><span style="width:40%"></span></div>
+            <div class="check next"><span class="box">3</span><span class="grow">6 staff invited · <b>2 have joined</b></span><span class="btn line">Remind <span class="n">1</span></span></div>
+          </div>
+          <div class="list">
+            <div class="head"><span class="time">In at</span><span class="name">Name</span><span>Status ▾</span></div>
+            <div class="item"><span class="time"><b>9:05</b></span><span class="name">Ramesh Kumar</span><span class="status p">Present</span></div>
+            <div class="item"><span class="time"><b>9:22</b></span><span class="name">Pooja Singh<small>7 min late</small></span><span class="status l">Late</span></div>
+            <div class="item"><span class="time">—</span><span class="name">Suresh Yadav<small>Hasn't installed the app <span class="n">2</span></small></span><span class="status n plain">Invited</span></div>
+            <div class="item"><span class="time">—</span><span class="name">Amit Verma<small>Hasn't installed the app</small></span><span class="status n plain">Invited</span></div>
+          </div>
+        </div>
+        <div class="tabs"><div class="on"><i>📖</i>Today</div><div><i>👥</i>Staff</div><div><div class="mic">🎤</div><div class="mic-label">Ask Mint</div></div><div><i>₹</i>Salary</div><div><i>☰</i>More</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>One tap re-sends the WhatsApp invite to everyone who hasn't joined.</li><li><span class="n">2</span>The row says why someone has no attendance, instead of a silent "—".</li></ol>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FLOW 2 ============ -->
+<section class="flow" id="f2">
+  <h2>2 · Owner home, every day</h2>
+  <p class="why">People said the home screen doesn't explain itself: an unlabelled grid icon, a repeated business name, a big trial box on top, "Present 0 / 9", a dash column with no heading and status tags that don't look tappable.</p>
+  <div class="steps">
+    <div class="step">
+      <h3><span class="tag before">BEFORE</span>Today (current app)</h3>
+      <div class="phone before"><div class="sb"><span>9:41</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><small>Sun, 11 Oct · Sharma Medical Store</small><b>Today's attendance</b></div><span class="icon-btn">▦ <span class="n" style="position:absolute;margin:-22px 0 0 22px">1</span></span><span class="lang">हि / En</span></div>
+          <div class="chip" style="display:inline-block;background:var(--mintLight);color:var(--mintDark)">🏪 Sharma Medical Store · Owner ▾ <span class="n">2</span></div>
+          <div class="card mint"><h4 style="color:var(--mintDark)">✨ Growth free trial: 12 days left <span class="n">3</span></h4><p>All features are on until 23 Oct. Pick a plan any time to keep them.</p><div style="text-align:right"><span class="btn ghost">See plans</span></div></div>
+          <div class="datebar"><span>‹</span><span class="mid">📅 Today · Sun, 11 Oct</span><span>›</span></div>
+          <div class="card dark"><div class="row"><div class="grow"><h4>3 things need you</h4><p>Amit Verma's leave · Raju's punch · Ka…</p></div><span class="btn">View →</span></div></div>
+          <div class="list">
+            <div class="item"><span class="time"></span><span class="name"><small>Present</small><span style="font-size:22px">0</span> / 9 <span class="n">4</span></span></div>
+            <div class="item"><span class="time">— <span class="n">5</span></span><span class="name">Amit Verma</span><span class="status wo plain">Week off</span></div>
+            <div class="item"><span class="time">—</span><span class="name">Kavita Sharma</span><span class="status wo plain">Week off <span class="n">6</span></span></div>
+          </div>
+        </div>
+        <div class="tabs"><div class="on"><i>📖</i>Today</div><div><i>👥</i>Staff</div><div><div class="mic">🎤 </div><span class="n" style="margin-top:-8px">7</span></div><div><i>₹</i>Salary</div><div><i>☰</i>More</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>Grid icon = month calendar, but nothing says so.</li><li><span class="n">2</span>Business name shown twice; doesn't look like a switcher.</li><li><span class="n">3</span>Trial box takes the best space.</li><li><span class="n">4</span>"0 / 9" looks alarming on a weekly-off day.</li><li><span class="n">5</span>Dash column has no heading.</li><li><span class="n">6</span>Tags don't look tappable.</li><li><span class="n">7</span>Mic button has no label.</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>Today, a normal working day</h3>
+      <div class="phone"><div class="sb"><span>11:20</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><small>Sharma Medical Store <span style="color:var(--mintDark);font-weight:800">· Switch ▾</span> <span class="n">2</span></small><b>Today, Mon 12 Oct</b></div><span class="lang">हि / En</span></div>
+          <div class="seg"><span class="on">📋 Day</span><span>📅 Month <span class="n">1</span></span></div>
+          <div class="card" style="margin-top:8px">
+            <div class="row"><div class="grow"><span class="big">6</span> <b>of 9 at work</b> <span class="n">3</span></div></div>
+            <div class="summary"><span class="chip p">6 present</span><span class="chip l">1 late</span><span class="chip lv">1 on leave</span><span class="chip a">1 not in yet</span></div>
+          </div>
+          <div class="card amber"><div class="row"><div class="grow"><h4>2 things need your OK <span class="n">4</span></h4><p>Amit asked for leave · Raju checked in far from shop</p></div><span class="btn dark">Review</span></div></div>
+          <div class="list">
+            <div class="head"><span class="time">In at <span class="n">5</span></span><span class="name">Name</span><span>Status ▾</span></div>
+            <div class="item"><span class="time"><b>9:02</b></span><span class="name">Ramesh Kumar</span><span class="status p">Present</span></div>
+            <div class="item"><span class="time"><b>9:22</b></span><span class="name">Pooja Singh<small>7 min late</small></span><span class="status l">Late <span class="n">6</span></span></div>
+            <div class="item"><span class="time">—</span><span class="name">Amit Verma<small>Leave approved</small></span><span class="status lv">On leave</span></div>
+            <div class="item"><span class="time">—</span><span class="name">Suresh Yadav<small>Not checked in yet</small></span><span class="status n">Not in</span></div>
+          </div>
+          <div class="small muted" style="text-align:center">✨ Free trial: 12 days left · <u>See plans</u> <span class="n">7</span></div>
+        </div>
+        <div class="tabs"><div class="on"><i>📖</i>Today</div><div><i>👥</i>Staff</div><div><div class="mic">🎤</div><div class="mic-label">Ask Mint <span class="n">8</span></div></div><div><i>₹</i>Salary</div><div><i>☰</i>More</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>A clear <b>Day | Month</b> switch with words replaces the grid icon.</li><li><span class="n">2</span>Business name once; "Switch ▾" only for people with more than one business.</li><li><span class="n">3</span>Summary in words: "6 of 9 at work", with coloured counts.</li><li><span class="n">4</span>Approvals are a lighter card that says what each request is.</li><li><span class="n">5</span>Columns have headings: "In at · Name · Status ▾".</li><li><span class="n">6</span>Every status has a ▾ so it's obviously tappable.</li><li><span class="n">7</span>Trial reminder is one small line (big only in the last 3 days).</li><li><span class="n">8</span>Mic button is labelled "Ask Mint".</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>Today on a weekly-off day</h3>
+      <div class="phone"><div class="sb"><span>11:20</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><small>Sharma Medical Store</small><b>Today, Sun 11 Oct</b></div><span class="lang">हि / En</span></div>
+          <div class="seg"><span class="on">📋 Day</span><span>📅 Month</span></div>
+          <div class="card mint" style="margin-top:8px"><div class="row"><span style="font-size:22px">🛋️</span><div class="grow"><h4>Weekly off today <span class="n">1</span></h4><p>Shop is closed on Sundays. Nobody needs to check in.</p></div></div></div>
+          <div class="datebar"><span class="nav">‹ Sat</span><span class="mid">📅 Sun, 11 Oct · change <span class="n">2</span></span><span class="nav">Mon ›</span></div>
+          <div class="card"><div class="row"><div class="grow"><h4>This week</h4><p>Mon–Sat: 52 of 54 days present · 3 late</p></div><span class="btn line">Month</span></div></div>
+          <div class="card"><div class="row"><div class="grow"><h4>Salary for September is ready</h4><p>Check and pay from the Salary tab.</p></div><span class="btn">Open</span></div></div>
+        </div>
+        <div class="tabs"><div class="on"><i>📖</i>Today</div><div><i>👥</i>Staff</div><div><div class="mic">🎤</div><div class="mic-label">Ask Mint</div></div><div><i>₹</i>Salary</div><div><i>☰</i>More</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>Days off say so, instead of "0 / 9 present" and 9 grey rows.</li><li><span class="n">2</span>Date bar says which day is before/after and "change" to pick a date.</li></ol>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FLOW 3 ============ -->
+<section class="flow" id="f3">
+  <h2>3 · Fix someone's attendance</h2>
+  <p class="why">Today the change-status sheet asks for a <i>reason</i> first, then saves the moment you tap a status (easy to tap by mistake). Now: pick what happened, reason is optional, then Save, with Undo.</p>
+  <div class="steps">
+    <div class="step">
+      <h3><span class="tag before">BEFORE</span>Change status</h3>
+      <div class="phone before"><div class="sb"><span>9:41</span><span>●●● 4G</span></div>
+        <div class="scr full">
+          <div class="dim"></div>
+          <div class="sheet">
+            <div class="grab"></div>
+            <div class="row"><span class="avatar">SK</span><div class="grow"><b>Sunil Kumar</b><br/><span class="small muted">11 Oct 2026</span></div><span class="status wo plain">Week off</span></div>
+            <div class="label">Reason <span class="n">1</span></div>
+            <div class="summary"><span class="chip sel">Owner confirmed</span><span class="chip">Doctor</span><span class="chip">Late bus</span><span class="chip">Phone issue</span></div>
+            <div class="grid3"><div class="opt p"><i>✓</i>Present</div><div class="opt h"><i>◐</i>Half day</div><div class="opt a"><i>✕</i>Absent</div><div class="opt lv"><i>☂</i>Leave</div><div class="opt g"><i>🎉</i>Holiday</div><div class="opt g"><i>🛋</i>Week off</div></div>
+            <p class="small muted" style="text-align:center">Tap a status to save it <span class="n">2</span></p>
+            <p style="text-align:center;color:var(--mintDark);font-weight:800">🧾 Details</p>
+          </div>
+        </div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>Reason is asked before the status; it feels like a required step.</li><li><span class="n">2</span>Saves instantly on tap: easy to change the wrong day by mistake.</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>Tap "Late ▾" on Pooja</h3>
+      <div class="phone"><div class="sb"><span>11:24</span><span>●●● 4G</span></div>
+        <div class="scr full">
+          <div class="dim"></div>
+          <div class="sheet">
+            <div class="grab"></div>
+            <div class="row"><span class="avatar">PS</span><div class="grow"><b>Pooja Singh</b><br/><span class="small muted">Mon, 12 Oct · came in 9:22 (shift 9:00)</span></div></div>
+            <div class="label">What happened today? <span class="n">1</span></div>
+            <div class="grid3"><div class="opt p sel"><i>✓</i>Present<small>full day</small></div><div class="opt h"><i>◐</i>Half day<small>half pay</small></div><div class="opt a"><i>✕</i>Absent<small>no pay</small></div><div class="opt lv"><i>☂</i>On leave<small>uses leave</small></div><div class="opt g"><i>🎉</i>Holiday<small>paid</small></div><div class="opt g"><i>🛋</i>Week off<small>shop closed</small></div></div>
+            <div class="label">Reason <span class="muted">(optional)</span> <span class="n">2</span></div>
+            <div class="summary"><span class="chip">Late bus</span><span class="chip">Doctor</span><span class="chip">Phone issue</span><span class="chip">+ Write</span></div>
+            <div class="row" style="margin-top:8px"><span class="btn line" style="flex:1">See check-in photo & map</span><span class="btn" style="flex:1">Save <span class="n">3</span></span></div>
+          </div>
+        </div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>Status first, each with a one-line meaning ("half pay", "uses leave").</li><li><span class="n">2</span>Reason is optional and second.</li><li><span class="n">3</span>Nothing changes until Save. The photo and map are one tap away.</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>Saved, with Undo</h3>
+      <div class="phone"><div class="sb"><span>11:24</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><small>Sharma Medical Store</small><b>Today, Mon 12 Oct</b></div><span class="lang">हि / En</span></div>
+          <div class="seg"><span class="on">📋 Day</span><span>📅 Month</span></div>
+          <div class="list" style="margin-top:8px">
+            <div class="head"><span class="time">In at</span><span class="name">Name</span><span>Status ▾</span></div>
+            <div class="item"><span class="time"><b>9:02</b></span><span class="name">Ramesh Kumar</span><span class="status p">Present</span></div>
+            <div class="item" style="background:var(--mintFaint)"><span class="time"><b>9:22</b></span><span class="name">Pooja Singh<small>Changed by you · Late bus</small></span><span class="status p">Present</span></div>
+            <div class="item"><span class="time">—</span><span class="name">Amit Verma<small>Leave approved</small></span><span class="status lv">On leave</span></div>
+          </div>
+        </div>
+        <div class="toast"><span>Pooja marked Present</span><b>UNDO</b></div>
+        <div class="tabs"><div class="on"><i>📖</i>Today</div><div><i>👥</i>Staff</div><div><div class="mic">🎤</div><div class="mic-label">Ask Mint</div></div><div><i>₹</i>Salary</div><div><i>☰</i>More</div></div>
+      </div>
+      <ol class="notes"><li>The row shows who changed it and why, so nobody wonders later.</li><li>Undo stays for 5 seconds.</li></ol>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FLOW 4 ============ -->
+<section class="flow" id="f4">
+  <h2>4 · Month calendar</h2>
+  <p class="why">Today the month grid uses codes with the legend hidden below, "L" means Late but reads as Leave, 31 days scroll sideways without a hint, names are cut off and totals are off-screen.</p>
+  <div class="steps">
+    <div class="step">
+      <h3><span class="tag before">BEFORE</span>Month grid</h3>
+      <div class="phone before"><div class="sb"><span>9:41</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><small>Sun, 11 Oct · Sharma Medical Store</small><b>Attendance</b></div><span class="icon-btn">▬</span><span class="lang">हि / En</span></div>
+          <div class="datebar"><span>‹</span><span class="mid">October 2026</span><span>›</span></div>
+          <table class="cal"><tr><th></th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th></tr>
+            <tr><td class="nm">Amit Verma</td><td class="c-p">P</td><td class="c-l">L <span class="n">1</span></td><td class="c-h">HD</td><td class="c-wo">WO</td><td class="c-a">A</td><td class="c-p">P</td></tr>
+            <tr><td class="nm">Kavita Shar… <span class="n">2</span></td><td class="c-wo">–</td><td class="c-wo">H</td><td class="c-wo">–</td><td class="c-wo">WO</td><td class="c-wo">–</td><td class="c-wo">–</td></tr>
+            <tr><td class="nm">Pooja Singh</td><td class="c-p">P</td><td class="c-p">P</td><td class="c-l">L</td><td class="c-wo">WO</td><td class="c-p">P</td><td class="c-a">A</td></tr>
+            <tr><td class="nm">Ramesh Gu…</td><td class="c-h">HD</td><td class="c-p">P</td><td class="c-a">A</td><td class="c-wo">WO</td><td class="c-l">L</td><td class="c-p">P</td></tr>
+          </table>
+          <p class="small muted">(days 7–31 and Totals are off-screen to the right) <span class="n">3</span></p>
+          <div style="position:absolute;bottom:4px;left:12px;right:12px" class="legend"><span><i class="c-p">P</i>Present</span><span><i class="c-l">L</i>Late</span><span><i class="c-a">A</i>Absent</span><span><i class="c-h">HD</i>Half day</span> <span class="n">4</span></div>
+        </div>
+        <div class="tabs"><div class="on"><i>📖</i>Today</div><div><i>👥</i>Staff</div><div><div class="mic">🎤</div></div><div><i>₹</i>Salary</div><div><i>☰</i>More</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>"L" = Late, but people read it as Leave.</li><li><span class="n">2</span>Names get cut.</li><li><span class="n">3</span>No hint that more days and totals are to the right.</li><li><span class="n">4</span>Only half the legend is visible, at the very bottom.</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>Month: summary first</h3>
+      <div class="phone"><div class="sb"><span>11:30</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><small>Sharma Medical Store</small><b>October 2026</b></div><span class="lang">हि / En</span></div>
+          <div class="seg"><span>📋 Day</span><span class="on">📅 Month</span></div>
+          <div class="datebar"><span class="nav">‹ Sep</span><span class="mid">October 2026</span><span class="nav">Nov ›</span></div>
+          <div class="list">
+            <div class="head"><span class="name">Person · tap for their calendar <span class="n">1</span></span><span>Days present</span></div>
+            <div class="item"><span class="avatar">RK</span><span class="name">Ramesh Kumar<small>1 late · 0 absent</small></span><b>10 / 10</b></div>
+            <div class="item"><span class="avatar">PS</span><span class="name">Pooja Singh<small>2 late · 1 absent</small></span><b>8 / 10</b></div>
+            <div class="item"><span class="avatar">AV</span><span class="name">Amit Verma<small>2 on leave · 1 half day</small></span><b>7 / 10</b></div>
+            <div class="item"><span class="avatar">SY</span><span class="name">Suresh Yadav<small style="color:var(--red)">3 absent</small></span><b>6 / 10</b></div>
+          </div>
+          <div class="card"><div class="row"><div class="grow"><h4>See everyone day by day <span class="n">2</span></h4><p>Full grid for the month, good for checking before salary.</p></div><span class="btn line">Grid</span></div></div>
+        </div>
+        <div class="tabs"><div class="on"><i>📖</i>Today</div><div><i>👥</i>Staff</div><div><div class="mic">🎤</div><div class="mic-label">Ask Mint</div></div><div><i>₹</i>Salary</div><div><i>☰</i>More</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>The month opens as a simple list with totals per person, in words. This is what owners usually want.</li><li><span class="n">2</span>The full day-by-day grid is still there, one tap away.</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>One person's month</h3>
+      <div class="phone"><div class="sb"><span>11:31</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><small>October 2026</small><b>Pooja Singh</b></div></div>
+          <div class="legend"><span><i class="c-p">✓</i>Present</span><span><i class="c-l">⏰</i>Late</span><span><i class="c-a">✕</i>Absent</span><span><i class="c-h">½</i>Half day</span><span><i class="c-lv">☂</i>Leave</span><span><i class="c-wo">🛋</i>Off</span> <span class="n">1</span></div>
+          <table class="cal" style="font-size:11px"><tr><th>M</th><th>T</th><th>W</th><th>T</th><th>F</th><th>S</th><th>S</th></tr>
+            <tr><td class="c-p">1</td><td class="c-p">2</td><td class="c-l">3</td><td class="c-p">4</td><td class="c-p">5</td><td class="c-a">6</td><td class="c-wo">7</td></tr>
+            <tr><td class="c-p">8</td><td class="c-l">9</td><td class="c-p">10</td><td class="c-wo">11</td><td class="c-p c-today">12</td><td>13</td><td>14</td></tr>
+            <tr><td>15</td><td>16</td><td>17</td><td>18</td><td>19</td><td>20</td><td>21</td></tr>
+          </table>
+          <p class="small muted">Tap any day to see times or change it. <span class="n">2</span></p>
+          <div class="card"><div class="row"><div class="grow"><h4>8 of 10 days present</h4><p>2 late (avg 9 min) · 1 absent · 4 paid leaves left</p></div></div></div>
+          <div class="card"><div class="row"><div class="grow"><h4>Salary so far</h4><p>₹9,600 earned · ₹1,000 advance taken</p></div><span class="btn line">Details</span></div></div>
+        </div>
+        <div class="tabs"><div class="on"><i>📖</i>Today</div><div><i>👥</i>Staff</div><div><div class="mic">🎤</div><div class="mic-label">Ask Mint</div></div><div><i>₹</i>Salary</div><div><i>☰</i>More</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>Legend always on top, with symbols and words; no more "L" vs "LV".</li><li><span class="n">2</span>A normal calendar people already know; tap a day to open it.</li></ol>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FLOW 5 ============ -->
+<section class="flow" id="f5">
+  <h2>5 · Approvals ("Needs your OK")</h2>
+  <p class="why">Each request says who, what and why in a sentence, with the two answers right there. No need to open several screens.</p>
+  <div class="steps">
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>Tap "Review"</h3>
+      <div class="phone"><div class="sb"><span>11:40</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><small>2 waiting</small><b>Needs your OK</b></div></div>
+          <div class="card">
+            <div class="row"><span class="avatar">AV</span><div class="grow"><h4>Amit wants leave</h4><p>Wed 14 – Thu 15 Oct · 2 days · "Sister's wedding"</p></div></div>
+            <p class="small" style="margin:6px 0">He has <b>4 paid leaves left</b>. After this: 2. <span class="n">1</span></p>
+            <div class="row"><span class="btn line" style="flex:1">Say no</span><span class="btn" style="flex:1">Approve</span></div>
+          </div>
+          <div class="card">
+            <div class="row"><span class="avatar">RJ</span><div class="grow"><h4>Raju checked in 350 m from shop</h4><p>Today 9:04 · Photo matches · <u>See map</u> <span class="n">2</span></p></div></div>
+            <div class="row" style="margin-top:6px"><span class="btn line" style="flex:1">Mark absent</span><span class="btn" style="flex:1">Count as present</span></div>
+          </div>
+          <div class="card mint"><p>✓ Kavita's new phone was approved yesterday.</p></div>
+        </div>
+        <div class="tabs"><div class="on"><i>📖</i>Today</div><div><i>👥</i>Staff</div><div><div class="mic">🎤</div><div class="mic-label">Ask Mint</div></div><div><i>₹</i>Salary</div><div><i>☰</i>More</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>Shows the effect of saying yes (leave left after this).</li><li><span class="n">2</span>Explains the problem in plain words ("350 m from shop") instead of a flag code. Buttons say exactly what they do.</li></ol>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FLOW 6 ============ -->
+<section class="flow" id="f6">
+  <h2>6 · Staff, partners, managers and CA, in one place</h2>
+  <p class="why">Today partners and CA are hidden under More → Settings, and there is no way to make someone a manager. Now everything about "who can do what" sits at the top of the Staff tab.</p>
+  <div class="steps">
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>Staff tab</h3>
+      <div class="phone"><div class="sb"><span>12:00</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><small>9 staff · 1 manager</small><b>Staff</b></div><span class="btn">+ Add</span></div>
+          <div class="card mint"><div class="row"><span style="font-size:18px">🔑</span><div class="grow"><h4>Team & access <span class="n">1</span></h4><p>Partners, managers and your CA</p></div><span style="font-size:16px">›</span></div></div>
+          <div class="search">🔍 Search staff</div>
+          <div class="list">
+            <div class="item"><span class="avatar">RK</span><span class="name">Ramesh Kumar<small>Sales · ₹14,000/month</small></span><span class="chip">Manager <span class="n">2</span></span></div>
+            <div class="item"><span class="avatar">PS</span><span class="name">Pooja Singh<small>Cashier · ₹12,000/month</small></span></div>
+            <div class="item"><span class="avatar">SY</span><span class="name">Suresh Yadav<small style="color:var(--amberDark)">Invited · hasn't joined</small></span><span class="btn ghost">Remind</span></div>
+            <div class="item"><span class="avatar">AV</span><span class="name">Amit Verma<small>Helper · ₹500/day</small></span></div>
+          </div>
+        </div>
+        <div class="tabs"><div><i>📖</i>Today</div><div class="on"><i>👥</i>Staff</div><div><div class="mic">🎤</div><div class="mic-label">Ask Mint</div></div><div><i>₹</i>Salary</div><div><i>☰</i>More</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>One obvious entry for partners, managers and CA.</li><li><span class="n">2</span>Managers are marked in the list.</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>Team & access</h3>
+      <div class="phone"><div class="sb"><span>12:01</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><small>Who can open your business</small><b>Team & access</b></div></div>
+          <div class="grouptitle">Partners (co-owners)</div>
+          <div class="card"><p style="margin-bottom:6px">Run the business with you. See everything. <span class="n">1</span></p><div class="row"><span class="avatar">RS</span><span class="grow"><b>You</b> · main owner</span></div><div class="row" style="margin-top:6px"><span class="avatar">MS</span><span class="grow">Meena Sharma · partner</span></div><span class="btn ghost">+ Add partner</span></div>
+          <div class="grouptitle">Managers</div>
+          <div class="card"><p style="margin-bottom:6px">Mark attendance and approve leave. Can't see salary or billing.</p><div class="row"><span class="avatar">RK</span><span class="grow">Ramesh Kumar</span></div><span class="btn ghost">+ Make a staff member manager <span class="n">2</span></span></div>
+          <div class="grouptitle">Accountant (CA)</div>
+          <div class="card"><p style="margin-bottom:6px">Sees salary and reports to file taxes. Can't change attendance.</p><span class="btn ghost">+ Add your CA</span> <span class="chip">Pro plan</span></div>
+        </div>
+        <div class="tabs"><div><i>📖</i>Today</div><div class="on"><i>👥</i>Staff</div><div><div class="mic">🎤</div><div class="mic-label">Ask Mint</div></div><div><i>₹</i>Salary</div><div><i>☰</i>More</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>Each role says in one line what they can and can't do.</li><li><span class="n">2</span>The missing "Make manager" action, finally in the app.</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>Make a manager</h3>
+      <div class="phone"><div class="sb"><span>12:02</span><span>●●● 4G</span></div>
+        <div class="scr full">
+          <div class="dim"></div>
+          <div class="sheet">
+            <div class="grab"></div>
+            <b style="font-size:15px">Make Ramesh a manager?</b>
+            <div class="label">He will be able to</div>
+            <p class="small">✓ See everyone's attendance and fix it<br/>✓ Approve leave and check-in requests<br/>✓ Approve new phones for staff</p>
+            <div class="label">He won't see <span class="n">1</span></div>
+            <p class="small">✕ Salary, advances or payslips of others<br/>✕ Settings, plan & billing</p>
+            <div class="field"><small>Only for branch</small>All branches ▾</div>
+            <p class="small muted">He'll get a message, and his app switches to the manager view by itself.</p>
+            <span class="btn block">Make manager</span>
+          </div>
+        </div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>Clear "can / can't" before confirming, so owners feel safe.</li></ol>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FLOW 7 ============ -->
+<section class="flow" id="f7">
+  <h2>7 · Salary day</h2>
+  <p class="why">The salary screen works, but words like "Revision 2", "Make a correction", "Cash needed" and a progress bar labelled "Review · Approve & send · Paid" assume people already know the steps. Now it's 3 numbered steps in plain words.</p>
+  <div class="steps">
+    <div class="step">
+      <h3><span class="tag before">BEFORE</span>Salary day</h3>
+      <div class="phone before"><div class="sb"><span>9:41</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><small>Salary day</small><b>September 2026</b></div><span class="lang">हि / En</span></div>
+          <div class="seg"><span class="on">Salary day</span><span>Advances</span><span>Bonus / dedu…</span></div>
+          <div class="stepper"><div class="done">Review</div><div class="done">Approve & send</div><div class="cur">Paid</div></div>
+          <div class="card dark"><p>Cash needed</p><div class="big">₹65,400</div><p>6 staff ₹70,900 earned −₹2,500 advance</p></div>
+          <div class="row small"><span class="grow muted" style="text-align:right">Revision 2 <span class="n">1</span></span><span class="btn ghost">Make a correction</span></div>
+          <div class="card amber"><h4>⚠ Suresh Yadav: 3 day(s) have no attendance</h4><p>Is that right?</p><div class="row" style="margin-top:6px"><span class="btn line">✓ Looks right</span><span class="btn line">✎ Change</span></div></div>
+          <div class="btn block" style="margin-top:10px">» Slide to mark as paid <span class="n">2</span></div>
+        </div>
+        <div class="tabs"><div><i>📖</i>Today</div><div><i>👥</i>Staff</div><div><div class="mic">🎤</div></div><div class="on"><i>₹</i>Salary</div><div><i>☰</i>More</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>"Revision 2" is accountant language.</li><li><span class="n">2</span>It isn't clear what "mark as paid" does (does it send money?).</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>Salary: 3 steps</h3>
+      <div class="phone"><div class="sb"><span>10:00</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><small>Salary</small><b>September 2026</b></div><span class="lang">हि / En</span></div>
+          <div class="seg"><span class="on">Pay salary</span><span>Advances <small>(udhaar)</small></span><span>Bonus / cut</span></div>
+          <div class="card"><p>Total to pay this month <span class="n">1</span></p><div class="big">₹65,400</div><p>6 staff · earned ₹70,900 · minus ₹2,500 advances</p></div>
+          <div class="check done"><span class="box">✓</span><span class="txt">Step 1 · Check attendance</span></div>
+          <div class="card amber" style="margin:2px 0 6px 26px"><p><b style="color:var(--ink)">Suresh has 3 days with no attendance.</b> Count them as absent?</p><div class="row" style="margin-top:6px"><span class="btn line">Yes, absent</span><span class="btn line">Fix days</span></div></div>
+          <div class="check next"><span class="box">2</span><span class="grow">Step 2 · Approve & send payslips <span class="n">2</span></span><span class="btn">Approve</span></div>
+          <div class="check"><span class="box">3</span><span>Step 3 · Pay staff, then tap "I've paid" <span class="n">3</span></span></div>
+          <p class="small muted">Need to change something after approving? <u>Edit salary</u> (we keep the old version).</p>
+        </div>
+        <div class="tabs"><div><i>📖</i>Today</div><div><i>👥</i>Staff</div><div><div class="mic">🎤</div><div class="mic-label">Ask Mint</div></div><div class="on"><i>₹</i>Salary</div><div><i>☰</i>More</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>"Total to pay this month" instead of "Cash needed"; the math is one plain line.</li><li><span class="n">2</span>Steps are numbered and say what each one does.</li><li><span class="n">3</span>"I've paid" makes clear the app records payment, it doesn't send money. "Revision" becomes "Edit salary".</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>Give an advance</h3>
+      <div class="phone"><div class="sb"><span>10:10</span><span>●●● 4G</span></div>
+        <div class="scr full">
+          <div class="dim"></div>
+          <div class="sheet">
+            <div class="grab"></div>
+            <b style="font-size:15px">Give an advance (udhaar)</b>
+            <div class="field"><small>To</small>Pooja Singh ▾</div>
+            <div class="field"><small>Amount</small><b style="font-size:16px">₹ 2,000</b></div>
+            <div class="label">Take it back</div>
+            <div class="summary"><span class="chip sel">From next salary</span><span class="chip">₹500 a month</span><span class="chip">Later</span></div>
+            <div class="example">Pooja's October salary will be ₹10,000 instead of ₹12,000. <span class="n">1</span></div>
+            <span class="btn block" style="margin-top:10px">Give ₹2,000</span>
+          </div>
+        </div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>Shows the effect on the next salary before saving.</li></ol>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FLOW 8 ============ -->
+<section class="flow" id="f8">
+  <h2>8 · More & settings: small groups and a search box</h2>
+  <p class="why">Today "Settings" is one long page that mixes the business name, attendance rules, salary rules, phone-lock and face check, shifts, branches, holidays, partners, CA and Close business. Now More has a search box and clear groups, and each rule shows an example.</p>
+  <div class="steps">
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>More</h3>
+      <div class="phone"><div class="sb"><span>12:10</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr" style="margin-bottom:4px"><div class="t"><b>More</b></div><span class="lang">हि / En</span></div>
+          <div class="search">🔍 Search: "holiday", "CA", "late"… <span class="n">1</span></div>
+          <div class="grouptitle">Daily</div>
+          <div class="list menu"><div class="mi"><span class="ic">☂</span><span>Leave requests · 2 waiting</span></div><div class="mi"><span class="ic">📄</span><span>Reports</span></div></div>
+          <div class="grouptitle">Shop rules <span class="n">2</span></div>
+          <div class="list menu"><div class="mi"><span class="ic">⏰</span><span>Timings & holidays<small>Shifts, weekly off, festivals</small></span></div><div class="mi"><span class="ic">✅</span><span>Attendance rules<small>Late, half day, forgot to check out</small></span></div><div class="mi"><span class="ic">₹</span><span>Salary rules<small>How days are counted, paid leave</small></span></div><div class="mi"><span class="ic">📍</span><span>Check-in safety<small>Shop area, selfie, phone lock, face</small></span></div></div>
+          <div class="grouptitle">Business</div>
+          <div class="list menu"><div class="mi"><span class="ic">🏪</span><span>Business details & branches</span></div><div class="mi"><span class="ic">⭐</span><span>Plan & payment · trial 12 days left</span></div><div class="mi"><span class="ic">🕘</span><span>History of changes <span class="n">3</span></span></div></div>
+        </div>
+        <div class="tabs"><div><i>📖</i>Today</div><div><i>👥</i>Staff</div><div><div class="mic">🎤</div><div class="mic-label">Ask Mint</div></div><div><i>₹</i>Salary</div><div class="on"><i>☰</i>More</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>Search finds any setting or screen by everyday words.</li><li><span class="n">2</span>The long Settings page is split into four small pages with plain names.</li><li><span class="n">3</span>"Audit log" becomes "History of changes"; "Billing" becomes "Plan & payment". (Help & videos, Language, Export and Log out are just below, one scroll down.)</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>Attendance rules</h3>
+      <div class="phone"><div class="sb"><span>12:11</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><small>Shop rules</small><b>Attendance rules</b></div></div>
+          <div class="card"><div class="row"><div class="grow"><h4>Late after</h4></div><b>15 min ▾</b></div><div class="example">Shift starts 9:00 → 9:16 counts as <b>Late</b>. <span class="n">1</span></div></div>
+          <div class="card"><div class="row"><div class="grow"><h4>Half day if they work less than</h4></div><b>4 hours ▾</b></div><div class="example">In at 9:00, out at 12:30 → <b>Half day</b>.</div></div>
+          <div class="card"><h4>If staff forget to check out</h4><div class="summary"><span class="chip sel">Half day</span><span class="chip">Full day</span><span class="chip">Ask me</span></div><div class="example">Most shops choose Half day, so people remember to check out.</div></div>
+          <div class="card"><div class="row"><div class="grow"><h4>Morning summary</h4><p>WhatsApp/notification with who came in</p></div><b>9:30 AM ▾</b></div></div>
+          <p class="small muted" style="text-align:center">Changes apply from today. Past days stay as they are. <span class="n">2</span></p>
+        </div>
+        <div class="tabs"><div><i>📖</i>Today</div><div><i>👥</i>Staff</div><div><div class="mic">🎤</div><div class="mic-label">Ask Mint</div></div><div><i>₹</i>Salary</div><div class="on"><i>☰</i>More</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>Every rule shows a real example, so the number means something.</li><li><span class="n">2</span>Says what happens to old days, which owners worry about.</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>Check-in safety</h3>
+      <div class="phone"><div class="sb"><span>12:12</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><small>Shop rules</small><b>Check-in safety</b></div></div>
+          <p class="small muted">Stop people marking attendance for someone else. Pick how strict you want it. <span class="n">1</span></p>
+          <div class="card"><div class="row"><div class="grow"><h4>📍 Must be at the shop</h4><p>Within 100 m of the shop · <u>change area</u></p></div><span class="toggle"></span></div></div>
+          <div class="card"><div class="row"><div class="grow"><h4>🤳 Selfie at check-in</h4><p>You can see the photo later</p></div><span class="toggle"></span></div></div>
+          <div class="card"><div class="row"><div class="grow"><h4>🔒 Phone lock</h4><p>Staff unlock their own phone (fingerprint/PIN) before checking in</p></div><span class="toggle"></span></div></div>
+          <div class="card"><div class="row"><div class="grow"><h4>🙂 Face check <span class="chip">Growth</span></h4><p>We compare the selfie with their photo. Unclear ones wait for you.</p></div><span class="toggle off"></span></div></div>
+          <div class="example">Recommended for most shops: first three on, face check if staff often cover for each other.</div>
+        </div>
+        <div class="tabs"><div><i>📖</i>Today</div><div><i>👥</i>Staff</div><div><div class="mic">🎤</div><div class="mic-label">Ask Mint</div></div><div><i>₹</i>Salary</div><div class="on"><i>☰</i>More</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>One page explains why these exist, with simple on/off switches and a recommendation, instead of "Geofence policy: block / request approval".</li></ol>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FLOW 9 ============ -->
+<section class="flow" id="f9">
+  <h2>9 · Staff app: checking in</h2>
+  <p class="why">Today the staff home shows "Running late · 848 min", a "1 tap" label, "Finding location…" with no reason, and colour boxes with no legend.</p>
+  <div class="steps">
+    <div class="step">
+      <h3><span class="tag before">BEFORE</span>Staff home</h3>
+      <div class="phone before"><div class="sb"><span>11:08</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><small>Sun, 11 Oct · Shift 9:00 AM – 9:00 PM</small><b>Hello, Ramesh Kumar</b></div><span class="lang">हि / En</span></div>
+          <div class="card mint"><div class="row"><span>🙂</span><b class="grow">Set up face check — takes 10 seconds</b>›</div></div>
+          <div class="row"><div class="card" style="flex:1">◎ Finding location… <span class="n">1</span></div><div class="card" style="flex:1;color:var(--amberDark)"><b>Running late</b><br/>848 min <span class="n">2</span></div></div>
+          <div class="bigbtn"><div>👆<br/>Check in<small>1 tap</small></div></div>
+          <p style="text-align:center;font-weight:700">You have not checked in yet</p>
+          <div class="card"><div class="row"><b class="grow">October · 4 days present</b><b style="color:var(--mint)">₹3,387 so far</b></div><div class="summary"><span class="chip a">A</span><span class="chip p">P</span><span class="chip p">P</span><span class="chip">WO</span><span class="chip l">L</span><span class="chip">HD</span> <span class="n">3</span></div></div>
+        </div>
+        <div class="tabs"><div class="on"><i>👆</i>Home</div><div><i>📅</i>Attendance</div><div><i>☂</i>Leave</div><div><i>₹</i>Salary</div><div><i>👤</i>Profile</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>No reason given for needing location.</li><li><span class="n">2</span>"848 min late" (14 hours) is confusing and upsetting.</li><li><span class="n">3</span>Codes with no legend; "₹3,387 so far" isn't explained.</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>Staff home</h3>
+      <div class="phone"><div class="sb"><span>9:12</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><small>Sharma Medical Store · Mon 12 Oct</small><b>Namaste, Ramesh</b></div><span class="lang">हि / En</span></div>
+          <div class="card"><div class="row"><span>🕘</span><div class="grow"><h4>Your shift: 9:00 AM – 9:00 PM</h4><p>Started 12 minutes ago <span class="n">1</span></p></div></div></div>
+          <div class="card mint"><div class="row"><span>📍</span><p class="grow"><b style="color:var(--ink)">You're at the shop</b> ✓<br/>We check this so attendance is fair for everyone. <span class="n">2</span></p></div></div>
+          <div class="bigbtn"><div>👆<br/>Check in</div></div>
+          <p style="text-align:center" class="small muted">Takes a selfie and marks you present</p>
+          <div class="card"><div class="row"><b class="grow">October so far</b><span class="btn ghost">See all ›</span></div><p>✓ 8 days present · ⏰ 1 late · ✕ 1 absent</p><p style="margin-top:3px"><b style="color:var(--mintDark)">Earned till today: ₹3,387</b> <span class="n">3</span></p></div>
+        </div>
+        <div class="tabs"><div class="on"><i>👆</i>Home</div><div><i>📅</i>Attendance</div><div><i>☂</i>Leave</div><div><i>₹</i>Salary</div><div><i>👤</i>Profile</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>"Started 12 minutes ago" (and after a few hours, just the shift time), never "848 min".</li><li><span class="n">2</span>Location says what it's doing and why.</li><li><span class="n">3</span>Counts in words and "Earned till today" instead of codes.</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>Not at the shop yet</h3>
+      <div class="phone"><div class="sb"><span>8:55</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><small>Sharma Medical Store · Mon 12 Oct</small><b>Namaste, Ramesh</b></div><span class="lang">हि / En</span></div>
+          <div class="card amber"><div class="row"><span>📍</span><div class="grow"><h4>You're 400 m from the shop</h4><p>Check in works when you're inside the shop area. <span class="n">1</span></p></div></div><div class="row" style="margin-top:6px"><span class="btn line">Try again</span><span class="btn ghost">Location problem?</span></div></div>
+          <div class="bigbtn" style="background:#cfc8b8;box-shadow:0 0 0 10px var(--grey),0 0 0 20px #f8f6f0"><div>👆<br/>Check in<small>at the shop</small></div></div>
+          <div class="card"><p><b style="color:var(--ink)">Working outside today?</b> (delivery, bank, site)</p><span class="btn ghost">Ask owner to allow ›</span> <span class="n">2</span></div>
+        </div>
+        <div class="tabs"><div class="on"><i>👆</i>Home</div><div><i>📅</i>Attendance</div><div><i>☂</i>Leave</div><div><i>₹</i>Salary</div><div><i>👤</i>Profile</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>Says exactly why check-in is off, with a fix.</li><li><span class="n">2</span>A clear path for outside work instead of a dead end.</li></ol>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FLOW 10 ============ -->
+<section class="flow" id="f10">
+  <h2>10 · Staff app: attendance, leave and salary</h2>
+  <p class="why">Same rules for the staff side: a calendar they already understand, leave balance before they ask, and a salary page that explains every rupee.</p>
+  <div class="steps">
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>My attendance</h3>
+      <div class="phone"><div class="sb"><span>13:00</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><small>October 2026</small><b>My attendance</b></div></div>
+          <div class="legend"><span><i class="c-p">✓</i>Present</span><span><i class="c-l">⏰</i>Late</span><span><i class="c-a">✕</i>Absent</span><span><i class="c-h">½</i>Half day</span><span><i class="c-lv">☂</i>Leave</span><span><i class="c-wo">🛋</i>Off</span></div>
+          <table class="cal" style="font-size:11px"><tr><th>M</th><th>T</th><th>W</th><th>T</th><th>F</th><th>S</th><th>S</th></tr>
+            <tr><td class="c-a">1</td><td class="c-p">2</td><td class="c-p">3</td><td class="c-wo">4</td><td class="c-l">5</td><td class="c-h">6</td><td class="c-p">7</td></tr>
+            <tr><td class="c-a">8</td><td class="c-h">9</td><td class="c-a">10</td><td class="c-wo">11</td><td class="c-p c-today">12</td><td>13</td><td>14</td></tr>
+          </table>
+          <div class="card"><h4>Mon 12 Oct</h4><p>In 9:02 · Out — (still at work)</p></div>
+          <div class="card"><h4>Fri 10 Oct · Absent</h4><p>No check-in that day.</p><span class="btn ghost">I was there — ask owner to fix <span class="n">1</span></span></div>
+        </div>
+        <div class="tabs"><div><i>👆</i>Home</div><div class="on"><i>📅</i>Attendance</div><div><i>☂</i>Leave</div><div><i>₹</i>Salary</div><div><i>👤</i>Profile</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>Staff can ask for a correction right from the day, in their words.</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>Ask for leave</h3>
+      <div class="phone"><div class="sb"><span>13:05</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><small>You have 4 paid leaves left</small><b>Ask for leave</b></div></div>
+          <div class="row"><div class="card" style="flex:1;text-align:center"><b class="big" style="font-size:20px">4</b><p>Paid leave</p></div><div class="card" style="flex:1;text-align:center"><b class="big" style="font-size:20px">2</b><p>Sick leave</p></div></div>
+          <div class="label">Which days?</div>
+          <div class="field"><small>From – to</small>Wed 14 – Thu 15 Oct (2 days)</div>
+          <div class="label">Type</div>
+          <div class="summary"><span class="chip sel">Paid leave</span><span class="chip">Sick</span><span class="chip">Unpaid</span></div>
+          <div class="example">After this you'll have <b>2 paid leaves</b> left. Your salary won't be cut. <span class="n">1</span></div>
+          <div class="field"><small>Reason (optional)</small>Sister's wedding</div>
+          <span class="btn block" style="margin-top:8px">Send to owner</span>
+        </div>
+        <div class="tabs"><div><i>👆</i>Home</div><div><i>📅</i>Attendance</div><div class="on"><i>☂</i>Leave</div><div><i>₹</i>Salary</div><div><i>👤</i>Profile</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>Shows the effect (leave left, salary impact) before sending.</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>My salary</h3>
+      <div class="phone"><div class="sb"><span>13:10</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><small>October, till today</small><b>My salary</b></div></div>
+          <div class="card mint"><p>Earned so far</p><div class="big" style="color:var(--mintDark)">₹3,387</div><p>Paid on salary day (1–5 Nov) <span class="n">1</span></p></div>
+          <div class="list">
+            <div class="item"><span class="name">8 days worked<small>₹14,000 ÷ 31 days × 8</small></span><b>₹3,613</b></div>
+            <div class="item"><span class="name">1 half day<small>half of one day</small></span><b>₹226</b></div>
+            <div class="item"><span class="name">Advance taken<small>9 Oct · cash</small></span><b style="color:var(--red)">−₹452</b></div>
+          </div>
+          <div class="card"><div class="row"><div class="grow"><h4>September payslip</h4><p>₹13,450 · paid 3 Oct</p></div><span class="btn line">View</span></div></div>
+        </div>
+        <div class="tabs"><div><i>👆</i>Home</div><div><i>📅</i>Attendance</div><div><i>☂</i>Leave</div><div class="on"><i>₹</i>Salary</div><div><i>👤</i>Profile</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>Every line explains how the money is worked out, so staff trust it.</li></ol>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FLOW 11 ============ -->
+<section class="flow" id="f11">
+  <h2>11 · Help where people get stuck: one-time tips and Ask Mint</h2>
+  <p class="why">The first time a screen opens, 2–3 small tips point at its main controls. They never show again (they can be replayed from Help). The mic button becomes "Ask Mint", a guide that can also take you to the right screen.</p>
+  <div class="steps">
+    <div class="step">
+      <h3><span class="tag after">NEW</span>First-time tips on Home</h3>
+      <div class="phone"><div class="sb"><span>11:20</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><small>Sharma Medical Store</small><b>Today, Mon 12 Oct</b></div><span class="lang">हि / En</span></div>
+          <div class="seg"><span class="on">📋 Day</span><span>📅 Month</span></div>
+          <div class="tip up" style="top:92px;left:90px"><b>Month</b>: see the whole month and each person's totals.<span class="x">1 of 3 · Next</span></div>
+          <div class="card" style="margin-top:8px"><span class="big">6</span> <b>of 9 at work</b><div class="summary"><span class="chip p">6 present</span><span class="chip l">1 late</span></div></div>
+          <div class="list" style="margin-top:70px">
+            <div class="head"><span class="time">In at</span><span class="name">Name</span><span>Status ▾</span></div>
+            <div class="item"><span class="time"><b>9:02</b></span><span class="name">Ramesh Kumar</span><span class="status p">Present</span></div>
+            <div class="item"><span class="time"><b>9:22</b></span><span class="name">Pooja Singh</span><span class="status l">Late</span></div>
+          </div>
+        </div>
+        <div class="tabs"><div class="on"><i>📖</i>Today</div><div><i>👥</i>Staff</div><div><div class="mic">🎤</div><div class="mic-label">Ask Mint</div></div><div><i>₹</i>Salary</div><div><i>☰</i>More</div></div>
+      </div>
+      <ol class="notes"><li>Tip 2 points at a status ("Tap to change it"); tip 3 at Ask Mint. Each shows once.</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">NEW</span>Ask Mint, in Hindi or English</h3>
+      <div class="phone"><div class="sb"><span>11:22</span><span>●●● 4G</span></div>
+        <div class="scr full">
+          <div class="dim"></div>
+          <div class="sheet" style="top:120px">
+            <div class="grab"></div>
+            <b style="font-size:15px">Ask Mint</b>
+            <p class="small muted">Hold 🎤 and speak, or type. Try: <span class="n">1</span></p>
+            <div class="summary"><span class="chip">"Raju aaj absent hai"</span><span class="chip">"Pooja ko ₹500 advance"</span><span class="chip">"Mera CA kaise add karein?"</span></div>
+            <div class="card" style="background:var(--grey)"><p style="color:var(--ink)">🧑 Mera CA kaise add karein?</p></div>
+            <div class="card mint"><p style="color:var(--ink)">🌿 Staff tab → <b>Team & access</b> → "Add your CA". Your CA can see salary and reports, but can't change attendance.</p><span class="btn" style="margin-top:6px">Open Team & access <span class="n">2</span></span></div>
+            <div class="row" style="margin-top:6px"><div class="search grow">Type here…</div><div class="mic" style="margin:0;width:40px;height:40px;border-width:0">🎤</div></div>
+          </div>
+        </div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>Example sentences teach people what Mint can do.</li><li><span class="n">2</span>Answers "how do I…" questions with a button that opens the screen.</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>Help</h3>
+      <div class="phone"><div class="sb"><span>11:30</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><small>Short answers & 30-second videos</small><b>Help</b></div></div>
+          <div class="search">🔍 What do you want to do?</div>
+          <div class="grouptitle">Getting started</div>
+          <div class="list menu"><div class="mi"><span class="ic">▶</span><span>How staff check in<small>Video · 30 s</small></span></div><div class="mi"><span class="ic">▶</span><span>Add staff from Excel<small>Video · 45 s</small></span></div></div>
+          <div class="grouptitle">Every day</div>
+          <div class="list menu"><div class="mi"><span class="ic">?</span><span>Someone forgot to check in</span></div><div class="mi"><span class="ic">?</span><span>Staff changed their phone</span></div><div class="mi"><span class="ic">?</span><span>What do the colours mean?</span></div></div>
+          <div class="grouptitle">Salary</div>
+          <div class="list menu"><div class="mi"><span class="ic">?</span><span>How salary is worked out</span></div><div class="mi"><span class="ic">↺</span><span>Show the screen tips again</span></div></div>
+          <span class="btn block" style="margin-top:8px;background:#25d366">💬 Chat with us on WhatsApp</span>
+        </div>
+        <div class="tabs"><div><i>📖</i>Today</div><div><i>👥</i>Staff</div><div><div class="mic">🎤</div><div class="mic-label">Ask Mint</div></div><div><i>₹</i>Salary</div><div class="on"><i>☰</i>More</div></div>
+      </div>
+      <ol class="notes"><li>Help grows from 4 FAQs to about 20 grouped by task, with short Hindi videos and "show tips again".</li></ol>
+    </div>
+  </div>
+</section>
+
+<section class="flow">
+  <h2>Summary of changes</h2>
+  <div class="compare">
+    <div class="b"><b>Today</b>Unlabelled grid and mic icons · P/L/HD/WO codes, "L" = Late · legend hidden · status tags look like labels · "Present 0/9" on days off · reason asked before status, instant save · partners & CA under Settings, no "make manager" · one long Settings page with technical words · "848 min late" on staff home · 4 FAQs.</div>
+    <div class="a"><b>After</b>"Day | Month" switch and "Ask Mint" with words · statuses in words, legend always visible · ▾ on everything tappable · "Weekly off today" · status first, Save + Undo · "Team & access" on the Staff tab with "Make manager" · More with search and 4 small rule pages with examples · "Shift started 12 min ago" · getting-started checklist, one-time tips, Help with videos.</div>
+  </div>
+  <p class="small muted" style="margin-top:12px">The web dashboard gets the same words, names and order. Nothing here changes how attendance or salary are calculated; it only changes how screens look and what they say.</p>
+</section>
+
+<footer>StaffMint · UX mock-up for review · not the final visual polish</footer>
+</div>
+</body>
+</html>
