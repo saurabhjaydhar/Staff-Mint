@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>StaffMint · Payslip — mock-up</title>
+<style>
+  :root {
+    --ink: #1c1a17; --paper: #fffdf7; --line: #ede5d3; --soft: #f3eddf; --muted: #7b7262;
+    --mint: #1e9e64; --mintDark: #157a4c; --mintLight: #e3f5ec; --mintFaint: #f0faf4;
+    --red: #d64545; --redLight: #fce9e7; --amber: #e39a0b; --amberDark: #a86e00; --amberLight: #fff2d6;
+    --indigo: #5146e0; --indigoLight: #ecebff; --grey: #f1eee6; --note: #ffd84d;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Mukta", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif; background: #f4f1ea; color: var(--ink); }
+  a { color: inherit; }
+  .page { max-width: 1280px; margin: 0 auto; padding: 24px 16px 80px; }
+  header.top { background: var(--ink); color: #fff; border-radius: 24px; padding: 28px; margin-bottom: 20px; }
+  header.top h1 { margin: 0 0 6px; font-size: 28px; }
+  header.top p { margin: 4px 0; color: #d9d4c7; max-width: 900px; line-height: 1.5; }
+  .toc { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .toc a { text-decoration: none; background: #ffffff1a; color: #fff; padding: 6px 12px; border-radius: 999px; font-size: 14px; }
+  .principles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 24px; }
+  .principles div { background: #fff; border-radius: 16px; padding: 14px 16px; border: 1px solid var(--line); font-size: 14px; line-height: 1.45; }
+  .principles b { display: block; font-size: 15px; margin-bottom: 2px; }
+  section.flow { background: #fff; border-radius: 24px; padding: 22px; margin: 22px 0; border: 1px solid var(--line); }
+  section.flow h2 { margin: 0 0 4px; font-size: 22px; }
+  section.flow > p.why { margin: 0 0 16px; color: var(--muted); max-width: 900px; line-height: 1.5; }
+  .steps { display: flex; gap: 14px; overflow-x: auto; padding: 6px 4px 14px; align-items: flex-start; scroll-snap-type: x mandatory; }
+  .step { flex: 0 0 auto; width: 300px; scroll-snap-align: start; }
+  .arrow { flex: 0 0 auto; align-self: center; font-size: 28px; color: var(--mint); margin-top: -120px; }
+  .step h3 { font-size: 15px; margin: 0 0 8px; }
+  .step h3 .tag { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; margin-right: 6px; vertical-align: 2px; }
+  .tag.before { background: var(--redLight); color: var(--red); }
+  .tag.after { background: var(--mintLight); color: var(--mintDark); }
+  ol.notes { margin: 10px 0 0; padding: 0; list-style: none; font-size: 13.5px; line-height: 1.45; }
+  ol.notes li { position: relative; padding-left: 26px; margin: 7px 0; }
+  ol.notes li > .n:first-child { position: absolute; left: 0; top: 1px; }
+  ol.notes li:not(:has(> .n:first-child)) { padding-left: 0; }
+
+  /* Phone */
+  .phone { width: 300px; height: 660px; border-radius: 34px; border: 9px solid var(--ink); background: var(--paper); position: relative; overflow: hidden; box-shadow: 0 10px 30px #0000001a; font-size: 13px; }
+  .phone.before { filter: saturate(.85); }
+  .sb { height: 22px; display: flex; justify-content: space-between; padding: 4px 16px 0; font-size: 10.5px; font-weight: 700; }
+  .scr { position: absolute; top: 22px; left: 0; right: 0; bottom: 58px; overflow: hidden; padding: 6px 12px; }
+  .scr.full { bottom: 0; }
+  .tabs { position: absolute; left: 0; right: 0; bottom: 0; height: 58px; border-top: 1px solid var(--line); background: #fff; display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; text-align: center; font-size: 10.5px; color: var(--muted); }
+  .tabs.four { grid-template-columns: repeat(4, 1fr); }
+  .tabs .on { color: var(--ink); font-weight: 800; }
+  .tabs i { display: block; font-style: normal; font-size: 17px; line-height: 1.1; }
+  .mic { width: 50px; height: 50px; margin: -22px auto 0; border-radius: 50%; background: var(--mint); color: #fff; display: grid; place-items: center; font-size: 20px; border: 4px solid #fff; box-shadow: 0 2px 8px #0002; }
+  .mic-label { font-size: 10px; color: var(--mintDark); font-weight: 800; margin-top: 1px; }
+  .hdr { display: flex; align-items: flex-start; gap: 8px; margin: 2px 0 8px; }
+  .hdr .t { flex: 1; min-width: 0; }
+  .hdr small { color: var(--muted); font-size: 11px; display: block; }
+  .hdr b { font-size: 19px; line-height: 1.15; display: block; }
+  .lang { border: 1.5px solid var(--ink); border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+  .icon-btn { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; background: var(--grey); font-size: 15px; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 10px 11px; margin: 7px 0; }
+  .card.mint { background: var(--mintFaint); border-color: #bfe6d1; }
+  .card.amber { background: var(--amberLight); border-color: #f6d58a; }
+  .card.dark { background: var(--ink); color: #fff; border: 0; }
+  .card.red { background: var(--redLight); border-color: #f4c3be; }
+  .card h4 { margin: 0 0 3px; font-size: 13.5px; }
+  .card p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.35; }
+  .card.dark p { color: #cfc9bb; }
+  .row { display: flex; align-items: center; gap: 8px; }
+  .row .grow { flex: 1; min-width: 0; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 4px; border-radius: 10px; padding: 7px 11px; font-weight: 700; font-size: 12px; background: var(--mint); color: #fff; white-space: nowrap; }
+  .btn.ghost { background: transparent; color: var(--mintDark); padding: 7px 4px; }
+  .btn.line { background: #fff; color: var(--ink); border: 1.5px solid var(--line); }
+  .btn.dark { background: var(--ink); }
+  .btn.red { background: var(--red); }
+  .btn.block { display: flex; width: 100%; padding: 10px; font-size: 13px; }
+  .seg { display: flex; background: var(--grey); border-radius: 10px; padding: 3px; gap: 3px; font-size: 12px; font-weight: 700; }
+  .seg span { flex: 1; text-align: center; padding: 5px 4px; border-radius: 8px; color: var(--muted); }
+  .seg span.on { background: #fff; color: var(--ink); box-shadow: 0 1px 2px #0001; }
+  .datebar { display: flex; align-items: center; justify-content: space-between; margin: 6px 0; font-size: 12px; }
+  .datebar .mid { border: 1.5px solid var(--line); border-radius: 999px; padding: 4px 10px; font-weight: 700; background: #fff; }
+  .datebar .nav { color: var(--muted); font-weight: 700; font-size: 11.5px; }
+  .summary { display: flex; flex-wrap: wrap; gap: 5px; margin: 6px 0; }
+  .chip { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: var(--grey); color: var(--ink); white-space: nowrap; }
+  .chip.p { background: var(--mintLight); color: var(--mintDark); }
+  .chip.l { background: var(--amberLight); color: var(--amberDark); }
+  .chip.a { background: var(--redLight); color: var(--red); }
+  .chip.lv { background: var(--indigoLight); color: var(--indigo); }
+  .chip.sel { background: var(--ink); color: #fff; }
+  .list { background: #fff; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; margin: 6px 0; }
+  .list .head { display: flex; font-size: 10.5px; color: var(--muted); font-weight: 700; padding: 6px 10px; background: var(--soft); text-transform: uppercase; letter-spacing: .03em; }
+  .list .item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-top: 1px solid var(--soft); }
+  .list .item:first-child { border-top: 0; }
+  .time { width: 52px; font-size: 11.5px; color: var(--muted); }
+  .time b { color: var(--ink); font-size: 12px; display: block; }
+  .name { flex: 1; min-width: 0; font-weight: 700; font-size: 12.5px; }
+  .name small { display: block; font-weight: 500; color: var(--muted); font-size: 11px; }
+  .status { font-size: 11px; font-weight: 800; padding: 4px 8px; border-radius: 999px; white-space: nowrap; flex-shrink: 0; }
+  .status::after { content: " ▾"; font-size: 9px; opacity: .7; }
+  .status.p { background: var(--mintLight); color: var(--mintDark); }
+  .status.l { background: var(--amberLight); color: var(--amberDark); }
+  .status.a { background: var(--redLight); color: var(--red); }
+  .status.n { background: var(--grey); color: var(--muted); }
+  .status.lv { background: var(--indigoLight); color: var(--indigo); }
+  .status.wo { background: var(--grey); color: var(--muted); }
+  .status.plain::after { content: ""; }
+  .avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--mintLight); color: var(--mintDark); display: grid; place-items: center; font-weight: 800; font-size: 11px; flex: 0 0 auto; }
+  .tip { position: absolute; z-index: 5; background: var(--ink); color: #fff; font-size: 11.5px; line-height: 1.35; padding: 8px 10px; border-radius: 10px; width: 190px; box-shadow: 0 6px 18px #0004; }
+  .tip b { color: var(--note); }
+  .tip .x { display: block; margin-top: 5px; color: var(--note); font-weight: 800; text-align: right; }
+  .tip::after { content: ""; position: absolute; width: 10px; height: 10px; background: var(--ink); transform: rotate(45deg); }
+  .tip.up::after { top: -5px; right: 26px; }
+  .tip.down::after { bottom: -5px; left: 50%; margin-left: -5px; }
+  .tip.upl::after { top: -5px; left: 22px; }
+  .dim { position: absolute; inset: 0; background: #1c1a1766; z-index: 4; }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--paper); border-radius: 22px 22px 0 0; z-index: 6; padding: 8px 14px 14px; box-shadow: 0 -6px 20px #0003; }
+  .sheet .grab { width: 36px; height: 4px; border-radius: 4px; background: var(--line); margin: 0 auto 8px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 6px 0; }
+  .opt { border-radius: 12px; padding: 9px 4px; text-align: center; font-weight: 800; font-size: 11.5px; border: 2px solid transparent; }
+  .opt i { display: block; font-style: normal; font-size: 16px; }
+  .opt small { display: block; font-weight: 500; font-size: 9.5px; opacity: .8; }
+  .opt.p { background: var(--mintLight); color: var(--mintDark); }
+  .opt.h { background: #ffe9d6; color: #c2570c; }
+  .opt.a { background: var(--redLight); color: var(--red); }
+  .opt.lv { background: var(--indigoLight); color: var(--indigo); }
+  .opt.g { background: var(--grey); color: var(--muted); }
+  .opt.sel { border-color: var(--ink); }
+  .label { font-size: 11.5px; font-weight: 800; margin: 8px 0 4px; }
+  .muted { color: var(--muted); }
+  .small { font-size: 11px; }
+  .toast { position: absolute; left: 12px; right: 12px; bottom: 66px; z-index: 7; background: var(--ink); color: #fff; border-radius: 12px; padding: 9px 12px; font-size: 12px; display: flex; justify-content: space-between; }
+  .toast b { color: var(--note); }
+  .n { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--note); color: var(--ink); font-size: 11px; font-weight: 900; flex: 0 0 auto; box-shadow: 0 0 0 2px #fff; vertical-align: middle; }
+  .phone .n { position: relative; z-index: 3; }
+  .progress { height: 7px; border-radius: 7px; background: var(--soft); overflow: hidden; margin: 6px 0; }
+  .progress span { display: block; height: 100%; background: var(--mint); border-radius: 7px; }
+  .check { display: flex; gap: 8px; align-items: center; padding: 6px 0; border-top: 1px dashed var(--line); font-size: 12px; }
+  .check:first-of-type { border-top: 0; }
+  .check .box { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; font-size: 11px; flex: 0 0 auto; }
+  .check.done .box { background: var(--mint); border-color: var(--mint); color: #fff; }
+  .check.done span.txt { color: var(--muted); text-decoration: line-through; }
+  .check.next { font-weight: 800; }
+  .menu .mi { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-top: 1px solid var(--soft); font-size: 12.5px; }
+  .menu .mi:first-child { border-top: 0; }
+  .menu .mi .ic { width: 26px; height: 26px; border-radius: 8px; background: var(--mintLight); display: grid; place-items: center; font-size: 13px; }
+  .menu .mi small { display: block; color: var(--muted); font-size: 10.5px; }
+  .menu .mi::after { content: "›"; color: var(--muted); margin-left: auto; font-size: 16px; }
+  .grouptitle { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 8px 2px 3px; }
+  .search { border: 1.5px solid var(--line); background: #fff; border-radius: 12px; padding: 8px 10px; color: var(--muted); font-size: 12px; }
+  .cal { width: 100%; border-collapse: separate; border-spacing: 2px; font-size: 10px; }
+  .cal th { color: var(--muted); font-weight: 700; padding: 2px 0; }
+  .cal td { text-align: center; border-radius: 5px; padding: 3px 0; font-weight: 800; }
+  .cal td.nm { text-align: left; font-weight: 700; font-size: 10.5px; padding-right: 2px; white-space: nowrap; }
+  .c-p { background: var(--mintLight); color: var(--mintDark); }
+  .c-l { background: var(--amberLight); color: var(--amberDark); }
+  .c-a { background: var(--redLight); color: var(--red); }
+  .c-h { background: #ffe9d6; color: #c2570c; }
+  .c-lv { background: var(--indigoLight); color: var(--indigo); }
+  .c-wo { background: var(--grey); color: var(--muted); }
+  .c-today { outline: 2px solid var(--ink); }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 8px; font-size: 10px; margin: 4px 0; }
+  .legend span { display: inline-flex; align-items: center; gap: 3px; }
+  .legend i { font-style: normal; font-weight: 800; padding: 1px 4px; border-radius: 4px; }
+  .field { border: 1.5px solid var(--line); background: #fff; border-radius: 10px; padding: 7px 9px; margin: 4px 0; font-size: 12px; }
+  .field small { display: block; color: var(--muted); font-size: 10px; }
+  .toggle { width: 34px; height: 20px; border-radius: 999px; background: var(--mint); position: relative; flex: 0 0 auto; }
+  .toggle::after { content: ""; position: absolute; right: 2px; top: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; }
+  .toggle.off { background: #cfc8b8; }
+  .toggle.off::after { left: 2px; right: auto; }
+  .example { background: var(--soft); border-radius: 8px; padding: 5px 7px; font-size: 10.5px; color: var(--ink); margin-top: 4px; }
+  .big { font-size: 26px; font-weight: 900; line-height: 1; }
+  .stepper { display: flex; gap: 4px; margin: 6px 0; }
+  .stepper div { flex: 1; text-align: center; font-size: 10px; font-weight: 700; color: var(--muted); }
+  .stepper div::before { content: ""; display: block; height: 5px; border-radius: 5px; background: var(--soft); margin-bottom: 3px; }
+  .stepper div.done::before { background: var(--mint); }
+  .stepper div.cur { color: var(--ink); }
+  .stepper div.cur::before { background: var(--amber); }
+  .bigbtn { width: 150px; height: 150px; border-radius: 50%; margin: 10px auto 6px; background: var(--mint); color: #fff; display: grid; place-items: center; text-align: center; font-weight: 900; font-size: 20px; box-shadow: 0 0 0 10px var(--mintLight), 0 0 0 20px var(--mintFaint); }
+  .bigbtn small { display: block; font-size: 11px; font-weight: 600; opacity: .9; }
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; margin-top: 12px; }
+  .compare div { border-radius: 12px; padding: 10px 12px; line-height: 1.45; }
+  .compare .b { background: var(--redLight); }
+  .compare .a { background: var(--mintLight); }
+  .compare b { display: block; margin-bottom: 4px; }
+
+  /* User-journey section */
+  .ux { background: #fff; border-radius: 24px; padding: 22px; margin: 0 0 22px; border: 1px solid var(--line); }
+  .ux h2 { margin: 0 0 4px; font-size: 22px; }
+  .ux > p.why { margin: 0 0 14px; color: var(--muted); max-width: 900px; line-height: 1.5; }
+  .personas { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 18px; }
+  .persona { border: 1px solid var(--line); border-radius: 18px; padding: 14px 16px; background: var(--paper); font-size: 14px; line-height: 1.5; }
+  .persona .who { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .persona .face { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-size: 22px; background: var(--mintLight); }
+  .persona b.nm { font-size: 16px; display: block; }
+  .persona ul { margin: 6px 0 0; padding-left: 18px; }
+  table.tasks { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table.tasks th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); padding: 8px; border-bottom: 2px solid var(--line); }
+  table.tasks td { padding: 9px 8px; border-bottom: 1px solid var(--soft); vertical-align: top; line-height: 1.4; }
+  table.tasks td.path { color: var(--muted); font-size: 13px; }
+  .taps { display: inline-block; min-width: 26px; text-align: center; font-weight: 900; border-radius: 8px; padding: 1px 6px; }
+  .taps.b { background: var(--redLight); color: var(--red); }
+  .taps.a { background: var(--mintLight); color: var(--mintDark); }
+  .journey { display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px; margin: 10px 0 18px; }
+  .journey .j { flex: 1 1 150px; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; font-size: 13.5px; line-height: 1.4; position: relative; }
+  .journey .j small { display: block; color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; font-weight: 800; margin-bottom: 3px; }
+  .journey .j.goal { background: var(--mintLight); border-color: #bfe6d1; }
+  .journey .to { align-self: center; color: var(--mint); font-size: 20px; font-weight: 900; }
+  .jtitle { font-weight: 800; font-size: 16px; margin: 14px 0 0; }
+  .jtitle span { font-weight: 500; color: var(--muted); font-size: 14px; }
+  .checklist { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px; }
+  .checklist div { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 13.5px; line-height: 1.45; }
+  .checklist div::before { content: "✓ "; color: var(--mint); font-weight: 900; }
+  footer { text-align: center; color: var(--muted); font-size: 13px; margin-top: 30px; }
+  @media (max-width: 700px) { header.top h1 { font-size: 22px; } .arrow { display: none; } }
+</style>
+</head>
+<body>
+<div class="page">
+<header class="top">
+  <h1>Payslip — mock-up</h1>
+  <p>Design only, nothing in the app has changed yet. How a payslip is made, sent, read and trusted: by the owner, by the staff member, on WhatsApp and as a PDF. <b style="color:#ffd84d">Yellow numbers</b> point at what changed.</p>
+  <nav class="toc">
+    <a href="#p0">Who reads a payslip</a>
+    <a href="#p1">1 · Staff: payslip arrives</a>
+    <a href="#p2">2 · Staff: "why this amount?"</a>
+    <a href="#p3">3 · Owner: check & send payslips</a>
+    <a href="#p4">4 · The PDF payslip</a>
+  </nav>
+</header>
+
+<section class="ux" id="p0">
+  <h2>What a payslip has to do</h2>
+  <p class="why">A payslip is read on a small phone, usually opened from WhatsApp, often in Hindi. It has one job for each person:</p>
+  <div class="personas">
+    <div class="persona"><div class="who"><span class="face">👩🏽</span><div><b class="nm">Pooja (staff)</b><span class="muted">"How much did I get, and is it right?"</span></div></div>
+      <ul><li>Sees the <b>amount in hand first</b>, and whether it's paid.</li><li>Understands every cut in one sentence ("2 absent days", "advance ₹2,000").</li><li>If something is wrong, can <b>ask the owner from the payslip</b>, not argue at the counter.</li></ul></div>
+    <div class="persona"><div class="who"><span class="face">👨🏽‍💼</span><div><b class="nm">Rakesh (owner)</b><span class="muted">"Send everyone their slip in one go."</span></div></div>
+      <ul><li>Checks totals once, then <b>sends all payslips on WhatsApp in one tap</b>.</li><li>Sees who received and opened it, and who has no WhatsApp.</li><li>A clean PDF he can print or give to his CA, with his shop's name on top.</li></ul></div>
+  </div>
+  <h3 style="margin:6px 0 8px">What changes from today's payslip</h3>
+  <div class="checklist">
+    <div>Net pay ("in hand") is the first and biggest thing, not the last row.</div>
+    <div>Paid or not, when and how (cash/UPI/bank) is printed on the slip.</div>
+    <div>One language per person (their app language), not every line in both, so it's half as long.</div>
+    <div>Attendance as a small calendar strip with words, not a 7-column table.</div>
+    <div>Each cut explained in one short sentence ("2 days absent: 4 Sep, 18 Sep").</div>
+    <div>"Something's wrong?" button that sends the owner a message about that payslip.</div>
+    <div>Phone-sized PDF (fits a WhatsApp preview), still prints cleanly on A4.</div>
+    <div>Shop name and logo on top; StaffMint small at the bottom.</div>
+    <div>"Revision 2" becomes "Updated on 5 Oct: bonus added", with what changed.</div>
+  </div>
+</section>
+
+<!-- ============ P1 ============ -->
+<section class="flow" id="p1">
+  <h2>1 · Staff: the payslip arrives</h2>
+  <p class="why">Pooja gets a WhatsApp message and a notification. Tapping either opens the payslip in the app (or the PDF if she doesn't have the app).</p>
+  <div class="steps">
+    <div class="step">
+      <h3><span class="tag after">NEW</span>WhatsApp message</h3>
+      <div class="phone"><div class="sb"><span>10:02</span><span>●●● 4G</span></div>
+        <div class="scr full" style="background:#efe7db;padding:0">
+          <div style="background:#075e54;color:#fff;padding:10px 12px;display:flex;gap:8px;align-items:center"><span class="avatar" style="background:#fff">SM</span><div><b>Sharma Medical Store</b><br/><span class="small" style="opacity:.8">via StaffMint · verified business</span></div></div>
+          <div style="padding:10px">
+            <div style="background:#fff;border-radius:10px;padding:8px 10px;max-width:92%;font-size:12.5px;line-height:1.45;box-shadow:0 1px 1px #0001">
+              <div style="background:var(--mintFaint);border:1px solid #bfe6d1;border-radius:8px;padding:8px;display:flex;gap:8px;align-items:center;margin-bottom:6px"><span style="font-size:22px">📄</span><div><b>Payslip-Sep-2026.pdf</b><br/><span class="small muted">1 page · 84 KB</span></div></div>
+              Namaste Pooja 🙏<br/>Your <b>September salary</b> is ready.<br/><br/>
+              💰 <b>In hand: ₹10,000</b> <span class="n">1</span><br/>✅ Paid on 3 Oct · Cash<br/><br/>
+              Worked 27½ of 30 days · ₹2,000 advance taken back.<br/><br/>
+              <span class="muted small">Open in the StaffMint app to see every line, or reply <b>"payslip"</b> to get it again.</span>
+              <div class="small muted" style="text-align:right">10:02 ✓✓</div>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:6px"><span class="btn line" style="flex:1;color:#128c7e">Open in app <span class="n">2</span></span><span class="btn line" style="flex:1;color:#128c7e">Something's wrong?</span></div>
+          </div>
+        </div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>The message itself answers the main question: how much, and is it paid.</li><li><span class="n">2</span>Two quick buttons: open the full payslip, or ask the owner about it.</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>Salary tab: payslip list</h3>
+      <div class="phone"><div class="sb"><span>10:03</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><small>Sharma Medical Store</small><b>My salary</b></div><span class="lang">हि / En</span></div>
+          <div class="card mint"><p>October, till today</p><div class="big" style="color:var(--mintDark)">₹3,387</div><p>Paid on salary day (1–5 Nov) · <u>See how</u></p></div>
+          <div class="grouptitle">Payslips <span class="n">1</span></div>
+          <div class="list">
+            <div class="item"><span class="avatar">📄</span><span class="name">September 2026<small style="color:var(--mintDark)">✓ Paid 3 Oct · Cash</small></span><b>₹10,000</b><span class="muted">›</span></div>
+            <div class="item"><span class="avatar">📄</span><span class="name">August 2026<small style="color:var(--mintDark)">✓ Paid 2 Sep · UPI</small></span><b>₹11,600</b><span class="muted">›</span></div>
+            <div class="item"><span class="avatar">📄</span><span class="name">July 2026<small style="color:var(--mintDark)">✓ Paid 3 Aug · Cash</small></span><b>₹12,000</b><span class="muted">›</span></div>
+          </div>
+          <div class="card"><div class="row"><span>💳</span><div class="grow"><h4>Advance still to repay</h4><p>₹0 — all cleared ✓</p></div></div></div>
+        </div>
+        <div class="tabs"><div><i>👆</i>Home</div><div><i>📅</i>Attendance</div><div><i>☂</i>Leave</div><div class="on"><i>₹</i>Salary</div><div><i>👤</i>Profile</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>Each month shows the amount and "Paid · date · how", so she never has to open a PDF to check.</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>The payslip (in the app)</h3>
+      <div class="phone"><div class="sb"><span>10:03</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><small>Payslip · September 2026</small><b>Sharma Medical Store</b></div><span class="lang">हि / En</span></div>
+          <div class="card mint" style="text-align:center"><p>In hand <span class="n">1</span></p><div class="big" style="font-size:34px;color:var(--mintDark)">₹10,000</div><span class="chip p" style="display:inline-block;margin-top:4px">✓ Paid on 3 Oct · Cash</span></div>
+          <div class="label">Your month <span class="n">2</span></div>
+          <div class="summary"><span class="chip p">✓ 23 present</span><span class="chip" style="background:#ffe9d6;color:#c2570c">½ 1 half day</span><span class="chip a">✕ 2 absent</span><span class="chip lv">☂ 1 paid leave</span><span class="chip">🛋 4 off</span></div>
+          <div class="list">
+            <div class="item"><span class="name">Salary for 27½ days<small>₹12,000 ÷ 30 days × 27½</small></span><b>₹11,000</b></div>
+            <div class="item"><span class="name">Diwali bonus 🎉<small>Added by owner</small></span><b style="color:var(--mintDark)">+₹1,000</b></div>
+            <div class="item"><span class="name">Advance taken back<small>You took ₹2,000 on 9 Sep</small></span><b style="color:var(--red)">−₹2,000</b></div>
+            <div class="item" style="background:var(--mintFaint)"><span class="name">In hand</span><b>₹10,000</b></div>
+          </div>
+          <div class="row" style="margin-top:6px"><span class="btn line" style="flex:1">⬇ PDF</span><span class="btn line" style="flex:1">Share</span><span class="btn line" style="flex:1.4">Ask owner <span class="n">3</span></span></div>
+        </div>
+        <div class="tabs"><div><i>👆</i>Home</div><div><i>📅</i>Attendance</div><div><i>☂</i>Leave</div><div class="on"><i>₹</i>Salary</div><div><i>👤</i>Profile</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>Amount in hand and paid status come first, big and clear.</li><li><span class="n">2</span>The month as word-chips (tap one to see those dates) instead of a 7-column table.</li><li><span class="n">3</span>"Ask owner" sends a question about this payslip (next flow).</li></ol>
+    </div>
+  </div>
+</section>
+
+<!-- ============ P2 ============ -->
+<section class="flow" id="p2">
+  <h2>2 · Staff: "Why this amount?"</h2>
+  <p class="why">Tapping any line explains it with the actual dates. If something still looks wrong, Pooja sends the owner a ready-made question; the owner sees it with the payslip attached.</p>
+  <div class="steps">
+    <div class="step">
+      <h3><span class="tag after">NEW</span>Tap "2 absent"</h3>
+      <div class="phone"><div class="sb"><span>10:04</span><span>●●● 4G</span></div>
+        <div class="scr full">
+          <div class="dim"></div>
+          <div class="sheet" style="top:170px">
+            <div class="grab"></div>
+            <b style="font-size:15px">2 days absent in September</b>
+            <p class="small muted">No check-in on these days, so they are not paid. <span class="n">1</span></p>
+            <div class="list">
+              <div class="item"><span class="avatar" style="background:var(--redLight);color:var(--red)">✕</span><span class="name">Thu, 4 Sep<small>No check-in · not marked by owner</small></span></div>
+              <div class="item"><span class="avatar" style="background:var(--redLight);color:var(--red)">✕</span><span class="name">Thu, 18 Sep<small>Owner marked absent · "didn't come"</small></span></div>
+            </div>
+            <div class="example">Each absent day = ₹400 less (₹12,000 ÷ 30).</div>
+            <span class="btn block line" style="margin-top:8px">I was at work on one of these days</span>
+          </div>
+        </div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>The real dates and who marked them, plus what each day costs.</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">NEW</span>Ask the owner</h3>
+      <div class="phone"><div class="sb"><span>10:05</span><span>●●● 4G</span></div>
+        <div class="scr full">
+          <div class="dim"></div>
+          <div class="sheet" style="top:150px">
+            <div class="grab"></div>
+            <b style="font-size:15px">Something's wrong with your payslip?</b>
+            <div class="label">What's the problem? <span class="n">1</span></div>
+            <div class="summary"><span class="chip sel">I was at work on 4 Sep</span><span class="chip">Advance amount is wrong</span><span class="chip">Bonus missing</span><span class="chip">Something else</span></div>
+            <div class="field"><small>Add a note (optional)</small>I forgot to check in, I was at the counter all day.</div>
+            <p class="small muted">Rakesh ji will see this with your payslip. You'll get a message when he answers. <span class="n">2</span></p>
+            <span class="btn block">Send to owner</span>
+          </div>
+        </div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>Common problems as one-tap choices, so it's quick and polite.</li><li><span class="n">2</span>Says what happens next.</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">NEW</span>Owner sees it in "Needs your OK"</h3>
+      <div class="phone"><div class="sb"><span>10:30</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><small>1 waiting</small><b>Needs your OK</b></div></div>
+          <div class="card">
+            <div class="row"><span class="avatar">PS</span><div class="grow"><h4>Pooja asks about her September payslip</h4><p>"I was at work on 4 Sep. I forgot to check in, I was at the counter all day."</p></div></div>
+            <p class="small" style="margin:6px 0">If you mark 4 Sep present, her pay goes from ₹10,000 to <b>₹10,400</b>. <span class="n">1</span></p>
+            <div class="row"><span class="btn line" style="flex:1">Keep as is</span><span class="btn" style="flex:1.3">Mark present & update</span></div>
+          </div>
+          <p class="small muted">Updating sends Pooja a new payslip marked "Updated on 5 Oct: 4 Sep marked present (+₹400)". <span class="n">2</span></p>
+        </div>
+        <div class="tabs"><div class="on"><i>📖</i>Today</div><div><i>👥</i>Staff</div><div><div class="mic">🎤</div><div class="mic-label">Ask Mint</div></div><div><i>₹</i>Salary</div><div><i>☰</i>More</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>The owner sees exactly how much the fix changes the pay before deciding.</li><li><span class="n">2</span>"Revision 2" becomes a plain "Updated on … : what changed".</li></ol>
+    </div>
+  </div>
+</section>
+
+<!-- ============ P3 ============ -->
+<section class="flow" id="p3">
+  <h2>3 · Owner: check and send payslips</h2>
+  <p class="why">After approving salary (Salary day, step 2), the owner sees every payslip, can open one to check it, and sends all of them on WhatsApp in one tap, then sees who got them.</p>
+  <div class="steps">
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>Payslips for September</h3>
+      <div class="phone"><div class="sb"><span>11:00</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><small>Salary · September 2026</small><b>Payslips</b></div></div>
+          <div class="card"><div class="row"><div class="grow"><h4>6 payslips ready</h4><p>Total in hand ₹65,400</p></div></div>
+            <span class="btn block" style="margin-top:8px;background:#25d366">Send all 6 on WhatsApp <span class="n">1</span></span>
+            <p class="small muted" style="margin-top:4px">Suresh has no WhatsApp: he'll see it in the app.</p></div>
+          <div class="list">
+            <div class="item"><span class="avatar">PS</span><span class="name">Pooja Singh<small>27½ days · −₹2,000 advance</small></span><b>₹10,000</b></div>
+            <div class="item"><span class="avatar">RK</span><span class="name">Ramesh Kumar<small>30 days · +₹1,000 bonus</small></span><b>₹15,000</b></div>
+            <div class="item"><span class="avatar">AV</span><span class="name">Amit Verma<small>26 days × ₹500</small></span><b>₹13,000</b></div>
+            <div class="item"><span class="avatar">SY</span><span class="name">Suresh Yadav<small style="color:var(--amberDark)">App only · no WhatsApp</small></span><b>₹9,800</b></div>
+          </div>
+          <p class="small muted" style="text-align:center">Tap a name to see their payslip before sending. <span class="n">2</span></p>
+        </div>
+        <div class="tabs"><div><i>📖</i>Today</div><div><i>👥</i>Staff</div><div><div class="mic">🎤</div><div class="mic-label">Ask Mint</div></div><div class="on"><i>₹</i>Salary</div><div><i>☰</i>More</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>One green button sends everyone their own payslip.</li><li><span class="n">2</span>Each row shows the one thing that makes this month different (bonus, advance, days).</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>After sending</h3>
+      <div class="phone"><div class="sb"><span>11:05</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><small>Salary · September 2026</small><b>Payslips</b></div></div>
+          <div class="card mint"><h4>✓ Sent to 5 on WhatsApp, 1 in the app</h4><p>Next: pay everyone, then tap "I've paid".</p></div>
+          <div class="list">
+            <div class="head"><span class="name">Name</span><span>Payslip <span class="n">1</span></span></div>
+            <div class="item"><span class="avatar">PS</span><span class="name">Pooja Singh<small>₹10,000</small></span><span class="chip p">Seen ✓✓</span></div>
+            <div class="item"><span class="avatar">RK</span><span class="name">Ramesh Kumar<small>₹15,000</small></span><span class="chip">Delivered ✓</span></div>
+            <div class="item"><span class="avatar">AV</span><span class="name">Amit Verma<small>₹13,000</small></span><span class="chip a">Not delivered</span></div>
+            <div class="item"><span class="avatar">SY</span><span class="name">Suresh Yadav<small>₹9,800</small></span><span class="chip">In app</span></div>
+          </div>
+          <div class="card amber"><p><b style="color:var(--ink)">Amit's WhatsApp didn't get it.</b> His number may be wrong.</p><div class="row" style="margin-top:6px"><span class="btn line">Send again</span><span class="btn ghost">Check number</span></div> <span class="n">2</span></div>
+        </div>
+        <div class="tabs"><div><i>📖</i>Today</div><div><i>👥</i>Staff</div><div><div class="mic">🎤</div><div class="mic-label">Ask Mint</div></div><div class="on"><i>₹</i>Salary</div><div><i>☰</i>More</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>The owner can see who got it and who opened it.</li><li><span class="n">2</span>Failures are explained with a fix, not hidden.</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>Mark as paid</h3>
+      <div class="phone"><div class="sb"><span>18:30</span><span>●●● 4G</span></div>
+        <div class="scr full">
+          <div class="dim"></div>
+          <div class="sheet" style="top:190px">
+            <div class="grab"></div>
+            <b style="font-size:15px">Have you paid everyone?</b>
+            <p class="small muted">StaffMint doesn't send money. This just records that you paid, so payslips show "Paid". <span class="n">1</span></p>
+            <div class="label">How did you pay?</div>
+            <div class="summary"><span class="chip sel">Cash</span><span class="chip">UPI</span><span class="chip">Bank transfer</span><span class="chip">Mixed</span></div>
+            <div class="field"><small>Paid on</small>Fri, 3 Oct 2026 ▾</div>
+            <p class="small">Staff get a message: <i>"Your September salary of ₹10,000 is marked paid (cash) on 3 Oct."</i> <span class="n">2</span></p>
+            <span class="btn block">Yes, all 6 are paid</span>
+            <p class="small muted" style="text-align:center;margin-top:6px"><u>Paid only some?</u> Choose who.</p>
+          </div>
+        </div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>Clear that this records payment; it doesn't move money.</li><li><span class="n">2</span>The paid date and method go on every payslip, so staff have proof.</li></ol>
+    </div>
+  </div>
+</section>
+
+<!-- ============ P4 ============ -->
+<section class="flow" id="p4">
+  <h2>4 · The PDF payslip</h2>
+  <p class="why">The PDF is what staff keep, show a bank or landlord, and what the CA files. Today it's a wide A4 table with everything in two languages, the total at the bottom and no "paid" information. The new one reads well on a phone and still prints cleanly.</p>
+  <div class="steps">
+    <div class="step" style="width:430px">
+      <h3><span class="tag before">BEFORE</span>Today's PDF (rendered with sample data)</h3>
+      <img src="images/payslip-before-pdf.png" alt="Current payslip PDF" style="width:430px;border:1px solid var(--line);border-radius:12px;background:#fff" />
+      <ol class="notes"><li>No page margins, so text touches the paper edge.</li><li>Net pay is the last row.</li><li>Every line is repeated in English and Hindi, plus two explanations: long and hard to scan.</li><li>No paid date or method; no employee ID or role.</li><li>On a phone it's tiny and half the page is empty.</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step" style="width:430px">
+      <h3><span class="tag after">AFTER</span>New PDF (Hindi version shown)</h3>
+      <div style="width:430px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:26px 28px;font-size:12px;line-height:1.45;box-shadow:0 6px 20px #0001">
+        <div class="row" style="align-items:flex-start;border-bottom:2px solid var(--mint);padding-bottom:10px">
+          <span class="avatar" style="width:40px;height:40px;font-size:14px;border-radius:10px">SM</span>
+          <div class="grow"><b style="font-size:16px">Sharma Medical Store</b><br/><span class="muted">Connaught Place, New Delhi · GSTIN (if added)</span></div>
+          <div style="text-align:right"><b>वेतन पर्ची</b><br/><span class="muted">Payslip · सितंबर 2026</span></div>
+        </div>
+        <div class="row" style="margin:12px 0 4px"><div class="grow"><b style="font-size:14px">पूजा सिंह</b> <span class="muted">· Pooja Singh</span><br/><span class="muted">कैशियर · ID SM-014 · +91 98765 00002</span></div></div>
+        <div style="background:var(--mintFaint);border:1px solid #bfe6d1;border-radius:12px;padding:12px 14px;margin:10px 0;display:flex;align-items:center">
+          <div class="grow"><span class="muted">हाथ में वेतन · In hand <span class="n">1</span></span><br/><b style="font-size:28px;color:var(--mintDark)">₹10,000</b><br/><span class="small muted">दस हज़ार रुपये</span></div>
+          <div style="text-align:right"><span class="chip p" style="font-size:12px">✓ भुगतान हो गया · Paid</span><br/><span class="small muted">3 अक्टूबर 2026 · नकद (Cash)</span> <span class="n">2</span></div>
+        </div>
+        <b>हाज़िरी · Attendance</b> <span class="muted">(30 दिन)</span> <span class="n">3</span>
+        <div class="summary" style="margin:6px 0 10px"><span class="chip p">✓ 23 हाज़िर</span><span class="chip" style="background:#ffe9d6;color:#c2570c">½ 1 आधा दिन</span><span class="chip a">✕ 2 ग़ैरहाज़िर (4, 18 सितं.)</span><span class="chip lv">☂ 1 छुट्टी</span><span class="chip">🛋 4 साप्ताहिक</span></div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <tr><td style="padding:6px 0;border-bottom:1px solid var(--soft)">27½ दिन की सैलरी<br/><span class="muted small">₹12,000 ÷ 30 × 27½</span></td><td style="text-align:right;border-bottom:1px solid var(--soft)">₹11,000</td></tr>
+          <tr><td style="padding:6px 0;border-bottom:1px solid var(--soft)">दिवाली बोनस</td><td style="text-align:right;border-bottom:1px solid var(--soft);color:var(--mintDark)">+ ₹1,000</td></tr>
+          <tr><td style="padding:6px 0;border-bottom:1px solid var(--soft)">एडवांस वापसी<br/><span class="muted small">9 सितं. को लिया ₹2,000</span></td><td style="text-align:right;border-bottom:1px solid var(--soft);color:var(--red)">− ₹2,000</td></tr>
+          <tr><td style="padding:8px 0;font-weight:800">हाथ में वेतन · In hand</td><td style="text-align:right;font-weight:800;font-size:14px">₹10,000</td></tr>
+        </table>
+        <div class="row" style="margin-top:14px;padding-top:10px;border-top:1px dashed var(--line);align-items:flex-end">
+          <div class="grow small muted">सवाल हो तो StaffMint ऐप में "कुछ गलत है?" दबाएँ।<br/>Check this payslip: staffmint.app/v/7K2Q <span class="n">4</span></div>
+          <div style="width:48px;height:48px;background:repeating-linear-gradient(45deg,#1c1a17 0 3px,#fff 3px 6px);border-radius:4px" title="QR"></div>
+        </div>
+        <p class="small muted" style="text-align:center;margin:8px 0 0">Made with StaffMint</p>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>Amount in hand first, with the amount in words (helps when shown to a bank).</li><li><span class="n">2</span>Paid status, date and method, so it works as proof of salary.</li><li><span class="n">3</span>Attendance as short word-chips with the absent dates.</li><li><span class="n">4</span>A link/QR that confirms the payslip is real. Staff's own language first, English only for headings. Same layout prints on A4 with margins.</li></ol>
+    </div>
+  </div>
+</section>
+
+<section class="flow">
+  <h2>Summary</h2>
+  <div class="compare">
+    <div class="b"><b>Today</b>Wide table PDF · net pay last · two languages everywhere · no paid date/method · "Revision 2" · staff can only argue in person · owner can't see who received it.</div>
+    <div class="a"><b>After</b>"In hand ₹10,000 · Paid 3 Oct · Cash" first, in the WhatsApp message, the app and the PDF · one language per person · every cut explained with dates · "Something's wrong?" goes to the owner with the exact effect on pay · "Send all on WhatsApp" with delivered/seen · phone-friendly PDF with a check link.</div>
+  </div>
+  <p class="small muted" style="margin-top:12px">Salary maths doesn't change, only how payslips look, read and travel. New pieces needed later: paid date/method on salary runs, "something's wrong" requests, WhatsApp read status, the check link.</p>
+</section>
+<footer>StaffMint · Payslip mock-up for review</footer>
+</div>
+
+</body>
+</html>
