@@ -180,6 +180,34 @@
   .compare .b { background: var(--redLight); }
   .compare .a { background: var(--mintLight); }
   .compare b { display: block; margin-bottom: 4px; }
+
+  /* User-journey section */
+  .ux { background: #fff; border-radius: 24px; padding: 22px; margin: 0 0 22px; border: 1px solid var(--line); }
+  .ux h2 { margin: 0 0 4px; font-size: 22px; }
+  .ux > p.why { margin: 0 0 14px; color: var(--muted); max-width: 900px; line-height: 1.5; }
+  .personas { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 18px; }
+  .persona { border: 1px solid var(--line); border-radius: 18px; padding: 14px 16px; background: var(--paper); font-size: 14px; line-height: 1.5; }
+  .persona .who { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .persona .face { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-size: 22px; background: var(--mintLight); }
+  .persona b.nm { font-size: 16px; display: block; }
+  .persona ul { margin: 6px 0 0; padding-left: 18px; }
+  table.tasks { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table.tasks th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); padding: 8px; border-bottom: 2px solid var(--line); }
+  table.tasks td { padding: 9px 8px; border-bottom: 1px solid var(--soft); vertical-align: top; line-height: 1.4; }
+  table.tasks td.path { color: var(--muted); font-size: 13px; }
+  .taps { display: inline-block; min-width: 26px; text-align: center; font-weight: 900; border-radius: 8px; padding: 1px 6px; }
+  .taps.b { background: var(--redLight); color: var(--red); }
+  .taps.a { background: var(--mintLight); color: var(--mintDark); }
+  .journey { display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px; margin: 10px 0 18px; }
+  .journey .j { flex: 1 1 150px; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; font-size: 13.5px; line-height: 1.4; position: relative; }
+  .journey .j small { display: block; color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; font-weight: 800; margin-bottom: 3px; }
+  .journey .j.goal { background: var(--mintLight); border-color: #bfe6d1; }
+  .journey .to { align-self: center; color: var(--mint); font-size: 20px; font-weight: 900; }
+  .jtitle { font-weight: 800; font-size: 16px; margin: 14px 0 0; }
+  .jtitle span { font-weight: 500; color: var(--muted); font-size: 14px; }
+  .checklist { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px; }
+  .checklist div { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 13.5px; line-height: 1.45; }
+  .checklist div::before { content: "✓ "; color: var(--mint); font-weight: 900; }
   footer { text-align: center; color: var(--muted); font-size: 13px; margin-top: 30px; }
   @media (max-width: 700px) { header.top h1 { font-size: 22px; } .arrow { display: none; } }
 </style>
@@ -192,6 +220,7 @@
   <p>Design only, nothing in the app has changed yet. Each section is one real task, shown screen by screen in the order a person would tap. <b style="color:#ffd84d">Yellow numbers</b> point at what changed; the notes under each phone explain why.</p>
   <p>Scroll sideways inside a section to follow the flow. Hindi works the same way: every label below has a Hindi version.</p>
   <nav class="toc">
+    <a href="#journeys">Who & what (journeys)</a>
     <a href="#principles">The 6 rules</a>
     <a href="#f1">1 · First day as a new owner</a>
     <a href="#f2">2 · Owner home every day</a>
@@ -206,6 +235,101 @@
     <a href="#f11">11 · Help: tips & Ask Mint</a>
   </nav>
 </header>
+
+
+<section class="ux" id="journeys">
+  <h2>Who uses StaffMint, and what they come to do</h2>
+  <p class="why">Every screen below is designed around two real people and the few things they open the app for. The test for each screen: can they finish their task <b>without help, in under a minute, the first time</b>?</p>
+
+  <div class="personas">
+    <div class="persona">
+      <div class="who"><span class="face">👨🏽‍💼</span><div><b class="nm">Rakesh, shop owner, 45</b><span class="muted">Medical store · 9 staff · Hindi first · busy at the counter</span></div></div>
+      <ul>
+        <li>Opens the app 3–4 times a day, for 30 seconds each, between customers.</li>
+        <li>Wants to know <b>"who came, who didn't"</b> at a glance, and fix it in one tap.</li>
+        <li>Once a month: <b>pay salary</b> without doing maths, and send payslips.</li>
+        <li>Doesn't read long text, doesn't know words like "geofence" or "audit log". Comfortable with WhatsApp and voice notes.</li>
+      </ul>
+    </div>
+    <div class="persona">
+      <div class="who"><span class="face">👩🏽</span><div><b class="nm">Pooja, staff, 24</b><span class="muted">Cashier · cheap Android phone · patchy internet</span></div></div>
+      <ul>
+        <li>Opens the app twice a day: <b>check in, check out</b>. Should take 5 seconds.</li>
+        <li>Sometimes: <b>ask for leave</b>, see <b>how much salary</b> she's earned, and why.</li>
+        <li>Worried about being marked absent by mistake; wants to see what the owner sees.</li>
+        <li>Needs big buttons, clear words, and to know <b>why</b> the app wants location or a selfie.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3 style="margin:0 0 6px">The tasks that matter most: taps today vs after</h3>
+  <table class="tasks">
+    <thead><tr><th>Task</th><th>Who</th><th>Today</th><th>After</th><th>New path</th></tr></thead>
+    <tbody>
+      <tr><td>See who came in today</td><td>Owner</td><td><span class="taps b">0</span> but hard to read</td><td><span class="taps a">0</span></td><td class="path">Opens on Today: "6 of 9 at work" in words</td></tr>
+      <tr><td>Mark someone absent / present</td><td>Owner</td><td><span class="taps b">2</span> saves by accident</td><td><span class="taps a">3</span> or say it</td><td class="path">Status ▾ → pick → Save (Undo 5 s) · or Ask Mint: "Raju absent"</td></tr>
+      <tr><td>Approve a leave request</td><td>Owner</td><td><span class="taps b">3</span></td><td><span class="taps a">2</span></td><td class="path">Today → Review → Approve</td></tr>
+      <tr><td>See one person's month</td><td>Owner</td><td><span class="taps b">?</span> unlabelled icon, sideways scroll</td><td><span class="taps a">2</span></td><td class="path">Month → tap the person</td></tr>
+      <tr><td>Add your CA</td><td>Owner</td><td><span class="taps b">4</span> + scroll, under Settings</td><td><span class="taps a">3</span></td><td class="path">Staff → Team &amp; access → Add your CA</td></tr>
+      <tr><td>Make someone a manager</td><td>Owner</td><td><span class="taps b">✕</span> not possible</td><td><span class="taps a">4</span></td><td class="path">Staff → Team &amp; access → Make manager → confirm</td></tr>
+      <tr><td>Change "late after 15 min"</td><td>Owner</td><td><span class="taps b">2</span> + long scroll</td><td><span class="taps a">2</span> or search</td><td class="path">More → Attendance rules (shows an example)</td></tr>
+      <tr><td>Pay this month's salary</td><td>Owner</td><td><span class="taps b">4</span> unclear steps</td><td><span class="taps a">3</span> numbered</td><td class="path">Salary → Approve → "I've paid"</td></tr>
+      <tr><td>Check in</td><td>Staff</td><td><span class="taps b">1</span> confusing messages</td><td><span class="taps a">1</span></td><td class="path">Home → Check in (says why location is needed)</td></tr>
+      <tr><td>Ask for leave</td><td>Staff</td><td><span class="taps b">4</span></td><td><span class="taps a">4</span> with balance shown</td><td class="path">Leave → dates → type → Send (sees leave left first)</td></tr>
+      <tr><td>"Why is my salary this much?"</td><td>Staff</td><td><span class="taps b">?</span></td><td><span class="taps a">1</span></td><td class="path">Salary tab: every line explained in words</td></tr>
+    </tbody>
+  </table>
+  <p class="small muted" style="margin-top:6px">"Mark someone" gets one extra tap on purpose: a Save button stops accidental changes to someone's attendance. Voice (Ask Mint) stays the fastest way.</p>
+
+  <p class="jtitle">Journey A · Rakesh's first 5 minutes <span>(new owner, never used an app like this)</span></p>
+  <div class="journey">
+    <div class="j"><small>Opens app</small>Logs in with OTP, names his shop, picks location.</div><div class="to">→</div>
+    <div class="j"><small>Lands on Home</small>Sees "Let's get your shop running · 1 of 5". Knows what to do next.</div><div class="to">→</div>
+    <div class="j"><small>Taps "Add"</small>Picks 9 staff from contacts in one go. Sees "each gets a WhatsApp invite".</div><div class="to">→</div>
+    <div class="j"><small>Back on Home</small>"2 of 9 joined · Remind". Rows say "hasn't installed the app".</div><div class="to">→</div>
+    <div class="j goal"><small>Done</small>Feels in control. Knows staff will appear as they check in. No help needed.</div>
+  </div>
+
+  <p class="jtitle">Journey B · Rakesh's morning check <span>(30 seconds at the counter)</span></p>
+  <div class="journey">
+    <div class="j"><small>Notification 9:30</small>"6 of 9 came in · 1 late · Amit asked for leave".</div><div class="to">→</div>
+    <div class="j"><small>Opens Today</small>Summary in words at the top, list with "In at" times below.</div><div class="to">→</div>
+    <div class="j"><small>Taps "Review"</small>"Amit wants leave Wed–Thu · 4 left". Taps Approve.</div><div class="to">→</div>
+    <div class="j"><small>Taps "Late ▾" on Pooja</small>"Late bus" → Present → Save. Sees Undo.</div><div class="to">→</div>
+    <div class="j goal"><small>Done</small>Back to customers. Nothing left waiting.</div>
+  </div>
+
+  <p class="jtitle">Journey C · Pooja's day <span>(staff)</span></p>
+  <div class="journey">
+    <div class="j"><small>8:55 near shop</small>"You're 400 m from the shop" + Try again. Understands why it's grey.</div><div class="to">→</div>
+    <div class="j"><small>9:02 inside</small>"You're at the shop ✓" → taps Check in → selfie → "Marked present 9:02".</div><div class="to">→</div>
+    <div class="j"><small>Lunch</small>Opens Salary: "Earned till today ₹3,387", each line explained.</div><div class="to">→</div>
+    <div class="j"><small>Needs 2 days off</small>Leave → sees "4 paid left" → picks dates → Send.</div><div class="to">→</div>
+    <div class="j goal"><small>Done</small>Trusts the app: she can see the same numbers the owner sees.</div>
+  </div>
+
+  <p class="jtitle">Journey D · Salary day <span>(owner, once a month)</span></p>
+  <div class="journey">
+    <div class="j"><small>1st of month</small>Notification: "September salary is ready to check".</div><div class="to">→</div>
+    <div class="j"><small>Step 1</small>"Suresh has 3 days with no attendance. Count as absent?" → Yes.</div><div class="to">→</div>
+    <div class="j"><small>Step 2</small>"Approve & send payslips" → staff get them on WhatsApp.</div><div class="to">→</div>
+    <div class="j"><small>Step 3</small>Pays cash/UPI as usual → taps "I've paid".</div><div class="to">→</div>
+    <div class="j goal"><small>Done</small>No calculator, no arguments: every payslip line explains itself.</div>
+  </div>
+
+  <h3 style="margin:6px 0 8px">Checklist every screen must pass</h3>
+  <div class="checklist">
+    <div>One main job per screen, and its main button says that job as a verb ("Approve", "Check in", "I've paid").</div>
+    <div>Readable by someone who never saw it: plain Hindi/English, no codes or technical words.</div>
+    <div>Every icon that does something has a word with it.</div>
+    <div>Anything tappable looks tappable (button shape, ▾ or ›).</div>
+    <div>Before a change: show what will happen ("salary will be ₹10,000"). After: confirm, and offer Undo.</div>
+    <div>Empty or blocked states say why and what to do next, with a button.</div>
+    <div>Big tap targets (at least 48 px) for use with one thumb at a counter.</div>
+    <div>Works the same in Hindi; words fit without cutting.</div>
+    <div>Fastest path for experts too: voice with Ask Mint, search in More.</div>
+  </div>
+</section>
 
 <div class="principles" id="principles">
   <div><b>1. Words, not just icons</b>Every button that matters has a word under or next to it. No mystery grid or mic icons.</div>
