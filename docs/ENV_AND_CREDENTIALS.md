@@ -130,7 +130,7 @@ Set `PAYMENT_PROVIDER=razorpay`.
 | Variable | Notes |
 |---|---|
 | `EMAIL_PROVIDER=resend`, `RESEND_API_KEY`, `EMAIL_FROM` | Domain verified in Resend. **Needed for admin app sign-in codes** in production |
-| `GEO_PROVIDER=google`, `GOOGLE_MAPS_API_KEY` | Geocoding API (reverse geocodes the shop pin into an address) |
+| `GEO_PROVIDER=google`, `GOOGLE_MAPS_API_KEY` | 🟡 Server key (keep it on the server, restrict by IP). In Google Cloud enable **Geocoding API** (pin → address) and **Places API (New)** (search "your shop, market or area" in the location picker). Until set, `GEO_PROVIDER=mock` answers with a few Delhi places |
 | `SENTRY_DSN` | 🟡 Sentry project DSN (errors) |
 | `ANALYTICS_PROVIDER=posthog`, `POSTHOG_API_KEY`, `POSTHOG_HOST` | PostHog project key |
 | `SUPPORT_WHATSAPP` | Your support WhatsApp number shown in the app |
@@ -146,7 +146,9 @@ Set `PAYMENT_PROVIDER=razorpay`.
 | Item | Notes |
 |---|---|
 | `API_BASE_URL` in `mobile/config/*.json` | Passed with `--dart-define-from-file`; no default, the app stops at startup if missing. `local.json` = emulator → laptop, `production.json` = live server |
-| `--dart-define=MAP_TILE_URL=...` | 🟡 Production map tiles (OpenStreetMap public tiles are for dev only); e.g. MapTiler or Stadia key |
+| `--dart-define=GOOGLE_MAPS=true` | 🟡 Turns on real Google Maps in the shop location picker (Android/iOS). Leave it off for web, tests and local dev: the picker then uses the OpenStreetMap-style map |
+| `MAPS_API_KEY` (Android: `-PMAPS_API_KEY=...` or env; iOS: `ios/Flutter/Maps.xcconfig` with `MAPS_API_KEY = ...`, gitignored) | 🟡 App key for the map itself. In Google Cloud enable **Maps SDK for Android** and **Maps SDK for iOS**, restrict it to package `com.staffmint.app` + your SHA-1 and the iOS bundle id. Showing the map in the mobile apps is free; the builds use `FAKE_MAPS_API_KEY` until you add it |
+| `--dart-define=MAP_TILE_URL=...` | ⚪ Only for the fallback map (web/dev). OpenStreetMap public tiles are for dev only; e.g. MapTiler or Stadia key |
 | `android/app/google-services.json` | 🔴 Real Firebase file (see Push above) |
 | `android/key.properties` + upload keystore `.jks` | 🔴 Play Store signing (`keytool -genkey ...`). Both are gitignored; **back them up** |
 | App icon and splash | 🟡 Still the Flutter defaults; send a 1024×1024 logo |

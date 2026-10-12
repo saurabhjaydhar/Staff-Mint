@@ -115,6 +115,8 @@ Phone: E.164 (`+919876543210`) or 10-digit Indian (`9876543210`, normalised serv
 | GET | /holidays | `?year` | `{id,date,name}[]` |
 | POST | /holidays | `{date, name}` | |
 | DELETE | /holidays/:id | | |
+| GET | /geo/search | `?q (2–100 chars)&lat?&lng?&lang?=en\|hi` (any signed-in user; 30/min) | `{name, address, lat, lng}[]` — shops, markets and areas for the location picker, nearest to `lat,lng` first |
+| GET | /geo/reverse | `?lat&lng&lang?` (any signed-in user; 30/min) | `{address: string\|null}` — address of the spot under the pin |
 
 ### Dashboard (owner/manager)
 | GET | /dashboard/today | — | `{date, counts:{total,present,late,absent,onLeave,notMarked,checkedIn}, needsAction:{leaveRequests:(Leave & {balance:{left,after}|null})[], punchApprovals:{attendanceId,employeeName,punch,facePhotoUrl}[], faceEnrollments:{employeeId,employeeName,status,photoUrl,enrolledAt}[], flags:{employeeName,date,flags}[]}, plan:{staffCount, staffLimit}, setup: {steps:{business,staffAdded,staffJoined,salarySet,teamAdded}, done, total:5, staff, joined, notJoined}|null}` (setup: owners only — the Home checklist; `balance`: paid/sick leaves left before and after approving) |
