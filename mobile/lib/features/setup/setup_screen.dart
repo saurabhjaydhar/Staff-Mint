@@ -249,7 +249,14 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _title(s.setupLocationTitle, s.setupLocationHint),
-            LocationPicker(value: _pin, radiusM: 100, autoLocate: true, onChanged: (p) => setState(() => _pin = p)),
+            LocationPicker(
+              value: _pin,
+              radiusM: 100,
+              autoLocate: true,
+              address: _address.text,
+              onChanged: (p) => setState(() => _pin = p),
+              onAddress: (a) => setState(() => _address.text = a),
+            ),
             const SizedBox(height: 16),
             TextField(
               controller: _address,

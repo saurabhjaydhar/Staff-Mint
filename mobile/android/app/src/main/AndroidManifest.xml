@@ -52,6 +52,10 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- Google Maps (shop location picker). Key comes from MAPS_API_KEY at build time. -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${mapsApiKey}" />
         <!-- FCM: default channel for StaffMint alerts. -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"

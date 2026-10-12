@@ -120,7 +120,13 @@ class _BranchEditScreenState extends ConsumerState<BranchEditScreen> {
             decoration: InputDecoration(labelText: s.branchName),
           ),
           const SizedBox(height: 12),
-          LocationPicker(value: _pin, radiusM: _radius, onChanged: (p) => setState(() => _pin = p)),
+          LocationPicker(
+            value: _pin,
+            radiusM: _radius,
+            address: _address.text,
+            onChanged: (p) => setState(() => _pin = p),
+            onAddress: (a) => setState(() => _address.text = a),
+          ),
           const SizedBox(height: 12),
           Text(s.radiusLabel(_radius.round()), style: Theme.of(context).textTheme.titleMedium),
           Slider(

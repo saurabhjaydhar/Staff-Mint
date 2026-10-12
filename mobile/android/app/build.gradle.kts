@@ -40,6 +40,9 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // Google Maps key for the shop location picker: -PMAPS_API_KEY=... or env MAPS_API_KEY.
+        manifestPlaceholders["mapsApiKey"] =
+            (project.findProperty("MAPS_API_KEY") as String?) ?: System.getenv("MAPS_API_KEY") ?: "FAKE_MAPS_API_KEY"
     }
 
     signingConfigs {

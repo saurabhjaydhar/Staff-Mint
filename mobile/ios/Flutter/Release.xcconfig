@@ -1,1 +1,4 @@
 #include "Generated.xcconfig"
+// Google Maps key (shop location picker). Real key goes in Maps.xcconfig (not committed).
+MAPS_API_KEY = FAKE_MAPS_API_KEY
+#include? "Maps.xcconfig"

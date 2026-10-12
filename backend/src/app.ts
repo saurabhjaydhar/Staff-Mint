@@ -29,6 +29,7 @@ import { dashboardRouter } from './modules/dashboard/routes.js';
 import { adminAuthRouter, adminRouter } from './modules/admin/routes.js';
 import { filesRouter } from './modules/files/routes.js';
 import { accountsRouter } from './modules/accounts/routes.js';
+import { geoRouter } from './modules/geo/routes.js';
 import { enabledFlags } from './modules/config/service.js';
 import { providerName } from './providers/registry.js';
 
@@ -69,6 +70,7 @@ export function createApp() {
   api.use('/', profileRouter);
   api.use('/me', meRouter);
   api.use('/', companyRouter);
+  api.use('/', geoRouter);
   api.use('/dashboard', dashboardRouter);
   api.use('/employees', employeesRouter);
   api.use('/imports', importsRouter);

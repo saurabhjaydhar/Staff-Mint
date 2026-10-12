@@ -123,9 +123,18 @@ export interface EmailProvider {
 }
 
 // ---------- Geo ----------
+export interface GeoPlace {
+  name: string;
+  address: string;
+  lat: number;
+  lng: number;
+}
+
 export interface GeoProvider {
   readonly name: string;
-  reverseGeocode(lat: number, lng: number): Promise<{ address: string | null }>;
+  reverseGeocode(lat: number, lng: number, language?: 'en' | 'hi'): Promise<{ address: string | null }>;
+  /** Shops, markets and areas matching what the owner typed, nearest to [near] first. */
+  search(query: string, opts?: { near?: { lat: number; lng: number }; language?: 'en' | 'hi' }): Promise<GeoPlace[]>;
 }
 
 // ---------- Analytics ----------

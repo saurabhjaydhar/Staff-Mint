@@ -10,6 +10,7 @@ import 'services/auth_api.dart';
 import 'services/company_api.dart';
 import 'services/employees_api.dart';
 import 'services/leave_api.dart';
+import 'services/geo_api.dart';
 import 'services/me_api.dart';
 import 'services/misc_api.dart';
 import 'services/money_api.dart';
@@ -32,6 +33,7 @@ final companyApiProvider = Provider((ref) => CompanyApi(ref.watch(apiClientProvi
 final employeesApiProvider = Provider((ref) => EmployeesApi(ref.watch(apiClientProvider)));
 final attendanceApiProvider = Provider((ref) => AttendanceApi(ref.watch(apiClientProvider)));
 final leaveApiProvider = Provider((ref) => LeaveApi(ref.watch(apiClientProvider)));
+final geoApiProvider = Provider((ref) => GeoApi(ref.watch(apiClientProvider)));
 final moneyApiProvider = Provider((ref) => MoneyApi(ref.watch(apiClientProvider)));
 final payrollApiProvider = Provider((ref) => PayrollApi(ref.watch(apiClientProvider)));
 final reportsApiProvider = Provider((ref) => ReportsApi(ref.watch(apiClientProvider)));

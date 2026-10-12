@@ -15,6 +15,11 @@ class Env {
     defaultValue: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
   );
 
+  /// Use Google Maps for the shop location picker (Android/iOS builds that carry a Maps key:
+  /// `--dart-define=GOOGLE_MAPS=true` plus `MAPS_API_KEY` for the native build). Off → the
+  /// OpenStreetMap-style fallback (web, tests, local dev).
+  static const bool googleMaps = bool.fromEnvironment('GOOGLE_MAPS');
+
   /// Package name sent to the tile server as the user agent (OSM policy).
   static const String userAgentPackageName = 'com.staffmint.app';
 }

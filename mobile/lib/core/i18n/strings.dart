@@ -1532,6 +1532,29 @@ class S {
   String get changeLink => _t('change', 'बदलें');
   String get addAndInvite => _t('Add & send invite', 'जोड़ें और बुलावा भेजें');
 
+  // ------------------------------------------------------------ Shop map
+  String get shopLocationTitle => _t('Shop location', 'दुकान की लोकेशन');
+  String get searchPlaceHint => _t('Search your shop, market or area', 'दुकान, बाज़ार या इलाक़ा खोजें');
+  String get noPlacesFound =>
+      _t('No places found. Try the market or area name.', 'कुछ नहीं मिला। बाज़ार या इलाक़े का नाम लिखकर देखें।');
+  String get moveMapHint => _t('Move the map to put the pin on your shop', 'नक्शा खिसकाकर पिन अपनी दुकान पर रखें');
+  String get findingAddress => _t('Finding address…', 'पता ढूँढ रहे हैं…');
+  String get useThisLocation => _t('Use this location', 'यही लोकेशन रखें');
+  String get mapView => _t('Map', 'नक्शा');
+  String get satelliteView => _t('Satellite', 'सैटेलाइट');
+  String youAreFromPin(int m) => _t('You are $m m from the pin', 'आप पिन से $m मीटर दूर हैं');
+  String get youAreInside => _t('You are inside the circle', 'आप घेरे के अंदर हैं');
+  String get mapLoadFailed => _t(
+    'Map didn’t load. Check internet — you can still use your current location.',
+    'नक्शा नहीं खुला। इंटरनेट देखें — अपनी अभी की लोकेशन फिर भी लगा सकते हैं।',
+  );
+  String get setShopLocation => _t('Set your shop location', 'दुकान की लोकेशन लगाएँ');
+  String get setShopLocationHint =>
+      _t('Staff can check in only near this spot.', 'स्टाफ़ सिर्फ़ इस जगह के पास ही चेक-इन कर पाएँगे।');
+  String get findOnMap => _t('Find on map', 'नक्शे पर ढूँढें');
+  String get changeOnMap => _t('Change on map', 'नक्शे पर बदलें');
+  String get myLocation => _t('My location', 'मेरी लोकेशन');
+
   // ------------------------------------------------------- Employee home
   String shiftShort(String a, String b) => _t('Shift $a – $b', 'शिफ़्ट $a – $b');
   Bi get atShop => _b('At shop', 'दुकान पर');
