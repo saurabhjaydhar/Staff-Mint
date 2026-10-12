@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StaffMint · History of changes: before vs after</title>
+<style>
+  body { margin: 0; background: #FFFDF7; color: #1C1A17; font-family: Mukta, "Noto Sans", system-ui, sans-serif; }
+  main { max-width: 1200px; margin: 0 auto; padding: 32px 20px 60px; }
+  h1 { font-size: 34px; margin: 0 0 6px; }
+  .sub { color: #7B7262; margin: 0 0 28px; font-size: 18px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 28px; }
+  .col h2 { display: inline-block; font-size: 16px; color: #fff; padding: 4px 14px; border-radius: 999px; margin: 0 0 12px; }
+  .before h2 { background: #D64545; } .after h2 { background: #1E9E64; }
+  .col img { width: 100%; border-radius: 28px; border: 8px solid #1C1A17; box-sizing: border-box; }
+  ul { padding-left: 20px; line-height: 1.5; font-size: 17px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>History of changes: before vs after</h1>
+  <p class="sub">Real screenshots of the app (More → History of changes). The same entry, "Sunil Kumar added", in each.</p>
+  <div class="grid">
+    <section class="col before">
+      <h2>Before</h2>
+      <img src="images/history/before.png" alt="Old audit log with action codes and raw JSON">
+      <ul>
+        <li>Rows show codes like <code>employee.create · employee</code>.</li>
+        <li>Tapping shows raw JSON: ids, nulls, <code>"ratePaise": 1200000</code>.</li>
+        <li>No grouping by day, no filters.</li>
+      </ul>
+    </section>
+    <section class="col after">
+      <h2>After</h2>
+      <img src="images/history/after-en.png" alt="New history: plain sentences grouped by day, tap shows what changed">
+      <ul>
+        <li>One sentence per change: "Sunil Kumar added", "Raju: 1 Oct set to Absent".</li>
+        <li>"by Rakesh Sharma · 10:26 PM" under each; grouped by Today / Yesterday / date.</li>
+        <li>Tap shows what changed: "Salary: ₹12,000 / month · Job: Helper".</li>
+        <li>Filters: All, Attendance, Leave, Salary, Staff, Shop rules, Team.</li>
+      </ul>
+    </section>
+    <section class="col after">
+      <h2>After · हिन्दी</h2>
+      <img src="images/history/after-hi.png" alt="New history in Hindi">
+      <ul>
+        <li>Hindi mode is all Hindi: "Sunil Kumar जोड़े गए".</li>
+        <li>"Rakesh Sharma ने · रात 10:26".</li>
+        <li>Same filters and day groups.</li>
+      </ul>
+    </section>
+  </div>
+</main>
+</body>
+</html>
