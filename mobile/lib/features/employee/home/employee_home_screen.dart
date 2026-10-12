@@ -14,7 +14,6 @@ import '../../../core/utils/location.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/bilingual.dart';
 import '../../../core/widgets/common.dart';
-import '../../../core/widgets/month_dots.dart';
 import '../../../core/widgets/skeleton.dart';
 import '../../../core/widgets/success_screen.dart';
 import '../../accounts/accounts_screen.dart' show AccountAlerts, BusinessSwitchChip;
@@ -26,9 +25,9 @@ import '../punch/punch_service.dart';
 import '../punch/punch_state.dart';
 import 'check_in_button.dart';
 
-/// Employee home: GPS is fetched as soon as the screen opens, two chips say
-/// "at shop?" and "on time?", one big button checks in, and a full-screen
-/// success confirms it (with an offline variant).
+/// Employee home: the shift in words ("Started 12 minutes ago", never "848
+/// min late"), where they are and why it matters, one big button that says
+/// what it does, a clear path when they're away, and the month in words.
 class EmployeeHomeScreen extends ConsumerStatefulWidget {
   const EmployeeHomeScreen({super.key});
 
@@ -273,10 +272,12 @@ class _EmployeeHomeScreenState extends ConsumerState<EmployeeHomeScreen> {
       PunchButtonState.completed => s.dayComplete,
     };
     final subtitle = [
+      ?(session.activeMembership?.companyName ?? session.company?.name),
       Dates.weekdayShort(DateTime.now(), s.languageCode),
-      if (shift != null)
-        s.shiftShort(Dates.hhmmToDisplay(shift.start, s.languageCode), Dates.hhmmToDisplay(shift.end, s.languageCode)),
     ].join(' · ');
+    final firstName = (session.employee?.name ?? session.user?.name ?? '').split(' ').first;
+    final away = _awayMeters(info);
+    final selfie = session.company?.settings.selfieRequired ?? true;
 
     return Scaffold(
       body: SafeArea(
@@ -289,7 +290,7 @@ class _EmployeeHomeScreenState extends ConsumerState<EmployeeHomeScreen> {
           },
           padding: const EdgeInsets.only(bottom: 24),
           children: [
-            ScreenHeader(subtitle: subtitle, title: s.hello(session.employee?.name ?? session.user?.name ?? '')),
+            ScreenHeader(subtitle: subtitle, title: s.namaste(firstName)),
             const BusinessSwitchChip(),
             const AccountAlerts(),
             if (session.company?.settings.faceMatchPolicy == 'review' && session.employee?.faceStatus == 'none')
@@ -324,22 +325,11 @@ class _EmployeeHomeScreenState extends ConsumerState<EmployeeHomeScreen> {
                   ],
                 ),
               ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(child: _locationChip(s, info)),
-                    if (_timeChip(s, record, shift) case final chip?) ...[
-                      const SizedBox(width: 8),
-                      Expanded(child: chip),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 40),
+            if (_shiftCard(s, record, shift) case final card?)
+              Padding(padding: const EdgeInsets.fromLTRB(16, 12, 16, 0), child: card),
+            if (buttonState != PunchButtonState.completed)
+              Padding(padding: const EdgeInsets.fromLTRB(16, 8, 16, 0), child: _locationCard(s, info)),
+            const SizedBox(height: 36),
             Center(
               child: today.isLoading && !today.hasValue
                   ? const SkeletonBox(width: 220, height: 220, radius: 110)
@@ -347,6 +337,7 @@ class _EmployeeHomeScreenState extends ConsumerState<EmployeeHomeScreen> {
                       state: buttonState,
                       busy: _busy,
                       busyLabel: _busyLabel,
+                      checkInHint: selfie ? s.checkInHintSelfie : s.checkInHint,
                       onPressed: () => _punch(buttonState, info),
                     ),
             ),
@@ -382,128 +373,203 @@ class _EmployeeHomeScreenState extends ConsumerState<EmployeeHomeScreen> {
                   style: const TextStyle(color: AppColors.red),
                 ),
               ),
-            const Padding(padding: EdgeInsets.fromLTRB(16, 18, 16, 0), child: _MonthStrip()),
+            if (away != null && buttonState == PunchButtonState.checkIn)
+              Card(
+                key: const Key('workingOutside'),
+                margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                child: ListTile(
+                  leading: const Icon(Icons.local_shipping_outlined),
+                  title: Text(s.workingOutside),
+                  trailing: Text(
+                    '${s.askOwnerAllow} ›',
+                    style: const TextStyle(color: AppColors.mintDark, fontWeight: FontWeight.w800),
+                  ),
+                  onTap: () => showDialog<void>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: Text(s.workingOutside),
+                      content: Text(s.workingOutsideBody),
+                      actions: [FilledButton(onPressed: () => Navigator.pop(ctx), child: Text(s.ok))],
+                    ),
+                  ),
+                ),
+              ),
+            const Padding(padding: EdgeInsets.fromLTRB(16, 18, 16, 0), child: _MonthSummary()),
           ],
         ),
       ),
     );
   }
 
-  Widget _locationChip(S s, TodayInfo? info) {
+  /// Metres from the shop when outside its area; null when inside or unknown.
+  num? _awayMeters(TodayInfo? info) {
     final g = info?.branch?.location;
     final loc = _loc;
-    if (_locating && loc == null) return _StatusTile(icon: Icons.my_location_rounded, label: s.locating);
+    if (g == null || loc == null) return null;
+    final d = distanceMeters(loc.lat, loc.lng, g.lat, g.lng);
+    return d <= (info?.branch?.radiusM ?? 100) ? null : d;
+  }
+
+  /// Where they are, and why it matters: "You're at the shop ✓ · We check
+  /// this so attendance is fair", or "You're 400 m from the shop" with a fix.
+  Widget _locationCard(S s, TodayInfo? info) {
+    final loc = _loc;
+    final g = info?.branch?.location;
+    final askOwner = ref.read(authControllerProvider).company?.settings.outsideGeofencePolicy == 'request_approval';
     if (_locFailed && loc == null) {
-      return _StatusTile(icon: Icons.location_off_rounded, label: s.gpsOff, color: AppColors.red, onTap: _prefetch);
+      return _InfoCard(
+        key: const Key('locationCard'),
+        icon: Icons.location_off_rounded,
+        color: AppColors.red,
+        title: s.locationOffTitle,
+        body: s.locationOffBody,
+        actions: [
+          TextButton(onPressed: _prefetch, child: Text(s.tryAgain)),
+          TextButton(onPressed: _locationHelp, child: Text(s.locationProblem)),
+        ],
+      );
     }
-    if (loc == null) return _StatusTile(icon: Icons.my_location_rounded, label: s.locating);
-    if (g == null) {
-      return _StatusTile(
+    if (loc == null || (_locating && g == null)) {
+      return _InfoCard(
+        key: const Key('locationCard'),
+        icon: Icons.my_location_rounded,
+        color: AppColors.muted,
+        title: s.findingYou,
+        body: s.locationWhy,
+      );
+    }
+    final away = _awayMeters(info);
+    if (away == null) {
+      return _InfoCard(
+        key: const Key('locationCard'),
         icon: Icons.location_on_rounded,
-        label: s.gpsReady,
-        detail: s.accuracy(loc.accuracyM),
         color: AppColors.mint,
+        title: '${s.atShopTitle} ✓',
+        body: s.locationWhy,
         onTap: _prefetch,
       );
     }
-    final d = distanceMeters(loc.lat, loc.lng, g.lat, g.lng);
-    final inside = d <= (info?.branch?.radiusM ?? 100);
-    return _StatusTile(
-      key: const Key('locationChip'),
-      icon: inside ? Icons.location_on_rounded : Icons.wrong_location_rounded,
-      label: inside ? s.atShop : s.awayFromShop,
-      detail: s.metersShort(d),
-      color: inside ? AppColors.mint : AppColors.red,
-      onTap: _prefetch,
+    return _InfoCard(
+      key: const Key('locationCard'),
+      icon: Icons.wrong_location_rounded,
+      color: AppColors.red,
+      title: s.awayTitle(away),
+      body: askOwner ? s.awayBodyAsk : s.awayBody,
+      actions: [
+        TextButton(key: const Key('locationRetry'), onPressed: _prefetch, child: Text(s.tryAgain)),
+        TextButton(onPressed: _locationHelp, child: Text(s.locationProblem)),
+      ],
     );
   }
 
-  Widget? _timeChip(S s, Attendance? record, Shift? shift) {
+  void _locationHelp() {
+    final s = context.s;
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(s.locationProblem),
+        content: Text(s.locationProblemBody),
+        actions: [FilledButton(onPressed: () => Navigator.pop(ctx), child: Text(s.ok))],
+      ),
+    );
+  }
+
+  /// "Your shift: 9:00 AM – 9:00 PM · Started 12 minutes ago" (only for the
+  /// first 3 hours; after that just the shift), or "In at 9:02 · 7 min late".
+  Widget? _shiftCard(S s, Attendance? record, Shift? shift) {
+    if (shift == null) return null;
+    final lang = s.languageCode;
+    final title = s.yourShift(Dates.hhmmToDisplay(shift.start, lang), Dates.hhmmToDisplay(shift.end, lang));
     final firstIn = record?.firstIn;
+    String? body;
+    var color = AppColors.mintDark;
     if (firstIn != null) {
       final late = record!.lateMinutes;
-      return _StatusTile(
-        icon: Icons.schedule_rounded,
-        label: late > 0 ? s.lateToday : s.onTime,
-        detail: late > 0 ? s.minutesShort(late) : Dates.clock(firstIn.clientTime),
-        color: late > 0 ? AppColors.amberDark : AppColors.mint,
-      );
+      body = s.inAtLate(Dates.time(firstIn.clientTime, lang), late);
+      if (late > 0) color = AppColors.amberDark;
+    } else {
+      final start = Dates.hhmmToMinutes(shift.start);
+      if (start != null) {
+        final now = DateTime.now();
+        final since = now.hour * 60 + now.minute - start;
+        if (since < 0) {
+          body = s.shiftStartsAt(Dates.hhmmToDisplay(shift.start, lang));
+        } else if (since < 180) {
+          body = s.startedAgo(since);
+          final grace = shift.graceMinutes ?? ref.read(authControllerProvider).company?.settings.graceMinutes ?? 15;
+          if (since > grace) color = AppColors.amberDark;
+        }
+      }
     }
-    final start = shift == null ? null : Dates.hhmmToMinutes(shift.start);
-    if (shift == null || start == null) return null;
-    final grace = shift.graceMinutes ?? ref.read(authControllerProvider).company?.settings.graceMinutes ?? 15;
-    final now = DateTime.now();
-    final nowMin = now.hour * 60 + now.minute;
-    final late = nowMin > start + grace;
-    return _StatusTile(
-      icon: Icons.schedule_rounded,
-      label: late ? s.runningLate : s.onTime,
-      detail: late ? s.minutesShort(nowMin - start) : Dates.hhmmToDisplay(shift.start, s.languageCode),
-      color: late ? AppColors.amberDark : AppColors.mint,
-    );
+    return _InfoCard(key: const Key('shiftCard'), icon: Icons.schedule_rounded, color: color, title: title, body: body);
   }
 }
 
-/// "📍 दुकान पर / At shop · 12 m" style chip.
-class _StatusTile extends StatelessWidget {
-  const _StatusTile({super.key, required this.icon, required this.label, this.detail, this.color, this.onTap});
+/// A full-width card: icon, a plain sentence, and a reason or next step.
+class _InfoCard extends StatelessWidget {
+  const _InfoCard({
+    super.key,
+    required this.icon,
+    required this.color,
+    required this.title,
+    this.body,
+    this.actions = const [],
+    this.onTap,
+  });
   final IconData icon;
-  final Bi label;
-  final String? detail;
-  final Color? color;
+  final Color color;
+  final String title;
+  final String? body;
+  final List<Widget> actions;
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) {
-    final c = color ?? AppColors.muted;
-    final sub = [?label.hint, ?detail].join(' · ');
-    return Material(
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: const BorderSide(color: AppColors.line, width: 1.5),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          child: Row(
-            children: [
-              Icon(icon, color: c, size: 20),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      label.text,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: c, fontWeight: FontWeight.w700, fontSize: 14),
-                    ),
-                    if (sub.isNotEmpty)
+  Widget build(BuildContext context) => Material(
+    color: Colors.white,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(16),
+      side: const BorderSide(color: AppColors.line, width: 1.5),
+    ),
+    child: InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(12, 10, 12, actions.isEmpty ? 10 : 2),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, color: color, size: 22),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        sub,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: AppColors.muted, fontSize: 12),
+                        title,
+                        style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 15),
                       ),
-                  ],
+                      if (body != null)
+                        Text(body!, style: const TextStyle(color: AppColors.muted, fontSize: 13.5, height: 1.3)),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
+            if (actions.isNotEmpty) Row(mainAxisAlignment: MainAxisAlignment.end, children: actions),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
 }
 
-/// "अक्टूबर · 7 दिन हाज़िर · ₹3,613 अब तक" with this month's day dots.
-class _MonthStrip extends ConsumerWidget {
-  const _MonthStrip();
+/// "October so far · ✓ 8 days present · ⏰ 1 late · ✕ 1 absent ·
+/// Earned till today: ₹3,387" — counts in words instead of codes.
+class _MonthSummary extends ConsumerWidget {
+  const _MonthSummary();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -511,15 +577,71 @@ class _MonthStrip extends ConsumerWidget {
     final month = Dates.firstOfMonth(DateTime.now());
     final grid = ref.watch(myMonthProvider(Dates.toApiMonth(month))).value;
     final estimate = ref.watch(mySalaryProvider).value?.estimate;
-    final days = grid?.rows.firstOrNull?.days ?? const <String, String>{};
-    if (grid == null) return const SizedBox.shrink();
-    final present = days.values.where((d) => d == 'present' || d == 'late' || d == 'checked_in').length;
+    final row = grid?.rows.firstOrNull;
+    if (grid == null || row == null) return const SizedBox.shrink();
+    final t = row.totals;
+    final present = (t['present'] ?? 0) + (t['halfDay'] ?? 0) * 0.5;
     final monthName = Dates.monthTitle(month, s.languageCode).split(' ').first;
-    return MonthDots(
-      month: month,
-      days: days,
-      title: s.monthDaysPresent(monthName, present),
-      trailing: estimate == null ? null : s.earnedSoFar(Money.format(estimate.netPaise)),
+    Widget count(String status, String text) => Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(StatusStyle.of(status).icon, size: 16, color: StatusStyle.of(status).fg),
+        const SizedBox(width: 3),
+        Text(text, style: const TextStyle(fontWeight: FontWeight.w600)),
+      ],
+    );
+    return Material(
+      key: const Key('monthSummary'),
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: AppColors.line, width: 1.5),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => context.go(Routes.employeeAttendance),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      s.monthSoFar(monthName),
+                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                    ),
+                  ),
+                  Text(
+                    '${s.seeAll} ›',
+                    style: const TextStyle(color: AppColors.mintDark, fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 12,
+                runSpacing: 4,
+                children: [
+                  count('present', s.daysPresentN(present)),
+                  if ((t['late'] ?? 0) > 0) count('late', s.chipLateN((t['late'] ?? 0).round())),
+                  if ((t['absent'] ?? 0) > 0) count('absent', s.chipAbsentN((t['absent'] ?? 0).round())),
+                  if ((t['leave'] ?? 0) > 0) count('leave', s.chipLeaveN((t['leave'] ?? 0).round())),
+                ],
+              ),
+              if (estimate != null) ...[
+                const SizedBox(height: 6),
+                Text(
+                  s.earnedTillToday(Money.format(estimate.netPaise)),
+                  key: const Key('monthEarned'),
+                  style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.mint),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

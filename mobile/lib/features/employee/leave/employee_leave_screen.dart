@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/providers.dart';
 import '../../../core/i18n/strings.dart';
+import '../../../core/models/models.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/dates.dart';
 import '../../../core/widgets/bilingual.dart';
@@ -25,7 +26,7 @@ class EmployeeLeaveScreen extends ConsumerWidget {
             context: context,
             isScrollControlled: true,
             useSafeArea: true,
-            builder: (_) => const _ApplyLeaveSheet(),
+            builder: (_) => _ApplyLeaveSheet(balance: balances.value?.firstOrNull),
           );
           if (ok == true) {
             ref.invalidate(myLeavesProvider);
@@ -152,7 +153,8 @@ class _BalanceTile extends StatelessWidget {
 }
 
 class _ApplyLeaveSheet extends ConsumerStatefulWidget {
-  const _ApplyLeaveSheet();
+  const _ApplyLeaveSheet({this.balance});
+  final LeaveBalance? balance;
 
   @override
   ConsumerState<_ApplyLeaveSheet> createState() => _ApplyLeaveSheetState();
@@ -191,10 +193,32 @@ class _ApplyLeaveSheetState extends ConsumerState<_ApplyLeaveSheet> {
     if (ok) Navigator.pop(context, true);
   }
 
+  /// Calendar days asked for (the server leaves out week offs and holidays).
+  num get _days => _halfDay ? 0.5 : _to.difference(_from).inDays + 1;
+
+  /// Asking for more paid/sick days than are left.
+  bool get _short {
+    final b = widget.balance;
+    if (b == null || _type == 'unpaid') return false;
+    return (_type == 'paid' ? b.paidLeft : b.sickLeft) < _days;
+  }
+
+  /// "After this you'll have 2 paid leaves left. Your salary won't be cut."
+  String? _effect(S s) {
+    final b = widget.balance;
+    if (_type == 'unpaid') return s.leaveUnpaidEffect;
+    if (b == null) return null;
+    final have = _type == 'paid' ? b.paidLeft : b.sickLeft;
+    final after = have - _days;
+    if (after < 0) return s.leaveNotEnough(have);
+    return _type == 'paid' ? s.leaveAfterPaid(after) : s.leaveAfterSick(after);
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = context.s;
     final now = DateTime.now();
+    final effect = _effect(s);
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: ListView(
@@ -202,6 +226,12 @@ class _ApplyLeaveSheetState extends ConsumerState<_ApplyLeaveSheet> {
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
         children: [
           Text(s.applyLeave, style: Theme.of(context).textTheme.titleLarge),
+          if (widget.balance != null)
+            Text(
+              s.paidLeavesLeft(widget.balance!.paidLeft),
+              key: const Key('leaveLeftLine'),
+              style: const TextStyle(color: AppColors.muted),
+            ),
           const SizedBox(height: 16),
           Wrap(
             spacing: 8,
@@ -234,6 +264,24 @@ class _ApplyLeaveSheetState extends ConsumerState<_ApplyLeaveSheet> {
             const SizedBox(height: 12),
             DateField(label: s.to, value: _to, firstDate: _from, onChanged: (d) => setState(() => _to = d)),
           ],
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              '${s.leaveDaysCount(_days)} · ${s.leaveWeekOffNote}',
+              style: const TextStyle(color: AppColors.muted, fontSize: 12.5),
+            ),
+          ),
+          if (effect != null)
+            Container(
+              key: const Key('leaveEffect'),
+              margin: const EdgeInsets.only(top: 10),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: _type == 'unpaid' || _short ? AppColors.amberLight : AppColors.mintFaint,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(effect, style: const TextStyle(fontWeight: FontWeight.w600)),
+            ),
           const SizedBox(height: 12),
           TextField(
             controller: _reason,
@@ -241,7 +289,7 @@ class _ApplyLeaveSheetState extends ConsumerState<_ApplyLeaveSheet> {
             maxLines: 2,
           ),
           const SizedBox(height: 20),
-          FilledButton(onPressed: _busy ? null : _submit, child: Text(s.applyLeave)),
+          FilledButton(key: const Key('sendLeave'), onPressed: _busy ? null : _submit, child: Text(s.sendToOwner)),
         ],
       ),
     );

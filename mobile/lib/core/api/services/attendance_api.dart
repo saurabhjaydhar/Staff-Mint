@@ -74,6 +74,10 @@ class AttendanceApi implements PunchSyncApi, PunchApi {
     return asList(d['results'], PunchSyncResult.fromJson);
   }
 
+  /// Staff: "I was there — ask owner to fix". False when already asked for this day.
+  Future<bool> requestFix(String date, {String? note}) async =>
+      asBool(asMap(await _c.post('/attendance/fix-request', body: {'date': date, 'note': ?note}))['sent']);
+
   Future<(TodayInfo, Json)> today() async {
     final d = asMap(await _c.get('/attendance/today'));
     return (TodayInfo.fromJson(d), d);

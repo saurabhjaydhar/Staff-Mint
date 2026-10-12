@@ -606,3 +606,29 @@ export async function setupProgress(ctx: Ctx) {
 }
 
 export const newClientPunchId = () => randomUUID();
+
+/**
+ * Staff: "I was there — ask owner to fix". Tells the owner (and managers) in
+ * plain words; asked once per day per date so nobody gets spammed.
+ */
+export async function requestFix(ctx: Ctx, input: { date: string; note?: string }) {
+  if (!ctx.employeeId) throw new AppError('FORBIDDEN', 'Staff only');
+  const company = await Company.findById(ctx.companyId).lean();
+  if (input.date > todayIn(company!.timezone)) throw new AppError('VALIDATION_ERROR', 'You can only ask about today or earlier days');
+  const emp = await Employee.findOne({ _id: ctx.employeeId, companyId: ctx.companyId }).lean();
+  if (!emp) throw new AppError('NOT_FOUND', 'Staff not found');
+  const { Notification } = await import('../../models/index.js');
+  const already = await Notification.exists({ companyId: ctx.companyId, template: 'attendance_fix_request', 'data.employeeId': String(emp._id), 'data.date': input.date });
+  if (already) return { sent: false };
+  const note = input.note?.trim();
+  await notifyOwners(ctx.companyId, {
+    template: 'attendance_fix_request',
+    title: `${emp.name} asks to fix ${input.date}`,
+    titleHi: `${emp.name} ने ${input.date} ठीक करने को कहा`,
+    body: note ? `“${note}” — open Home, go to that day and change it.` : 'They say they were at work. Open Home, go to that day and change it.',
+    bodyHi: note ? `“${note}” — होम पर वह दिन खोलकर बदलें।` : 'उनका कहना है वे काम पर थे। होम पर वह दिन खोलकर बदलें।',
+    data: { type: 'fix_request', employeeId: String(emp._id), date: input.date },
+  });
+  await audit(ctx, { action: 'attendance.fix_request', entity: 'attendance', after: { employeeId: String(emp._id), date: input.date, note: note ?? null } });
+  return { sent: true };
+}

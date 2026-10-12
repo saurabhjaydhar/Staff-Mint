@@ -34,6 +34,29 @@ class EmployeeSalaryScreen extends ConsumerWidget {
                   padding: const EdgeInsets.only(bottom: 32),
                   children: [
                     if (o.estimate != null) ...[
+                      Container(
+                        key: const Key('earnedSoFar'),
+                        margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(color: AppColors.ink, borderRadius: BorderRadius.circular(20)),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${s.earnedSoFarTitle} · ${s.monthTillToday(Dates.monthTitle(Dates.parseMonth(o.estimate!.month), s.languageCode).split(' ').first)}',
+                              style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 13),
+                            ),
+                            Text(
+                              Money.format(o.estimate!.netPaise),
+                              style: const TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.w800),
+                            ),
+                            Text(
+                              s.paidOnSalaryDay,
+                              style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 13),
+                            ),
+                          ],
+                        ),
+                      ),
                       SectionHeader(s.runningEstimate),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),

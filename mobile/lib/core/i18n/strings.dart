@@ -709,7 +709,6 @@ class S {
 
   String get checkIn => _t('Check in', 'हाज़िरी लगाएँ');
   String get checkOut => _t('Check out', 'चेक-आउट करें');
-  String get checkInHint => _t('1 tap', 'Check in · 1 tap');
   String get checkOutHint => _t('Going home?', 'Check out');
   String get checkInAgain => _t('Check in again', 'फिर से चेक-इन करें');
   String get workingNow => _t('You are checked in', 'आप चेक-इन हैं');
@@ -1259,6 +1258,86 @@ class S {
   String get helpEveryDay => _t('Every day', 'रोज़ के काम');
   String get helpSalary => _t('Salary', 'सैलरी');
   String get helpTeam => _t('Team & settings', 'टीम और सेटिंग');
+
+  // ---------------------------------------------- Staff app (redesign)
+  String namaste(String name) => _t('Namaste, $name', 'नमस्ते, $name');
+  String yourShift(String a, String b) => _t('Your shift: $a – $b', 'आपकी शिफ़्ट: $a – $b');
+  String shiftStartsAt(String t) => _t('Starts at $t', '$t पर शुरू होगी');
+  String startedAgo(int minutes) => minutes < 60
+      ? _t(minutes <= 1 ? 'Started a minute ago' : 'Started $minutes minutes ago', '$minutes मिनट पहले शुरू हुई')
+      : _t(
+          'Started ${minutes ~/ 60} h ${minutes % 60} min ago',
+          '${minutes ~/ 60} घंटे ${minutes % 60} मिनट पहले शुरू हुई',
+        );
+  String inAtLate(String t, int late) => late > 0
+      ? _t('In at $t · $late min late', '$t पर आए · $late मिनट लेट')
+      : _t('In at $t · on time', '$t पर आए · समय पर');
+  String get atShopTitle => _t('You’re at the shop', 'आप दुकान पर हैं');
+  String get locationWhy =>
+      _t('We check this so attendance is fair for everyone.', 'हम यह इसलिए देखते हैं ताकि सबकी हाज़िरी सही रहे।');
+  String awayTitle(num m) => _t('You’re ${m.round()} m from the shop', 'आप दुकान से ${m.round()} मी दूर हैं');
+  String get awayBody =>
+      _t('Check in works when you’re inside the shop area.', 'दुकान के एरिया के अंदर आने पर चेक-इन होगा।');
+  String get awayBodyAsk => _t(
+    'You can still check in — your owner will be asked to OK it.',
+    'फिर भी चेक-इन कर सकते हैं — मालिक से मंज़ूरी ली जाएगी।',
+  );
+  String get findingYou => _t('Finding where you are…', 'आपकी जगह देखी जा रही है…');
+  String get locationOffTitle => _t('Location is off', 'लोकेशन बंद है');
+  String get locationOffBody => _t('Turn on location to check in.', 'चेक-इन के लिए लोकेशन चालू करें।');
+  String get tryAgain => _t('Try again', 'फिर कोशिश करें');
+  String get locationProblem => _t('Location problem?', 'लोकेशन में दिक्कत?');
+  String get locationProblemBody => _t(
+    '1. Turn on Location in your phone settings.\n2. Step outside or near a window for a better signal.\n3. Tap Try again.\nStill not working? Tell your owner — they can mark you present.',
+    '1. फ़ोन की सेटिंग में लोकेशन चालू करें।\n2. बाहर या खिड़की के पास जाएँ ताकि सिग्नल मिले।\n3. फिर कोशिश करें दबाएँ।\nफिर भी नहीं हुआ? मालिक को बताएँ — वे आपको हाज़िर लगा सकते हैं।',
+  );
+  String get checkInHintSelfie => _t('Takes a selfie and marks you present', 'सेल्फ़ी लेकर हाज़िरी लगती है');
+  String get checkInHint => _t('Marks you present', 'हाज़िरी लगती है');
+  String get workingOutside =>
+      _t('Working outside today? (delivery, bank, site)', 'आज बाहर काम है? (डिलीवरी, बैंक, साइट)');
+  String get askOwnerAllow => _t('Ask owner', 'मालिक से पूछें');
+  String get workingOutsideBody => _t(
+    'Call or message your owner. They can mark you present for today, or make the shop area bigger.',
+    'मालिक को कॉल या मैसेज करें। वे आज के लिए आपकी हाज़िरी लगा सकते हैं, या दुकान का एरिया बढ़ा सकते हैं।',
+  );
+  String monthSoFar(String month) => _t('$month so far', '$month अब तक');
+  String get seeAll => _t('See all', 'सब देखें');
+  String daysPresentN(num n) => _t('${_num(n)} days present', '${_num(n)} दिन हाज़िर');
+  String earnedTillToday(String amt) => _t('Earned till today: $amt', 'आज तक की कमाई: $amt');
+  String dayInOut(String inAt, String? outAt) => outAt == null
+      ? _t('In $inAt · Out — (still at work)', 'आए $inAt · गए — (अभी काम पर)')
+      : _t('In $inAt · Out $outAt', 'आए $inAt · गए $outAt');
+  String get noCheckInThatDay => _t('No check-in that day.', 'उस दिन चेक-इन नहीं हुआ।');
+  String get iWasThere => _t('I was there — ask owner to fix', 'मैं काम पर था — मालिक से ठीक करवाएँ');
+  String get fixNoteHint => _t('What happened? (optional)', 'क्या हुआ? (ज़रूरी नहीं)');
+  String get askSent => _t('Sent to your owner', 'मालिक को भेज दिया');
+  String get askAlreadySent => _t('Already sent for this day', 'इस दिन के लिए पहले ही भेजा जा चुका है');
+  String get send => _t('Send', 'भेजें');
+  String paidLeavesLeft(num n) => _t('You have ${_num(n)} paid leaves left', 'आपकी ${_num(n)} पेड छुट्टियाँ बाकी हैं');
+  String leaveDaysCount(num n) => _t(n == 1 ? '1 day' : '${_num(n)} days', '${_num(n)} दिन');
+  String leaveAfterPaid(num left) => _t(
+    'After this you’ll have ${_num(left)} paid leaves left. Your salary won’t be cut.',
+    'इसके बाद आपकी ${_num(left)} पेड छुट्टियाँ बचेंगी। सैलरी नहीं कटेगी।',
+  );
+  String leaveAfterSick(num left) => _t(
+    'After this you’ll have ${_num(left)} sick leaves left. Your salary won’t be cut.',
+    'इसके बाद आपकी ${_num(left)} बीमारी की छुट्टियाँ बचेंगी। सैलरी नहीं कटेगी।',
+  );
+  String leaveNotEnough(num have) => _t(
+    'You have only ${_num(have)} left. Days beyond that may be unpaid.',
+    'आपकी सिर्फ़ ${_num(have)} बाकी हैं। उससे ज़्यादा दिन बिना पैसे के हो सकते हैं।',
+  );
+  String get leaveUnpaidEffect =>
+      _t('Unpaid leave: salary is cut for these days.', 'बिना पैसे की छुट्टी: इन दिनों की सैलरी कटेगी।');
+  String get leaveWeekOffNote => _t(
+    'Weekly offs and holidays inside these dates are not counted.',
+    'इन तारीख़ों में आने वाली साप्ताहिक छुट्टी और त्योहार नहीं गिने जाते।',
+  );
+  String get sendToOwner => _t('Send to owner', 'मालिक को भेजें');
+  String get earnedSoFarTitle => _t('Earned so far', 'अब तक की कमाई');
+  String get paidOnSalaryDay =>
+      _t('Paid on salary day, after the month ends', 'महीना ख़त्म होने के बाद सैलरी डे पर मिलेगी');
+  String monthTillToday(String month) => _t('$month, till today', '$month, आज तक');
 
   // ------------------------------------------------------- Employee home
   String shiftShort(String a, String b) => _t('Shift $a – $b', 'शिफ़्ट $a – $b');

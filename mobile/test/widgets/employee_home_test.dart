@@ -106,7 +106,7 @@ void main() {
     _lockPolicy = 'recommended';
   });
 
-  Future<_FakePunchApi> pumpHome(WidgetTester tester) async {
+  Future<_FakePunchApi> pumpHome(WidgetTester tester, {GeoPoint shop = const GeoPoint(lat: 28.6001, lng: 77.2)}) async {
     final today = Dates.toApiDate(DateTime.now());
     final api = _FakePunchApi((body, type) {
       serverRecord = Attendance(
@@ -130,7 +130,7 @@ void main() {
                 record: serverRecord,
                 shift: const Shift(id: 's1', name: 'Day', start: '09:00', end: '19:00'),
                 // ~11 m north of the fake GPS fix.
-                branch: const Branch(id: 'b1', name: 'Sharma Medical', location: GeoPoint(lat: 28.6001, lng: 77.2)),
+                branch: Branch(id: 'b1', name: 'Sharma Medical', location: shop),
               ),
             ),
           ),
@@ -169,17 +169,36 @@ void main() {
     expect(find.byKey(const Key('checkInButton')), findsOneWidget);
     expect(find.text('Check in'), findsOneWidget);
     expect(find.text('You have not checked in yet'), findsOneWidget);
-    expect(find.textContaining('Shift 9:00 AM – 7:00 PM'), findsOneWidget);
+    expect(find.textContaining('Your shift: 9:00 AM – 7:00 PM'), findsOneWidget);
+    expect(find.text('Takes a selfie and marks you present'), findsOneWidget);
     expect(find.byKey(const Key('pendingSyncBanner')), findsNothing);
   });
 
   testWidgets('GPS is ready before the tap: "At shop" chip and month strip', (tester) async {
     await pumpHome(tester);
-    final chip = find.byKey(const Key('locationChip'));
+    final chip = find.byKey(const Key('locationCard'));
     expect(chip, findsOneWidget);
-    expect(find.descendant(of: chip, matching: find.text('At shop')), findsOneWidget);
-    expect(find.descendant(of: chip, matching: find.textContaining('11 m')), findsOneWidget);
-    expect(find.text('₹3,613 so far'), findsOneWidget);
+    // Says where they are and why it's checked.
+    expect(find.descendant(of: chip, matching: find.text('You’re at the shop ✓')), findsOneWidget);
+    expect(
+      find.descendant(of: chip, matching: find.text('We check this so attendance is fair for everyone.')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('workingOutside')), findsNothing);
+    // The month in words, not codes.
+    expect(find.text('0 days present'), findsOneWidget);
+    expect(find.text('Earned till today: ₹3,613'), findsOneWidget);
+  });
+
+  testWidgets('away from the shop: says how far and why, offers Try again and a path for outside work', (tester) async {
+    await pumpHome(tester, shop: const GeoPoint(lat: 28.6036, lng: 77.2)); // ~400 m away
+    final card = find.byKey(const Key('locationCard'));
+    expect(find.descendant(of: card, matching: find.textContaining('m from the shop')), findsOneWidget);
+    expect(find.byKey(const Key('locationRetry')), findsOneWidget);
+    expect(find.byKey(const Key('workingOutside')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('workingOutside')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('mark you present for today'), findsOneWidget);
   });
 
   testWidgets('online check-in sends selfie + GPS and flips to Check out', (tester) async {
@@ -365,7 +384,7 @@ void main() {
         ),
       );
       expect(find.text('हाज़िरी लगाएँ'), findsOneWidget);
-      expect(find.text('Check in · 1 tap'), findsOneWidget);
+      expect(find.text('हाज़िरी लगती है'), findsOneWidget);
     });
   });
 }

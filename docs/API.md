@@ -152,6 +152,7 @@ Fields: `name, phone, ratePaise, wageType, designation, joiningDate, branch, adv
 | GET | /attendance/today | (employee) | `{date, record: Attendance\|null, shift: Shift, branch: Branch}` |
 | GET | /attendance | `?date=YYYY-MM-DD` (owner/manager day view) | `DayRow[]` |
 | GET | /attendance/month | `?month=YYYY-MM&employeeId?` (employee: own only) | `{month, days:string[], rows: {employee, days: {[date]: displayStatus}, totals}[]}` |
+| POST | /attendance/fix-request | `{date, note?}` (staff) | `{sent}`: "I was there — ask owner to fix"; tells owners and managers (`attendance_fix_request`), once per day per date; future dates refused |
 | POST | /attendance/override | `{employeeId, date, status, leaveType?, reason?}` (owner/manager; reason optional) | `Attendance` (audited) |
 | POST | /attendance/:id/punches/:punchId/decision | `{approve:boolean}` | `Attendance` |
 | POST | /attendance/clear-override | `{employeeId, date, reason}` (owner/manager) | `Attendance` with status recomputed from punches/leave/holiday (may be `null`), or `null` if no record. Used for Undo |
