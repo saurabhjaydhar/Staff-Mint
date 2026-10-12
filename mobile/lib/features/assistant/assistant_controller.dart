@@ -98,10 +98,11 @@ class AssistantController extends Notifier<AssistantState> {
 
   void reset() => state = const AssistantState();
 
-  Future<void> sendText(String text, {ChatMessage? Function(String)? localHelp}) async {
+  /// [shown] is what the chat bubble says (e.g. Hindi), when it differs from the text sent.
+  Future<void> sendText(String text, {String? shown, ChatMessage? Function(String)? localHelp}) async {
     final t = text.trim();
     if (t.isEmpty || state.sending) return;
-    _push(ChatMessage.user(t));
+    _push(ChatMessage.user(shown ?? t));
     // "Where is…/how do I…" questions are answered by the app with a button to the screen.
     final help = localHelp?.call(t);
     if (help != null) return _push(help);

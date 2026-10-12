@@ -38,7 +38,8 @@ class S {
   String _t(String en, String hi) => isHindi ? hi : en;
 
   /// Hindi with an English hint when the app is in Hindi, plain English otherwise.
-  Bi _b(String en, String hi) => isHindi ? Bi(hi, en) : Bi(en);
+  /// Hindi mode shows Hindi only (no English hint under it).
+  Bi _b(String en, String hi) => isHindi ? Bi(hi) : Bi(en);
 
   /// 2 → "2", 1.5 → "1.5".
   String _num(num n) => n == n.roundToDouble() ? '${n.round()}' : '$n';
@@ -65,7 +66,7 @@ class S {
   String get loading => _t('Loading…', 'लोड हो रहा है…');
   String get yes => _t('Yes', 'हाँ');
   String get no => _t('No', 'नहीं');
-  String get optional => _t('optional', 'वैकल्पिक');
+  String get optional => _t('optional', 'ज़रूरी नहीं');
   String get required => _t('Required', 'ज़रूरी है');
   String get saved => _t('Saved', 'सेव हो गया');
   String get nothingHere => _t('Nothing here yet', 'अभी यहाँ कुछ नहीं है');
@@ -96,7 +97,7 @@ class S {
       _t('Your session has ended. Please log in again.', 'आपका सेशन ख़त्म हो गया। फिर से लॉगिन करें।');
   String get planLimitError => _t(
     'Your plan limit is reached. Upgrade in More › Billing.',
-    'आपके प्लान की सीमा पूरी हो गई। More › Billing में अपग्रेड करें।',
+    'आपके प्लान की सीमा पूरी हो गई। और › प्लान और पेमेंट में अपग्रेड करें।',
   );
   String get deviceNotBound => _t(
     'This phone is not registered for your account. Ask your owner to reset your device.',
@@ -156,7 +157,7 @@ class S {
     'नक्शे पर टैप करके पिन लगाएँ। स्टाफ़ इसी जगह के पास हाज़िरी लगा पाएगा।',
   );
   String get useMyLocation => _t('Use my current location', 'मेरी मौजूदा लोकेशन लें');
-  String get addressOptional => _t('Address (optional)', 'पता (वैकल्पिक)');
+  String get addressOptional => _t('Address (optional)', 'पता (ज़रूरी नहीं)');
   String get locationPermissionDenied => _t(
     'Location permission is needed. Please allow it in Settings.',
     'लोकेशन की अनुमति चाहिए। कृपया सेटिंग्स में अनुमति दें।',
@@ -217,7 +218,7 @@ class S {
   Bi get navAttendanceBi => _b('Attendance', 'हाज़िरी');
   Bi get navLeaveBi => _b('Leave', 'छुट्टी');
   Bi get navProfileBi => _b('Profile', 'प्रोफ़ाइल');
-  String get switchLanguage => _t('Switch to Hindi', 'Switch to English');
+  String get switchLanguage => _t('Switch to Hindi', 'English में बदलें');
 
   // ------------------------------------------------------------ Statuses
   String statusLabel(String? s) {
@@ -304,11 +305,11 @@ class S {
   String leaveTypeLabel(String? t) {
     switch (t) {
       case 'paid':
-        return _t('Paid leave', 'सवेतन छुट्टी');
+        return _t('Paid leave', 'पेड छुट्टी');
       case 'sick':
         return _t('Sick leave', 'बीमारी की छुट्टी');
       case 'unpaid':
-        return _t('Unpaid leave', 'बिना वेतन छुट्टी');
+        return _t('Unpaid leave', 'बिना पैसे की छुट्टी');
       default:
         return t ?? '';
     }
@@ -386,8 +387,8 @@ class S {
   String get rejected => _t('Rejected', 'नामंज़ूर किया');
   String leaveRequestLine(String type, String from, String to, num days) =>
       _t('$type · $from – $to ($days days)', '$type · $from – $to ($days दिन)');
-  String get outsidePunchApproval => _t('Punch outside shop area', 'दुकान के दायरे से बाहर पंच');
-  String get lockPunchApproval => _t('Punch without phone lock', 'फ़ोन लॉक खोले बिना पंच');
+  String get outsidePunchApproval => _t('Punch outside shop area', 'दुकान के दायरे से बाहर चेक-इन');
+  String get lockPunchApproval => _t('Punch without phone lock', 'फ़ोन लॉक खोले बिना चेक-इन');
   String lockTagShort(String issue) => issue == 'failed' ? _t('Lock ✗', 'लॉक ✗') : _t('No lock', 'बिना लॉक');
   String distanceAway(num m) => _t('${m.round()} m away', '${m.round()} मीटर दूर');
   String staffUsage(int count, int limit) =>
@@ -397,8 +398,8 @@ class S {
   String get staffTitle => _t('Staff', 'स्टाफ़');
   String get searchStaff => _t('Search by name or phone', 'नाम या फ़ोन से खोजें');
   String get noStaffYet => _t('No staff yet. Add your first staff member.', 'अभी कोई स्टाफ़ नहीं। पहला स्टाफ़ जोड़ें।');
-  String get showInactive => _t('Show inactive', 'निष्क्रिय भी दिखाएँ');
-  String get inactive => _t('Inactive', 'निष्क्रिय');
+  String get showInactive => _t('Show inactive', 'काम छोड़ चुके भी दिखाएँ');
+  String get inactive => _t('Inactive', 'काम छोड़ दिया');
   String get designation => _t('Designation', 'पद');
   String get designationHint => _t('e.g. Helper, Pharmacist', 'जैसे हेल्पर, फ़ार्मासिस्ट');
   String get wageType => _t('Salary type', 'सैलरी का प्रकार');
@@ -413,9 +414,9 @@ class S {
   String get advanceBalance => _t('Advance balance', 'बाक़ी एडवांस');
   String get leaveBalance => _t('Leave balance', 'छुट्टी बैलेंस');
   String leaveLeft(num paid, num sick) =>
-      _t('Paid: $paid left · Sick: $sick left', 'सवेतन: $paid बाक़ी · बीमारी: $sick बाक़ी');
+      _t('Paid: $paid left · Sick: $sick left', 'पेड: $paid बाक़ी · बीमारी: $sick बाक़ी');
   String get editLeaveBalance => _t('Set leave balance', 'छुट्टी बैलेंस सेट करें');
-  String get paidLeaves => _t('Paid leaves (per year)', 'सवेतन छुट्टियाँ (साल में)');
+  String get paidLeaves => _t('Paid leaves (per year)', 'पेड छुट्टियाँ (साल में)');
   String get sickLeaves => _t('Sick leaves (per year)', 'बीमारी की छुट्टियाँ (साल में)');
   String get device => _t('Phone', 'फ़ोन');
   String get deviceBound => _t('Linked to a phone', 'एक फ़ोन से जुड़ा है');
@@ -424,12 +425,12 @@ class S {
   String get resetDeviceConfirm =>
       _t('Staff can then log in from a new phone. Continue?', 'इसके बाद स्टाफ़ नए फ़ोन से लॉगिन कर सकेगा। आगे बढ़ें?');
   String get deviceReset => _t('Phone reset done', 'फ़ोन रीसेट हो गया');
-  String get deactivate => _t('Deactivate staff', 'स्टाफ़ को निष्क्रिय करें');
+  String get deactivate => _t('Deactivate staff', 'स्टाफ़ ने काम छोड़ दिया');
   String get deactivateConfirm => _t(
     'They will not be able to check in and will not appear in salary.',
     'वे हाज़िरी नहीं लगा पाएँगे और सैलरी में नहीं दिखेंगे।',
   );
-  String get deactivated => _t('Staff deactivated', 'स्टाफ़ निष्क्रिय किया गया');
+  String get deactivated => _t('Staff deactivated', 'स्टाफ़ को हटा दिया गया');
   String get editStaff => _t('Edit staff', 'स्टाफ़ बदलें');
   String get effectiveFrom => _t('Salary change effective from', 'सैलरी बदलाव कब से लागू');
   String get staffSaved => _t('Staff saved', 'स्टाफ़ सेव हो गया');
@@ -437,7 +438,7 @@ class S {
   String get consentGiven => _t('Location consent given', 'लोकेशन की सहमति दी');
   String get consentPending => _t('Location consent pending', 'लोकेशन की सहमति बाक़ी');
   String get none => _t('None', 'कोई नहीं');
-  String get defaultShift => _t('Default shift', 'डिफ़ॉल्ट शिफ़्ट');
+  String get defaultShift => _t('Default shift', 'मुख्य शिफ़्ट');
 
   // ----------------------------------------------------------- Attendance
   String get noAttendanceRows => _t('No staff to show for this day', 'इस दिन के लिए कोई स्टाफ़ नहीं');
@@ -445,8 +446,8 @@ class S {
   String get overrideReasonHint => _t('Why are you changing it?', 'आप इसे क्यों बदल रहे हैं?');
   String get reasonRequired => _t('Please write a reason', 'कृपया कारण लिखें');
   String get attendanceUpdated => _t('Attendance updated', 'हाज़िरी अपडेट हो गई');
-  String get punches => _t('Punches', 'पंच');
-  String get noPunches => _t('No punches', 'कोई पंच नहीं');
+  String get punches => _t('Punches', 'चेक-इन');
+  String get noPunches => _t('No punches', 'कोई चेक-इन नहीं');
   String get checkInLabel => _t('Check-in', 'चेक-इन');
   String get checkOutLabel => _t('Check-out', 'चेक-आउट');
   String lateBy(int m) => _t('Late by $m min', '$m मिनट लेट');
@@ -474,13 +475,13 @@ class S {
   String get anomalies => _t('Please check', 'कृपया जाँचें');
   String get sendPayslips => _t('Send salary slips', 'सैलरी स्लिप भेजें');
   String payslipsQueued(int n) => _t('$n salary slips are being sent', '$n सैलरी स्लिप भेजी जा रही हैं');
-  String get markPaid => _t('Mark as paid', 'भुगतान हुआ मार्क करें');
+  String get markPaid => _t('Mark as paid', 'पैसे दे दिए — मार्क करें');
   String get revise => _t('Change salary', 'सैलरी बदलें');
   String get reviseConfirm => _t(
     'A new draft (revision) will be created from current attendance.',
     'मौजूदा हाज़िरी से नया ड्राफ़्ट (संशोधन) बनेगा।',
   );
-  String payableDays(num d, num div) => _t('Payable days: $d / $div', 'भुगतान वाले दिन: $d / $div');
+  String payableDays(num d, num div) => _t('Payable days: $d / $div', 'पैसे वाले दिन: $d / $div');
   String get payslips => _t('Salary slips', 'सैलरी स्लिप');
   String get advances => _t('Advances (udhaar)', 'एडवांस (उधार)');
   String get bonusDeduction => _t('Bonus / cut', 'बोनस / कटौती');
@@ -549,9 +550,9 @@ class S {
   String get lockPolicyRecommended => _t('Ask, tag me if it fails', 'पूछें, न खुले तो मुझे टैग दिखाएँ');
   String get lockPolicyRequired => _t('Ask, I approve if it fails', 'पूछें, न खुले तो मेरी मंज़ूरी');
   String get digestTime => _t('Daily summary time', 'रोज़ की रिपोर्ट का समय');
-  String get weekOffsPaid => _t('Weekly offs are paid', 'साप्ताहिक छुट्टी का वेतन मिलेगा');
-  String get holidaysPaid => _t('Holidays are paid', 'त्योहार की छुट्टी का वेतन मिलेगा');
-  String get sickLeavePaid => _t('Sick leave is paid', 'बीमारी की छुट्टी का वेतन मिलेगा');
+  String get weekOffsPaid => _t('Weekly offs are paid', 'साप्ताहिक छुट्टी के पैसे मिलेंगे');
+  String get holidaysPaid => _t('Holidays are paid', 'त्योहार की छुट्टी के पैसे मिलेंगे');
+  String get sickLeavePaid => _t('Sick leave is paid', 'बीमारी की छुट्टी के पैसे मिलेंगे');
   String get selfieRequired => _t('Selfie required at check-in', 'चेक-इन पर सेल्फ़ी ज़रूरी');
   String get roundToRupee => _t('Round salary to nearest rupee', 'सैलरी पूरे रुपये में करें');
   String get whatsappAlerts => _t('WhatsApp alerts', 'WhatsApp अलर्ट');
@@ -561,8 +562,7 @@ class S {
   String get startTime => _t('Start', 'शुरू');
   String get endTime => _t('End', 'ख़त्म');
   String get weeklyOff => _t('Weekly off', 'साप्ताहिक छुट्टी');
-  String get useCompanyGrace =>
-      _t('Grace minutes (blank = business default)', 'छूट के मिनट (ख़ाली = बिज़नेस डिफ़ॉल्ट)');
+  String get useCompanyGrace => _t('Grace minutes (blank = business default)', 'छूट के मिनट (ख़ाली = बिज़नेस का नियम)');
   String get geofence => _t('Shop location & area', 'दुकान की लोकेशन और दायरा');
   String get geofenceHint =>
       _t('Staff can check in only inside this circle.', 'स्टाफ़ सिर्फ़ इस घेरे के अंदर चेक-इन कर सकता है।');
@@ -584,7 +584,7 @@ class S {
       case 'active':
         return _t('Active', 'चालू');
       case 'past_due':
-        return _t('Payment due', 'भुगतान बाक़ी');
+        return _t('Payment due', 'पेमेंट बाक़ी');
       case 'cancelled':
         return _t('Cancelled', 'रद्द');
       case 'free':
@@ -614,7 +614,7 @@ class S {
   );
   String trialEndsSoon(String date) => _t(
     'Ends on $date. After that you move to Free: your data stays, paid features pause.',
-    '$date को ख़त्म होगा। फिर आप Free पर आ जाएँगे: डेटा रहेगा, पेड फ़ीचर रुक जाएँगे।',
+    '$date को ख़त्म होगा। फिर आप फ़्री प्लान पर आ जाएँगे: डेटा रहेगा, पेड फ़ीचर रुक जाएँगे।',
   );
   String get trialEndedTitle => _t('Your free trial has ended', 'आपका फ़्री ट्रायल ख़त्म हो गया');
   String trialEndedBody(String paused) => _t(
@@ -640,7 +640,7 @@ class S {
       case 'payslips':
         return _t('Salary slips', 'सैलरी स्लिप');
       case 'assistant':
-        return _t('Mint AI assistant', 'Mint AI सहायक');
+        return _t('Mint AI assistant', 'Mint सहायक');
       case 'branches':
         return _t('Multiple branches', 'कई ब्रांच');
       case 'reports':
@@ -681,7 +681,7 @@ class S {
   String get faq3q => _t('How is salary calculated?', 'सैलरी कैसे निकलती है?');
   String get faq3a => _t(
     'Monthly salary ÷ days (your setting) × payable days, plus bonus, minus advances and deductions. Every salary slip line explains itself.',
-    'मासिक सैलरी ÷ दिन (आपकी सेटिंग) × भुगतान वाले दिन, plus बोनस, minus एडवांस और कटौती। सैलरी स्लिप की हर लाइन का कारण लिखा होता है।',
+    'मासिक सैलरी ÷ दिन (आपकी सेटिंग) × पैसे वाले दिन, फिर बोनस जुड़ता है और एडवांस व कटौती घटती है। सैलरी स्लिप की हर लाइन का कारण लिखा होता है।',
   );
   String get faq4q => _t('What if there is no internet?', 'अगर इंटरनेट न हो तो?');
   String get faq4a => _t(
@@ -705,15 +705,15 @@ class S {
         '• यह डेटा सिर्फ़ $company में हाज़िरी और सैलरी के लिए इस्तेमाल होता है।\n'
         '• आपसे फ़ोन लॉक (फ़िंगरप्रिंट, चेहरा, PIN या पैटर्न) खोलने को कहा जा सकता है। आपका फ़िंगरप्रिंट और चेहरा आपके फ़ोन से बाहर नहीं जाता — StaffMint को सिर्फ़ पता चलता है कि लॉक खुला या नहीं।\n'
         '• सेल्फ़ी 90 दिन बाद अपने आप मिटा दी जाती हैं।\n'
-        '• आप कभी भी अपने नियोक्ता से अपना डेटा देखने या सुधारने को कह सकते हैं।\n\n'
+        '• आप कभी भी अपने मालिक से अपना डेटा देखने या सुधारने को कह सकते हैं।\n\n'
         'यह सूचना भारत के डिजिटल व्यक्तिगत डेटा संरक्षण (DPDP) अधिनियम, 2023 के अनुसार है।',
   );
   String get consentAgree => _t('I agree — allow location at check-in', 'मैं सहमत हूँ — चेक-इन पर लोकेशन की अनुमति');
-  String get yourEmployer => _t('Your employer', 'आपका नियोक्ता');
+  String get yourEmployer => _t('Your employer', 'आपके मालिक');
 
   String get checkIn => _t('Check in', 'हाज़िरी लगाएँ');
   String get checkOut => _t('Check out', 'चेक-आउट करें');
-  String get checkOutHint => _t('Going home?', 'Check out');
+  String get checkOutHint => _t('Going home?', 'घर जा रहे हैं?');
   String get checkInAgain => _t('Check in again', 'फिर से चेक-इन करें');
   String get workingNow => _t('You are checked in', 'आप चेक-इन हैं');
   String get notCheckedIn => _t('You have not checked in yet', 'आपने अभी चेक-इन नहीं किया');
@@ -795,10 +795,10 @@ class S {
   String get todaysSelfie => _t('Today\'s selfie', 'आज की सेल्फ़ी');
   String get facePhotoToApprove => _t('Face photo to approve', 'चेहरे की फ़ोटो मंज़ूर करें');
   String get faceAskRetake => _t('Ask for a new photo', 'नई फ़ोटो माँगें');
-  String get faceMatchPolicy => _t('Face check at check-in', 'पंच पर चेहरा पहचान');
+  String get faceMatchPolicy => _t('Face check at check-in', 'चेक-इन पर चेहरा पहचान');
   String get faceMatchPolicyHelp => _t(
     'Each check-in selfie is compared with the staff member\'s approved photo. If it doesn\'t clearly match, the check-in waits for you. Staff must agree before their photo is used. Growth plan and above.',
-    'हर पंच की सेल्फ़ी स्टाफ़ की मंज़ूर फ़ोटो से मिलाई जाती है। साफ़ मेल न खाए तो हाज़िरी आपकी मंज़ूरी के बाद लगेगी। स्टाफ़ की सहमति के बिना फ़ोटो इस्तेमाल नहीं होती। Growth प्लान और ऊपर।',
+    'हर चेक-इन की सेल्फ़ी स्टाफ़ की मंज़ूर फ़ोटो से मिलाई जाती है। साफ़ मेल न खाए तो हाज़िरी आपकी मंज़ूरी के बाद लगेगी। स्टाफ़ की सहमति के बिना फ़ोटो इस्तेमाल नहीं होती। Growth प्लान और ऊपर।',
   );
   String get faceMatchOff => _t('Off', 'बंद');
   String get faceMatchReview => _t('On — I approve unclear matches', 'चालू — साफ़ मेल न हो तो मेरी मंज़ूरी');
@@ -815,10 +815,10 @@ class S {
   String get lockPendingNote =>
       _t('Phone lock not opened — sent to owner for approval', 'फ़ोन लॉक नहीं खुला — मंज़ूरी के लिए मालिक को भेजा गया');
   String get submitting => _t('Saving…', 'सेव हो रहा है…');
-  String pendingSync(int n) => _t('$n punch(es) waiting to sync', '$n पंच सिंक होने बाक़ी');
+  String pendingSync(int n) => _t('$n punch(es) waiting to sync', '$n चेक-इन सिंक होने बाक़ी');
   String get syncNow => _t('Sync now', 'अभी सिंक करें');
-  String syncedCount(int n) => _t('$n offline punch(es) synced', '$n ऑफ़लाइन पंच सिंक हुए');
-  String syncRejected(String msg) => _t('A saved punch was rejected: $msg', 'एक सेव पंच अस्वीकार हुआ: $msg');
+  String syncedCount(int n) => _t('$n offline punch(es) synced', '$n ऑफ़लाइन चेक-इन सिंक हुए');
+  String syncRejected(String msg) => _t('A saved punch was rejected: $msg', 'एक सेव चेक-इन नहीं माना गया: $msg');
   String get outsideGeofence => _t('You are outside the shop area', 'आप दुकान के दायरे से बाहर हैं');
   String get outsideGeofenceHelp => _t(
     'Move closer to your workplace and try again. If you are at work, ask your owner to check the shop pin.',
@@ -836,7 +836,7 @@ class S {
   String get leaveApplied => _t('Leave request sent to owner', 'छुट्टी की अर्ज़ी मालिक को भेज दी गई');
   String get cancelLeave => _t('Cancel request', 'अर्ज़ी रद्द करें');
   String get balances => _t('Balances', 'बैलेंस');
-  String paidLeft(num n) => _t('Paid: $n left', 'सवेतन: $n बाक़ी');
+  String paidLeft(num n) => _t('Paid: $n left', 'पेड: $n बाक़ी');
   String sickLeft(num n) => _t('Sick: $n left', 'बीमारी: $n बाक़ी');
   String get mySalary => _t('My salary', 'मेरी सैलरी');
   String get runningEstimate => _t('This month so far (estimate)', 'इस महीने अब तक (अनुमान)');
@@ -871,7 +871,7 @@ class S {
   String get fullName => _t('Name', 'नाम');
   String get mobileLabel => _t('Mobile', 'मोबाइल');
   String get emailLabel => _t('Email', 'ईमेल');
-  String get emailHint => _t('For reports and receipts (optional)', 'रिपोर्ट और रसीद के लिए (वैकल्पिक)');
+  String get emailHint => _t('For reports and receipts (optional)', 'रिपोर्ट और रसीद के लिए (ज़रूरी नहीं)');
   String get notAdded => _t('Not added', 'नहीं जोड़ा');
   String get removeLabel => _t('Remove', 'हटाएँ');
   String get designationLabel => _t('Role', 'पद');
@@ -1389,11 +1389,13 @@ class S {
     'Namaste! I can do things for you, or show you where to find them. Try:',
     'नमस्ते! मैं आपके काम कर सकता हूँ, या बता सकता हूँ कि कहाँ मिलेगा। ऐसे बोलें:',
   );
-  List<String> get mintExamples => const [
-    'Raju aaj absent hai',
-    'Pooja ko ₹500 advance do',
-    'Aaj kaun late aaya?',
-    'Mera CA kaise add karein?',
+
+  /// (shown, sent) pairs: shown in the app's language, sent in Hinglish, which Mint understands best.
+  List<(String, String)> get mintExamples => [
+    (_t('Raju aaj absent hai', 'राजू आज नहीं आया'), 'Raju aaj absent hai'),
+    (_t('Pooja ko ₹500 advance do', 'पूजा को ₹500 एडवांस दो'), 'Pooja ko ₹500 advance do'),
+    (_t('Aaj kaun late aaya?', 'आज कौन लेट आया?'), 'Aaj kaun late aaya?'),
+    (_t('Mera CA kaise add karein?', 'मेरा CA कैसे जोड़ें?'), 'Mera CA kaise add karein?'),
   ];
   String get openScreen => _t('Open', 'खोलें');
   String get helpTeamAnswer => _t(
@@ -1414,7 +1416,7 @@ class S {
   );
   String get helpAdvance => _t(
     'Just tell me, like “Pooja ko ₹500 advance do”. Or open Salary and tap the staff member.',
-    'बस मुझे बोलिए, जैसे “Pooja ko ₹500 advance do”। या सैलरी खोलकर स्टाफ़ पर दबाएँ।',
+    'बस मुझे बोलिए, जैसे “पूजा को ₹500 एडवांस दो”। या सैलरी खोलकर स्टाफ़ पर दबाएँ।',
   );
   String get helpAddStaff => _t(
     'Staff tab → Add. Type the name, phone and salary. They get a WhatsApp invite to join.',
@@ -1554,7 +1556,7 @@ class S {
   String earnedSoFar(String amount) => _t('$amount so far', '$amount अब तक');
 
   // ----------------------------------------------------------------- Mint
-  String get mintSubtitle => _t('your assistant · online', 'आपका सहायक · online');
+  String get mintSubtitle => _t('your assistant · online', 'आपका सहायक · ऑनलाइन');
   String get mintInputHint => _t('Type, or hold 🎙 to speak…', 'लिखें या 🎙 दबाकर बोलें…');
   String get confirmYes => _t('Yes, do it', 'हाँ, कर दो');
   String get confirmNo => _t('No', 'नहीं');
@@ -1573,21 +1575,21 @@ class S {
   Bi get salaryDayBi => _b('Pay salary', 'सैलरी दें');
   Bi get stepReview => _b('Review', 'जाँचें');
   Bi get stepSend => _b('Approve & send', 'भेजें');
-  Bi get stepPaid => _b('Paid', 'भुगतान');
+  Bi get stepPaid => _b('Paid', 'दे दी');
   Bi get cashNeeded => _b('Total to pay this month', 'इस महीने कुल देना है');
   String earnedAmount(String a) => _t('$a earned', '$a कमाई');
   String advanceRecovered(String a) => _t('−$a advance', '−$a एडवांस');
   String get isThatRight => _t('Is that right?', 'क्या यह सही है?');
   String get looksRight => _t('Looks right', 'ठीक है');
   String get change => _t('Change', 'बदलें');
-  Bi othersFine(int n) => _b('$n others look fine', 'बाकी $n staff में कोई दिक्कत नहीं');
-  Bi allFine(int n) => _b('All $n staff look fine', 'सभी $n staff ठीक हैं');
-  String get slideApproveSend => _t('Slide to approve & send salary slips', 'स्लाइड करें · Approve & send');
+  Bi othersFine(int n) => _b('$n others look fine', 'बाकी $n स्टाफ़ में कोई दिक्कत नहीं');
+  Bi allFine(int n) => _b('All $n staff look fine', 'सभी $n स्टाफ़ ठीक हैं');
+  String get slideApproveSend => _t('Slide to approve & send salary slips', 'स्लाइड करें · मंज़ूर करें और भेजें');
   String get slideMarkPaid => _t('Slide after you’ve paid everyone', 'सबको पैसे देने के बाद स्लाइड करें');
   String get slideA11yHint => _t('Double-tap and hold to confirm', 'पक्का करने के लिए दबाए रखें');
   Bi get salaryApprovedBi => _b('Salary approved!', 'सैलरी मंज़ूर!');
-  String payslipsSentTo(int n) => _t('Salary slips are going to $n staff', '$n staff को सैलरी स्लिप भेजी जा रही हैं');
-  Bi get salaryPaidBi => _b('Marked as paid', 'भुगतान दर्ज हुआ');
+  String payslipsSentTo(int n) => _t('Salary slips are going to $n staff', '$n स्टाफ़ को सैलरी स्लिप भेजी जा रही हैं');
+  Bi get salaryPaidBi => _b('Marked as paid', 'सैलरी दी गई');
   String get paidBanner => _t('Salary for this month is paid', 'इस महीने की सैलरी दे दी गई');
   String get sendAgain => _t('Send salary slips again', 'सैलरी स्लिप फिर भेजें');
   String daysOf(num p, num d) => _t('$p of $d days', '$d में से $p दिन');
@@ -1597,7 +1599,7 @@ class S {
   String get paidQuestion => _t('Have you paid everyone?', 'क्या सबको सैलरी दे दी?');
   String get paidNoMoneyNote => _t(
     'StaffMint doesn\'t send money. This records that you paid, so salary slips show "Paid".',
-    'StaffMint पैसे नहीं भेजता। यह सिर्फ़ दर्ज करता है कि आपने सैलरी दे दी, ताकि स्लिप पर "भुगतान हो गया" दिखे।',
+    'StaffMint पैसे नहीं भेजता। यह सिर्फ़ दर्ज करता है कि आपने सैलरी दे दी, ताकि स्लिप पर "पैसे दे दिए" दिखे।',
   );
   String get howDidYouPay => _t('How did you pay?', 'कैसे दिया?');
   String get paidOnLabel => _t('Paid on', 'किस दिन दिया');
@@ -1616,7 +1618,7 @@ class S {
   }
 
   String paidOnVia(String date, String method) => _t('Paid on $date · $method', '$date को दिया · $method');
-  String get notPaidYet => _t('Not paid yet', 'अभी भुगतान नहीं हुआ');
+  String get notPaidYet => _t('Not paid yet', 'अभी पैसे नहीं दिए');
   String get employerOnTop => _t('Paid by your employer on top of salary', 'सैलरी के अलावा मालिक द्वारा जमा');
 
   // -------------------------------------------------------------- PF / ESI / Professional Tax
@@ -1636,7 +1638,7 @@ class S {
   String get basicPercentLabel => _t('Basic is what % of salary?', 'सैलरी का कितना % बेसिक है?');
   String get basicPercentHint =>
       _t('The rest shows as HRA & allowances. 50% is common.', 'बाकी HRA व भत्ते में दिखेगा। 50% आम है।');
-  String get esiTitle => _t('ESI', 'ESI (कर्मचारी राज्य बीमा)');
+  String get esiTitle => _t('ESI', 'ESI (स्टाफ़ का सरकारी बीमा)');
   String get esiExample => _t(
     'For staff earning up to ₹21,000: 0.75% from staff, 3.25% from you.',
     '₹21,000 तक सैलरी वाले स्टाफ़ के लिए: 0.75% स्टाफ़ से, 3.25% आपसे।',
@@ -1653,7 +1655,7 @@ class S {
 
   // Staff details for slips
   Bi get slipDetailsBi => _b('Details on salary slip', 'सैलरी स्लिप पर विवरण');
-  String get employeeCodeLabel => _t('Employee ID', 'कर्मचारी ID');
+  String get employeeCodeLabel => _t('Employee ID', 'स्टाफ़ ID');
   String get uanLabel => _t('PF UAN (12 digits)', 'PF UAN (12 अंक)');
   String get esicLabel => _t('ESIC number', 'ESIC नंबर');
   String get panLabel => _t('PAN', 'PAN');
@@ -1661,12 +1663,12 @@ class S {
   String get esiExemptLabel => _t('Not in ESI', 'ESI में नहीं');
   String get slipDetailsHint => _t(
     'Employee ID, PF UAN, ESIC, PAN. Optional — fill only what your shop uses.',
-    'कर्मचारी ID, PF UAN, ESIC, PAN. ज़रूरी नहीं — जो आपकी दुकान में चलता है वही भरें।',
+    'स्टाफ़ ID, PF UAN, ESIC, PAN. ज़रूरी नहीं — जो आपकी दुकान में चलता है वही भरें।',
   );
 
   // -------------------------------------------------------------- Salary slip
   Bi get payslipBi => _b('Salary slip', 'सैलरी स्लिप');
-  Bi get netPayBi => _b('Net pay', 'हाथ में वेतन');
+  Bi get netPayBi => _b('Net pay', 'हाथ में सैलरी');
   String get why => _t('Why?', 'क्यों?');
   String get sendOnWhatsApp => _t('Send on WhatsApp', 'WhatsApp पर भेजें');
   String get pdf => 'PDF';
@@ -1830,7 +1832,7 @@ class S {
   );
   String get oldNumber => _t('Old mobile number', 'पुराना मोबाइल नंबर');
   String get gstinOrLicence => _t('GSTIN / shop licence / Udyam number', 'GSTIN / दुकान लाइसेंस / उद्यम नंबर');
-  String get paymentId => _t('A past StaffMint payment ID', 'पिछले StaffMint भुगतान की ID');
+  String get paymentId => _t('A past StaffMint payment ID', 'पिछले StaffMint पेमेंट की ID');
   String get recordSelfieVideo => _t(
     'Record a 10-second selfie video saying the business name',
     '10 सेकंड का सेल्फ़ी वीडियो, बिज़नेस का नाम बोलते हुए',
@@ -1862,13 +1864,13 @@ class S {
   Bi get oneBillBi => _b('One bill for your businesses', 'आपके सभी बिज़नेस का एक बिल');
   String oneBillHint(String extra) => _t(
     'Pay for your other businesses here. Staff add up across them; each extra business is $extra/month.',
-    'अपने बाकी बिज़नेस का भुगतान यहीं करें। स्टाफ़ सबका जुड़कर गिना जाएगा; हर अतिरिक्त बिज़नेस $extra/महीना।',
+    'अपने बाकी बिज़नेस का पेमेंट यहीं करें। स्टाफ़ सबका जुड़कर गिना जाएगा; हर अतिरिक्त बिज़नेस $extra/महीना।',
   );
   String get onThisBill => _t('On this bill', 'इस बिल में');
   String get addToBill => _t('Add to this bill', 'इस बिल में जोड़ें');
   String get removeFromBill => _t('Remove from bill', 'बिल से हटाएँ');
   String billedWith(String name) =>
-      _t('Paid together with $name. Change the plan there.', '$name के साथ भुगतान होता है। प्लान वहीं बदलें।');
+      _t('Paid together with $name. Change the plan there.', '$name के साथ पेमेंट होता है। प्लान वहीं बदलें।');
   String totalStaffOnBill(int n) => _t('$n staff on this bill', 'इस बिल में $n स्टाफ़');
 
   // ---------------------------------------------------------------- Misc

@@ -82,7 +82,7 @@ describe('payroll lifecycle', () => {
     expect(mine.body.data).toHaveLength(1);
     expect(mine.body.data[0]).toMatchObject({ revision: 2, netPaise: 2600000 });
     const ex = await api().get(`${V}/payslips/${mine.body.data[0].id}/explain`).set(auth(e.token)).set('Accept-Language', 'hi');
-    expect(ex.body.data.text).toContain('हाथ में वेतन');
+    expect(ex.body.data.text).toContain('हाथ में सैलरी');
     const other = await addEmployee(owner, { name: 'Other' });
     const otherSlips = await api().get(`${V}/payslips?employeeId=${other.id}`).set(auth(e.token));
     expect(otherSlips.body.data.every((s: any) => s.employeeId === e.user.employeeId)).toBe(true);

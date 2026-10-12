@@ -64,7 +64,7 @@ class _MintChatState extends ConsumerState<MintChat> {
     });
   }
 
-  Future<void> _send([String? text]) async {
+  Future<void> _send([String? text, String? shown]) async {
     final t = text ?? _input.text;
     if (t.trim().isEmpty) return;
     _input.clear();
@@ -73,7 +73,7 @@ class _MintChatState extends ConsumerState<MintChat> {
     final owner = ref.read(authControllerProvider).isOwner;
     await ref
         .read(assistantControllerProvider.notifier)
-        .sendText(t, localHelp: owner ? (q) => mintHelpFor(s, q) : null);
+        .sendText(t, shown: shown, localHelp: owner ? (q) => mintHelpFor(s, q) : null);
     _scrollToEnd();
   }
 
@@ -132,9 +132,9 @@ class _MintChatState extends ConsumerState<MintChat> {
                         children: [
                           Text(s.mintIntro),
                           const SizedBox(height: 6),
-                          for (final ex in s.mintExamples)
+                          for (final (ex, query) in s.mintExamples)
                             InkWell(
-                              onTap: state.sending ? null : () => _send(ex),
+                              onTap: state.sending ? null : () => _send(query, ex),
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(vertical: 7),
                                 child: Text(
@@ -184,7 +184,7 @@ class _MintChatState extends ConsumerState<MintChat> {
                     labelStyle: const TextStyle(color: AppColors.mintDark, fontWeight: FontWeight.w700, fontSize: 13.5),
                     side: const BorderSide(color: Color(0xFFCDEBDB)),
                     backgroundColor: Colors.white,
-                    onPressed: state.sending ? null : () => _send(query),
+                    onPressed: state.sending ? null : () => _send(query, label.replaceFirst(RegExp(r'^\S+\s'), '')),
                   ),
               ],
             ),

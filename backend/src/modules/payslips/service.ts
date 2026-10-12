@@ -47,13 +47,13 @@ export function explain(s: any, lang: 'en' | 'hi') {
   const lines: string[] = s.lines.map((l: any) => `${l.kind === 'deduction' ? '−' : '+'} ${l.label?.[lang] ?? l.label?.en}: ${m(l.amountPaise)} — ${l.explanation?.[lang] ?? l.explanation?.en}`);
   const head =
     lang === 'hi'
-      ? `${monthLabel(s.month, 'hi')} में ${s.employeeName} का हाथ में वेतन ${m(s.netPaise)} है (कुल कमाई ${m(s.grossPaise)}, कटौती ${m(s.deductionsPaise)}).`
+      ? `${monthLabel(s.month, 'hi')} में ${s.employeeName} का हाथ में सैलरी ${m(s.netPaise)} है (कुल कमाई ${m(s.grossPaise)}, कटौती ${m(s.deductionsPaise)}).`
       : `${s.employeeName}'s net pay for ${monthLabel(s.month, 'en')} is ${m(s.netPaise)} (gross ${m(s.grossPaise)}, deductions ${m(s.deductionsPaise)}).`;
   const less: string[] = [];
   const sm = s.summary ?? {};
   if (sm.absent) less.push(lang === 'hi' ? `${sm.absent} दिन गैरहाज़िर` : `${sm.absent} day(s) absent`);
   if (sm.halfDay) less.push(lang === 'hi' ? `${sm.halfDay} आधे दिन` : `${sm.halfDay} half day(s)`);
-  if (sm.unpaidLeave) less.push(lang === 'hi' ? `${sm.unpaidLeave} दिन बिना वेतन छुट्टी` : `${sm.unpaidLeave} day(s) unpaid leave`);
+  if (sm.unpaidLeave) less.push(lang === 'hi' ? `${sm.unpaidLeave} दिन बिना पैसे की छुट्टी` : `${sm.unpaidLeave} day(s) unpaid leave`);
   if (sm.unmarked) less.push(lang === 'hi' ? `${sm.unmarked} दिन हाज़िरी नहीं लगी` : `${sm.unmarked} day(s) without attendance`);
   const adv = s.lines.filter((l: any) => l.code === 'advance').reduce((a: number, l: any) => a + l.amountPaise, 0);
   if (adv) less.push(lang === 'hi' ? `${m(adv)} एडवांस वापसी` : `${m(adv)} advance recovery`);
@@ -103,7 +103,7 @@ export async function sendPayslips(ctx: Ctx, runId: string, payslipIds?: string[
         title: `Salary slip for ${monthLabel(s.month, 'en')}`,
         titleHi: `${monthLabel(s.month, 'hi')} की सैलरी स्लिप`,
         body: `In hand ${formatMoney(s.netPaise ?? 0)}${s.paidOn ? ' · paid' : ''}`,
-        bodyHi: `हाथ में वेतन ${formatMoney(s.netPaise ?? 0)}${s.paidOn ? ' · भुगतान हो गया' : ''}`,
+        bodyHi: `हाथ में सैलरी ${formatMoney(s.netPaise ?? 0)}${s.paidOn ? ' · पैसे दे दिए' : ''}`,
         data: { type: 'payslip', payslipId: String(s._id), month: s.month },
         whatsapp: { template: 'payslip_ready', params: [s.employeeName ?? '', monthLabel(s.month, 'en'), formatMoney(s.netPaise ?? 0)], documentUrl: url, filename: `salary-slip-${s.month}.pdf` },
       },

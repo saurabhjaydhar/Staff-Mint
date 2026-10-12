@@ -59,7 +59,7 @@ export async function buildReport(ctx: Ctx, kind: ReportKind, month: string): Pr
       const total = (f: (s: any) => number) => money(slips.reduce((a: number, s: any) => a + f(s), 0));
       rows.push(['TOTAL', '', '', '', total(sum('basic', 'allowance')), total(sum('bonus')), total((s) => s.grossPaise ?? 0), ...statutory.map((c) => total(sum(c))), total(sum('deduction')), total(sum('advance')), money(run.totals?.netPaise ?? 0)]);
       return {
-        title: 'Salary register / वेतन रजिस्टर',
+        title: 'Salary register / सैलरी रजिस्टर',
         subtitle: `${monthLabel(month)} · ${run.status} · rev ${run.revision}`,
         headers: ['Name', 'Type', 'Rate', 'Paid days', 'Earned', 'Bonus', 'Gross', ...statutory.map((c) => label[c]), 'Deductions', 'Advance', 'Net pay'],
         rows,

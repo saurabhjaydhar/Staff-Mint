@@ -51,7 +51,7 @@ describe('attendance rules engine', () => {
   });
   it('describes rules in plain Hindi and English', () => {
     const s = { graceMinutes: 15, halfDayHours: 4, missingCheckoutPolicy: 'half_day', weekOffsPaid: true, holidaysPaid: true, monthDivisor: 'days_in_month', outsideGeofencePolicy: 'block' };
-    expect(describeRules(s, 'hi').find((r) => r.key === 'missing_checkout')!.text).toContain('punch-out नहीं किया तो Half Day लगेगा');
+    expect(describeRules(s, 'hi').find((r) => r.key === 'missing_checkout')!.text).toContain('चेक-आउट नहीं किया तो आधा दिन लगेगा');
     expect(describeRules(s, 'en').map((r) => r.key)).toContain('auto_absent');
   });
 });

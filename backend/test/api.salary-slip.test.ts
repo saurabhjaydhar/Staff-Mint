@@ -34,7 +34,7 @@ describe('salary slips', () => {
     expect(html).toContain('कुल कमाई'); // Gross earnings
     expect(html).toContain('कुल कटौती'); // Total deductions
     expect(html).toContain('दस हज़ार रुपये'); // ₹10,000 in words
-    expect(html).toContain('अभी भुगतान नहीं हुआ'); // not paid yet
+    expect(html).toContain('अभी पैसे नहीं दिए'); // not paid yet
     expect(html).not.toContain('PF UAN');
     expect(html).not.toContain('मालिक द्वारा जमा'); // no employer box
 
@@ -44,7 +44,7 @@ describe('salary slips', () => {
     expect(paid.body.data.payslips[0]).toMatchObject({ paidOn: '2026-10-03', paymentMethod: 'upi' });
     slip = await Payslip.findOne({ companyId: owner.companyId, runId }).lean();
     html = payslipHtml(slip, { name: 'Sharma Medical Store', currency: 'INR' });
-    expect(html).toContain('भुगतान हो गया');
+    expect(html).toContain('पैसे दे दिए');
     expect(html).toContain('3 अक्टूबर 2026');
     const told = await Notification.findOne({ companyId: owner.companyId, template: 'salary_paid', channel: 'in_app' }).lean();
     expect(told!.body).toMatch(/₹10,000.*2026-10-03.*UPI/);
