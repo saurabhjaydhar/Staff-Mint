@@ -88,8 +88,9 @@ void main() {
 
   testWidgets('a flagged selfie shows the approved photo next to it with the reason', (tester) async {
     await pump(tester);
-    expect(find.text('2 things need your OK'), findsOneWidget);
-    expect(find.textContaining('Face does not match'), findsOneWidget);
+    expect(find.text('To do · 2'), findsOneWidget);
+    expect(find.textContaining('selfie looks different'), findsWidgets);
+    expect(find.text('It’s them'), findsOneWidget);
     // Inside the shop: no red "m away" line on a face-only flag.
     expect(find.textContaining('m away'), findsNothing);
     final pair = find.byKey(const Key('photoPair_p2'));

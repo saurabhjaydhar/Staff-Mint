@@ -173,7 +173,7 @@ void main() {
     await pump(tester);
 
     expect(find.text('Sharma Medical'), findsOneWidget);
-    expect(find.textContaining('Today, '), findsOneWidget);
+    expect(find.text('Today · change'), findsOneWidget);
     expect(find.byKey(const Key('dayTab')), findsOneWidget);
     expect(find.byKey(const Key('monthTab')), findsOneWidget);
     expect(find.text('4 of 6 at work'), findsOneWidget);
@@ -193,7 +193,8 @@ void main() {
     expect(inPill('e4', 'Check'), findsOneWidget);
     expect(find.text('560 m from shop'), findsOneWidget);
     expect(find.text('Lock ✗'), findsOneWidget);
-    expect(find.text('Not checked in yet'), findsOneWidget);
+    // One wording for "not here yet": the status says it, the row doesn't repeat it.
+    expect(find.text('Not checked in yet'), findsNothing);
     expect(find.text('Changed by owner'), findsOneWidget);
     // Tappable statuses show a ▾.
     expect(
@@ -202,7 +203,7 @@ void main() {
     );
 
     // Approvals say what each request is, and expand into the cards.
-    expect(find.text('1 thing needs your OK'), findsOneWidget);
+    expect(find.text('To do · 1'), findsOneWidget);
     expect(find.text('Amit asked for leave'), findsOneWidget);
     await tester.tap(find.byKey(const Key('needsYouCard')));
     await tester.pumpAndSettle();
@@ -284,6 +285,26 @@ void main() {
     expect(api.calls.single['status'], 'half_day');
   });
 
+  testWidgets('before the shift: "Shift starts at …" instead of "0 of 6 at work"; rows show the shift', (tester) async {
+    await pump(
+      tester,
+      rows: (date) => [
+        for (final id in ['e1', 'e2', 'e3'])
+          DayRow(
+            employee: EmployeeRef(id: id, name: 'Staff $id', linked: true),
+            displayStatus: 'not_marked',
+            shiftStart: '23:59',
+            shiftEnd: '23:59',
+          ),
+      ],
+    );
+    expect(find.byKey(const Key('beforeShift')), findsOneWidget);
+    expect(find.text('Shift starts at 11:59 PM'), findsOneWidget);
+    expect(find.textContaining('3 staff'), findsOneWidget);
+    expect(find.textContaining('0 of'), findsNothing);
+    expect(find.text('Shift 11:59 PM'), findsNWidgets(3));
+  });
+
   testWidgets('a weekly-off day says so instead of "0 of 6"; the list is one tap away', (tester) async {
     await pump(
       tester,
@@ -296,16 +317,22 @@ void main() {
     expect(find.text('0 of 0 at work'), findsOneWidget);
   });
 
-  testWidgets('new shop: checklist ticks itself; invite banner says who hasn\'t joined; hide works', (tester) async {
+  testWidgets('new shop: checklist ticks itself; To do says who hasn\'t joined; hide works', (tester) async {
     await pump(tester, setup: const HomeChecklist(staffAdded: true, staff: 6, joined: 2, notJoined: 4));
     expect(find.text('Let’s get your shop running'), findsOneWidget);
     expect(find.text('2 of 5'), findsOneWidget);
-    expect(find.text('6 staff invited · 2 have joined'), findsOneWidget);
-    expect(find.byKey(const Key('remindInvites')), findsOneWidget);
     await tester.tap(find.byKey(const Key('setupHide')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('setupChecklist')), findsNothing);
     expect(prefs.getBool('sm_setup_hidden_c1'), isTrue);
+
+    // Not-joined staff are one line in the To do card, with "Remind all" inside.
+    expect(find.text('To do · 2'), findsOneWidget);
+    expect(find.textContaining('4 staff haven’t joined'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('needsYouCard')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('todoInvites')));
+    expect(find.text('Remind all'), findsOneWidget);
   });
 
   testWidgets('Month: a list with totals in words; tap a person for their calendar with a legend', (tester) async {

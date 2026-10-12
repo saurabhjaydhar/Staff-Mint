@@ -22,6 +22,8 @@ describe('owner Home (redesign)', () => {
     expect(suresh.employee).toMatchObject({ linked: false });
     expect(suresh.employee.invitedAt).toBeTruthy();
     expect(rows.find((r: any) => r.employee.id === a.id).employee.linked).toBe(true);
+    // Each row carries the person's shift, for "Shift starts at 9:00 AM" before anyone is due.
+    expect(suresh.shift).toEqual({ start: expect.stringMatching(/^\d\d:\d\d$/), end: expect.stringMatching(/^\d\d:\d\d$/) });
 
     // Invited moments ago → nothing re-sent; an old invite is re-sent.
     let r = await api().post(`${V}/employees/remind-invites`).set(auth(owner.token)).expect(200);

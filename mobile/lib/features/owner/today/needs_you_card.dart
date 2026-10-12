@@ -14,8 +14,12 @@ import 'leave_cards.dart';
 /// expands into the actionable list: leave requests (with the effect of
 /// saying yes), check-ins away from the shop, face photos and new phones.
 class NeedsYouCard extends ConsumerStatefulWidget {
-  const NeedsYouCard({super.key, required this.dashboard});
+  const NeedsYouCard({super.key, required this.dashboard, this.notJoined = 0, this.onRemindAll});
   final Dashboard dashboard;
+
+  /// Staff who haven't installed the app yet; shown as one more "To do" item.
+  final int notJoined;
+  final VoidCallback? onRemindAll;
 
   @override
   ConsumerState<NeedsYouCard> createState() => _NeedsYouCardState();
@@ -38,8 +42,8 @@ class _NeedsYouCardState extends ConsumerState<NeedsYouCard> {
     return ok;
   }
 
-  Future<bool> _decideLeave(Leave l, bool approve) =>
-      _run(l.id, approve, () => ref.read(leaveApiProvider).decide(l.id, approve: approve));
+  Future<bool> _decideLeave(Leave l, bool approve, {bool asUnpaid = false}) =>
+      _run(l.id, approve, () => ref.read(leaveApiProvider).decide(l.id, approve: approve, asUnpaid: asUnpaid));
 
   Future<bool> _decideFace(FaceEnrollment f, bool approve) => _run(
     'face_${f.employeeId}',
@@ -63,12 +67,14 @@ class _NeedsYouCardState extends ConsumerState<NeedsYouCard> {
     final punches = d.punchApprovals.where((p) => !_handled.contains(p.punch.id)).toList();
     final faces = d.faceEnrollments.where((f) => !_handled.contains('face_${f.employeeId}')).toList();
     final devices = d.deviceRequests.where((r) => !_handled.contains('device_${r.id}')).toList();
-    final count = leaves.length + punches.length + faces.length + devices.length + d.flags.length;
+    final approvals = leaves.length + punches.length + faces.length + devices.length + d.flags.length;
+    final invites = widget.notJoined > 0 ? 1 : 0;
+    final count = approvals + invites;
     if (count == 0) return const SizedBox.shrink();
     final names = [
       for (final l in leaves) s.okAskedLeave(l.employeeName),
-      for (final p in punches)
-        p.punch.insideGeofence == false ? s.okFarPunch(p.employeeName) : s.needsYouPunch(p.employeeName),
+      for (final p in punches) _punchTitle(s, p),
+      if (widget.notJoined > 0) s.todoNotJoined(widget.notJoined),
       for (final f in faces) s.needsYouFace(f.employeeName),
       for (final r in devices) s.needsYouDevice(r.employeeName),
       for (final f in d.flags) s.okCheck(f.employeeName),
@@ -96,7 +102,7 @@ class _NeedsYouCardState extends ConsumerState<NeedsYouCard> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          s.needYourOk(count),
+                          s.todoCount(count),
                           style: const TextStyle(color: AppColors.ink, fontSize: 15.5, fontWeight: FontWeight.w800),
                         ),
                         Text(
@@ -117,7 +123,7 @@ class _NeedsYouCardState extends ConsumerState<NeedsYouCard> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          _open ? s.hide : s.review,
+                          _open ? s.hide : s.openScreen,
                           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14),
                         ),
                         const SizedBox(width: 2),
@@ -142,11 +148,6 @@ class _NeedsYouCardState extends ConsumerState<NeedsYouCard> {
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    if (leaves.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
-                        child: Text(s.swipeHint, style: const TextStyle(color: AppColors.muted, fontSize: 13)),
-                      ),
                     for (final l in leaves)
                       SwipeToDecide(
                         id: l.id,
@@ -157,6 +158,11 @@ class _NeedsYouCardState extends ConsumerState<NeedsYouCard> {
                           busy: _busy.contains(l.id),
                           onDecide: (a) async {
                             if (await _decideLeave(l, a) && mounted) setState(() => _handled.add(l.id));
+                          },
+                          onApproveUnpaid: () async {
+                            if (await _decideLeave(l, true, asUnpaid: true) && mounted) {
+                              setState(() => _handled.add(l.id));
+                            }
                           },
                         ),
                       ),
@@ -217,6 +223,20 @@ class _NeedsYouCardState extends ConsumerState<NeedsYouCard> {
                             ],
                           ),
                         ),
+                      ),
+                    if (widget.notJoined > 0)
+                      Card(
+                        key: const Key('todoInvites'),
+                        child: ListTile(
+                          leading: const Icon(Icons.mark_email_unread_outlined, color: AppColors.amberDark),
+                          title: Text(s.todoInviteLine(widget.notJoined)),
+                          trailing: TextButton(onPressed: widget.onRemindAll, child: Text(s.remindAll)),
+                        ),
+                      ),
+                    if (leaves.isNotEmpty || punches.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+                        child: Text(s.swipeTip, style: const TextStyle(color: AppColors.muted, fontSize: 12.5)),
                       ),
                     for (final f in d.flags)
                       Card(
@@ -285,22 +305,11 @@ class _PunchApprovalCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Text(_punchTitle(s, item), style: Theme.of(context).textTheme.titleMedium),
                       Text(
-                        p.insideGeofence == false && p.distanceM != null
-                            ? s.checkedInAway(item.employeeName, s.rowAway(p.distanceM!))
-                            : item.employeeName,
-                        style: Theme.of(context).textTheme.titleMedium,
+                        s.todayAt(Dates.time(p.clientTime, s.languageCode)),
+                        style: const TextStyle(color: AppColors.muted),
                       ),
-                      Text(
-                        '${outside
-                            ? s.outsidePunchApproval
-                            : p.faceFlagged
-                            ? s.faceResultLabel(p.faceResult)
-                            : s.lockPunchApproval} · ${p.isIn ? s.checkInLabel : s.checkOutLabel} ${Dates.time(p.clientTime, s.languageCode)}',
-                      ),
-                      // Distance only matters when the punch was outside the shop area.
-                      if (p.distanceM != null && p.insideGeofence == false)
-                        Text(s.distanceAway(p.distanceM!), style: const TextStyle(color: AppColors.red)),
                     ],
                   ),
                 ),
@@ -315,7 +324,12 @@ class _PunchApprovalCard extends StatelessWidget {
               ),
             ],
             const SizedBox(height: 10),
-            DecisionButtons(busy: busy, onDecide: onDecide, rejectLabel: s.dontCount, approveLabel: s.countIt),
+            DecisionButtons(
+              busy: busy,
+              onDecide: onDecide,
+              rejectLabel: s.dontCount,
+              approveLabel: p.faceFlagged && !outside ? s.itsThem : s.countAsPresent,
+            ),
           ],
         ),
       ),
@@ -410,4 +424,16 @@ class _Photo extends StatelessWidget {
           : Image.network(url!, width: size, height: size, fit: BoxFit.cover, errorBuilder: (_, _, _) => fallback),
     );
   }
+}
+
+/// One plain sentence for a check-in that needs the owner: away from the
+/// shop, selfie looks different, or the phone wasn't unlocked.
+String _punchTitle(S s, PunchApprovalItem item) {
+  final p = item.punch;
+  if (p.insideGeofence == false && p.distanceM != null) {
+    return s.checkedInAway(item.employeeName, s.rowAway(p.distanceM!));
+  }
+  if (p.mockLocation || p.insideGeofence == false) return s.okFarPunch(item.employeeName);
+  if (p.faceFlagged) return s.selfieDifferent(item.employeeName);
+  return s.noPhoneLock(item.employeeName);
 }

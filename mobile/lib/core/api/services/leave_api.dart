@@ -32,11 +32,16 @@ class LeaveApi {
     ),
   );
 
-  Future<Leave> decide(String id, {required bool approve, String? note}) async => Leave.fromJson(
+  /// [asUnpaid]: approve as unpaid leave (no paid/sick leave left).
+  Future<Leave> decide(String id, {required bool approve, String? note, bool asUnpaid = false}) async => Leave.fromJson(
     asMap(
       await _c.post(
         '/leaves/$id/decision',
-        body: {'decision': approve ? 'approved' : 'rejected', if (note != null && note.isNotEmpty) 'note': note},
+        body: {
+          'decision': approve ? 'approved' : 'rejected',
+          if (note != null && note.isNotEmpty) 'note': note,
+          if (approve && asUnpaid) 'asUnpaid': true,
+        },
       ),
     ),
   );

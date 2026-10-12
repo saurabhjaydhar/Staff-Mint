@@ -270,7 +270,7 @@ class S {
       case 'needs_check':
         return _t('Check', 'जाँचें');
       default:
-        return _t('Not yet', 'बाकी');
+        return _t('Not in yet', 'अभी नहीं आए');
     }
   }
 
@@ -297,6 +297,9 @@ class S {
         return '–';
     }
   }
+
+  /// "paid" / "sick" — the word that goes before "leaves" in a sentence.
+  String leaveKind(String? t) => t == 'sick' ? _t('sick', 'बीमारी की') : _t('paid', 'पेड');
 
   String leaveTypeLabel(String? t) {
     switch (t) {
@@ -463,7 +466,8 @@ class S {
   String get recalculate => _t('Recalculate', 'फिर से निकालें');
   String get noRunYet => _t('Salary for this month is not calculated yet.', 'इस महीने की सैलरी अभी नहीं निकाली गई है।');
 
-  String revisionLabel(int r) => _t('Edited · version $r', 'बदला गया · वर्ज़न $r');
+  String revisionLabel(int r) =>
+      _t('Changed after approval · old slip kept', 'मंज़ूरी के बाद बदला · पुरानी स्लिप रखी है');
   String get totalNet => _t('Total to pay', 'कुल देना है');
   String get deductions => _t('Deductions', 'कटौती');
   String employeesCount(int n) => _t('$n staff', '$n स्टाफ़');
@@ -471,7 +475,7 @@ class S {
   String get sendPayslips => _t('Send salary slips', 'सैलरी स्लिप भेजें');
   String payslipsQueued(int n) => _t('$n salary slips are being sent', '$n सैलरी स्लिप भेजी जा रही हैं');
   String get markPaid => _t('Mark as paid', 'भुगतान हुआ मार्क करें');
-  String get revise => _t('Edit salary', 'सैलरी बदलें');
+  String get revise => _t('Change salary', 'सैलरी बदलें');
   String get reviseConfirm => _t(
     'A new draft (revision) will be created from current attendance.',
     'मौजूदा हाज़िरी से नया ड्राफ़्ट (संशोधन) बनेगा।',
@@ -978,7 +982,7 @@ class S {
   String metersShort(num m) => _t('${m.round()} m', '${m.round()} मी');
   Bi needsYouTitle(int n) => _b(n == 1 ? '1 thing needs you' : '$n things need you', '$n काम आपके लिए');
   String needsYouLeave(String name) => _t('$name’s leave', '$name की छुट्टी');
-  String needsYouPunch(String name) => _t('$name’s punch', '$name का पंच');
+  String needsYouPunch(String name) => _t('$name’s check-in needs a look', '$name का चेक-इन देख लें');
   String needsYouFlag(String name) => _t('$name: check', '$name: जाँचें');
   String needsYouFace(String name) => _t('$name’s face photo', '$name की फ़ोटो');
   String get view => _t('View', 'देखें');
@@ -1338,6 +1342,112 @@ class S {
   String get paidOnSalaryDay =>
       _t('Paid on salary day, after the month ends', 'महीना ख़त्म होने के बाद सैलरी डे पर मिलेगी');
   String monthTillToday(String month) => _t('$month, till today', '$month, आज तक');
+
+  // ------------------------------------------------ Round 2 (fixes)
+  String shiftStartsAt2(String t) => _t('Shift starts at $t', 'शिफ़्ट $t पर शुरू होगी');
+  String shiftStartsBody(int n) => _t(
+    '$n staff · we’ll show who came in after the shift starts.',
+    '$n स्टाफ़ · शिफ़्ट शुरू होने के बाद दिखेगा कौन आया।',
+  );
+  String rowShift(String t) => _t('Shift $t', 'शिफ़्ट $t');
+  String get relToday => _t('Today', 'आज');
+  String get relYesterday => _t('Yesterday', 'कल');
+  String daysAgo(int n) => _t('$n days ago', '$n दिन पहले');
+  String todoCount(int n) => _t('To do · $n', 'करने के काम · $n');
+  String todoNeedOk(int n) => _t('$n need your OK', '$n मंज़ूरी बाकी');
+  String todoNotJoined(int n) =>
+      _t(n == 1 ? '1 staff hasn’t joined' : '$n staff haven’t joined', '$n स्टाफ़ नहीं जुड़े');
+  String get todoAllDone => _t('Nothing waiting for you', 'आपके लिए कुछ बाकी नहीं');
+  String todoInviteLine(int n) => _t(
+    n == 1 ? '1 staff hasn’t installed the app' : '$n staff haven’t installed the app',
+    '$n स्टाफ़ ने ऐप इंस्टॉल नहीं किया',
+  );
+  String get remindAll => _t('Remind all', 'सबको याद दिलाएँ');
+  String get swipeTip => _t('Tip: you can also swipe a card.', 'सुझाव: कार्ड को खिसका भी सकते हैं।');
+  String noLeavesLeft(String type, num days) => _t(
+    'No $type leaves left. If you approve, these ${_num(days)} days are unpaid leave (salary is cut for ${_num(days)} days).',
+    '$type छुट्टी बाकी नहीं है। मंज़ूर करने पर ये ${_num(days)} दिन बिना पैसे की छुट्टी होंगे (${_num(days)} दिन की सैलरी कटेगी)।',
+  );
+  String fewLeavesLeft(String type, num left, num days) => _t(
+    'Only ${_num(left)} $type leaves left for ${_num(days)} days. If you approve as unpaid, salary is cut for ${_num(days)} days.',
+    'सिर्फ़ ${_num(left)} $type छुट्टी बाकी है, माँगे ${_num(days)} दिन। बिना पैसे मंज़ूर करने पर ${_num(days)} दिन की सैलरी कटेगी।',
+  );
+  String leavesAfter(String type, num left, num after) => _t(
+    'Has ${_num(left)} $type leaves. After this: ${_num(after)} left.',
+    '${_num(left)} $type छुट्टी बाकी। इसके बाद: ${_num(after)} बचेंगी।',
+  );
+  String get approveAsUnpaid => _t('Approve as unpaid', 'बिना पैसे मंज़ूर करें');
+  String get giveAsPaid => _t('Give as paid leave anyway', 'फिर भी पेड छुट्टी दें');
+  String get seeMap => _t('see map', 'नक्शा देखें');
+  String todayAt(String t) => _t('Today $t', 'आज $t');
+  String selfieDifferent(String name) => _t('$name’s selfie looks different', '$name की सेल्फ़ी अलग दिख रही है');
+  String noPhoneLock(String name) =>
+      _t('$name checked in without unlocking the phone', '$name ने फ़ोन खोले बिना चेक-इन किया');
+  String get itsThem => _t('It’s them', 'यही हैं');
+  String get countAsPresent => _t('Count as present', 'हाज़िर मानें');
+  String get mintIntro => _t(
+    'Namaste! I can do things for you, or show you where to find them. Try:',
+    'नमस्ते! मैं आपके काम कर सकता हूँ, या बता सकता हूँ कि कहाँ मिलेगा। ऐसे बोलें:',
+  );
+  List<String> get mintExamples => const [
+    'Raju aaj absent hai',
+    'Pooja ko ₹500 advance do',
+    'Aaj kaun late aaya?',
+    'Mera CA kaise add karein?',
+  ];
+  String get openScreen => _t('Open', 'खोलें');
+  String get helpTeamAnswer => _t(
+    'Staff tab → Team & access → Add your CA. Your CA can see salary and reports, but can’t change attendance.',
+    'स्टाफ़ टैब → टीम और एक्सेस → अपना CA जोड़ें। CA सैलरी और रिपोर्ट देख सकता है, पर हाज़िरी नहीं बदल सकता।',
+  );
+  String get helpTimings => _t(
+    'More → Timings & holidays. Set shift times, weekly off and festival holidays there.',
+    'और → समय और छुट्टियाँ। वहाँ शिफ़्ट का समय, साप्ताहिक छुट्टी और त्योहार की छुट्टी सेट करें।',
+  );
+  String get helpLateRules => _t(
+    'More → Attendance rules. Set how many minutes late is OK, and when late becomes a half day.',
+    'और → हाज़िरी के नियम। कितने मिनट की देरी ठीक है, और कब आधा दिन माना जाए, यहाँ सेट करें।',
+  );
+  String get helpStatutory => _t(
+    'More → Business details → PF & ESI. Turn them on and add your numbers.',
+    'और → बिज़नेस की जानकारी → PF और ESI। इन्हें चालू करें और अपने नंबर डालें।',
+  );
+  String get helpAdvance => _t(
+    'Just tell me, like “Pooja ko ₹500 advance do”. Or open Salary and tap the staff member.',
+    'बस मुझे बोलिए, जैसे “Pooja ko ₹500 advance do”। या सैलरी खोलकर स्टाफ़ पर दबाएँ।',
+  );
+  String get helpAddStaff => _t(
+    'Staff tab → Add. Type the name, phone and salary. They get a WhatsApp invite to join.',
+    'स्टाफ़ टैब → जोड़ें। नाम, फ़ोन और सैलरी डालें। उन्हें जुड़ने के लिए WhatsApp पर बुलावा जाएगा।',
+  );
+  String get helpReports => _t(
+    'More → Reports. Download attendance and salary as Excel or PDF.',
+    'और → रिपोर्ट। हाज़िरी और सैलरी Excel या PDF में डाउनलोड करें।',
+  );
+  String get helpPlan => _t(
+    'More → Plan & payment. See your plan and pay there.',
+    'और → प्लान और पेमेंट। वहाँ अपना प्लान देखें और पेमेंट करें।',
+  );
+  String get salaryTitle => _t('Salary', 'सैलरी');
+  String monthDone(String month) => _t('$month is done', '$month पूरा हुआ');
+  String slipsSentLine(int n) => _t(
+    '$n salary slips sent. Staff can see them in their app.',
+    '$n सैलरी स्लिप भेजी गईं। स्टाफ़ अपने ऐप में देख सकते हैं।',
+  );
+  String get needChange => _t('Need to change something?', 'कुछ बदलना है?');
+  String get needChangeBody => _t('We make a new slip and keep the old one.', 'नई स्लिप बनेगी, पुरानी रखी रहेगी।');
+  String get countAsAbsent => _t('Count them as absent?', 'इन्हें ग़ैरहाज़िर मानें?');
+  String get yesAbsent => _t('Yes, absent', 'हाँ, ग़ैरहाज़िर');
+  String get fixDays => _t('Fix days', 'दिन ठीक करें');
+  String get yesRight => _t('Yes, that’s right', 'हाँ, सही है');
+  String get pay => _t('Pay', 'पैसे');
+  String get work => _t('Work', 'काम');
+  String get calendarLink => _t('Calendar', 'कैलेंडर');
+  String get weeklyOffLabel => _t('Weekly off', 'साप्ताहिक छुट्टी');
+  String get joinedLabel => _t('Joined', 'जुड़े');
+  String get advanceToRecover => _t('Advance to recover', 'वापस लेना है (एडवांस)');
+  String get giveAdvanceShort => _t('Give advance', 'एडवांस दें');
+  String get bonusCutShort => _t('Bonus / cut', 'बोनस / कटौती');
 
   // ------------------------------------------------------- Employee home
   String shiftShort(String a, String b) => _t('Shift $a – $b', 'शिफ़्ट $a – $b');

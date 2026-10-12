@@ -36,13 +36,15 @@ class DateSwitcher extends StatelessWidget {
     final s = context.s;
     final today = Dates.today();
     final isToday = Dates.isSameDay(date, today);
-    final isYesterday = Dates.isSameDay(date, today.subtract(const Duration(days: 1)));
-    final day = Dates.weekdayShort(date, s.languageCode);
-    final label = isToday
-        ? '${s.today} · $day'
-        : isYesterday
-        ? '${s.yesterday} · $day'
-        : day;
+    // The screen header shows the full date; this says how far back it is.
+    final ago = today.difference(DateTime(date.year, date.month, date.day)).inDays;
+    final label = ago == 0
+        ? s.relToday
+        : ago == 1
+        ? s.relYesterday
+        : ago < 7
+        ? s.daysAgo(ago)
+        : Dates.weekdayShort(date, s.languageCode);
     final prev = date.subtract(const Duration(days: 1));
     final next = date.add(const Duration(days: 1));
     return _Switcher(

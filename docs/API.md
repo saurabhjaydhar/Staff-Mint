@@ -35,7 +35,7 @@ Punch     { id, type:'in'|'out', clientTime /* effective time: server time onlin
             // flags: late_sync, device_time_drift, mock_location, low_accuracy, outside_geofence, phone_lock_failed, no_phone_lock, face_mismatch, face_unsure, face_no_face, face_many_faces, face_check_failed
 Attendance { id, employeeId, date, status:'present'|'absent'|'half_day'|'leave'|'holiday'|'week_off'|null, leaveType?:'paid'|'sick'|'unpaid',
              punches: Punch[], lateMinutes, earlyOutMinutes, workedMinutes, overridden, overrideReason|null, overriddenBy|null /* user id */, flags:string[] }
-DayRow    { employee: {id,name,phone,designation,linked,invitedAt}, record: Attendance|null, holidayName|null,
+DayRow    { employee: {id,name,phone,designation,linked,invitedAt}, record: Attendance|null, holidayName|null, shift: {start,end}|null,
             displayStatus:'present'|'late'|'checked_in'|'absent'|'half_day'|'leave'|'holiday'|'week_off'|'not_marked' }
 Leave     { id, employeeId, employeeName, type:'paid'|'sick'|'unpaid', from, to, days, halfDay, reason?, status:'pending'|'approved'|'rejected'|'cancelled', decidedAt?, note? }
 LeaveBalance { employeeId, year, paid, sick, usedPaid, usedSick }
@@ -160,7 +160,7 @@ Fields: `name, phone, ratePaise, wageType, designation, joiningDate, branch, adv
 ### Leave
 | GET | /leaves | `?status&employeeId` (employee → own) | `Leave[]` |
 | POST | /leaves | `{type, from, to, halfDay?, reason?, employeeId?}` (employeeId only for owner applying on behalf) | `Leave` |
-| POST | /leaves/:id/decision | `{decision:'approved'\|'rejected', note?}` (owner/manager) | `Leave` |
+| POST | /leaves/:id/decision | `{decision:'approved'\|'rejected', note?, asUnpaid?:boolean}` (owner/manager). `asUnpaid` approves the days as unpaid leave (no paid balance used) | `Leave` |
 | POST | /leaves/:id/cancel | | `Leave` |
 | GET | /leave-balances | `?employeeId&year` | `LeaveBalance[]` |
 | PUT | /leave-balances/:employeeId | `{year, paid, sick}` | `LeaveBalance` |

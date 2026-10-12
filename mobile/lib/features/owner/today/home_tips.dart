@@ -36,21 +36,25 @@ class _HomeTipsState extends ConsumerState<HomeTips> {
     return Container(
       key: const Key('homeTips'),
       margin: const EdgeInsets.fromLTRB(14, 8, 14, 0),
-      padding: const EdgeInsets.fromLTRB(14, 10, 6, 6),
-      decoration: BoxDecoration(color: AppColors.ink, borderRadius: BorderRadius.circular(16)),
+      padding: const EdgeInsets.fromLTRB(12, 6, 4, 2),
+      decoration: BoxDecoration(
+        color: AppColors.mintFaint,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.mintLight),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(tips[_i].$1, color: AppColors.mintLight, size: 20),
+              Icon(tips[_i].$1, color: AppColors.mintDark, size: 18),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   tips[_i].$2,
                   key: const Key('homeTipText'),
-                  style: const TextStyle(color: Colors.white, fontSize: 14.5, height: 1.35),
+                  style: const TextStyle(color: AppColors.ink, fontSize: 13.5, height: 1.3),
                 ),
               ),
             ],
@@ -58,14 +62,11 @@ class _HomeTipsState extends ConsumerState<HomeTips> {
           Row(
             children: [
               const SizedBox(width: 28),
-              Text(
-                s.tipCount(_i + 1, tips.length),
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12.5),
-              ),
+              Text(s.tipCount(_i + 1, tips.length), style: const TextStyle(color: AppColors.muted, fontSize: 12)),
               const Spacer(),
               TextButton(
                 key: const Key('homeTipNext'),
-                style: TextButton.styleFrom(foregroundColor: AppColors.mintLight),
+                style: TextButton.styleFrom(foregroundColor: AppColors.mintDark, visualDensity: VisualDensity.compact),
                 onPressed: () async {
                   if (!last) return setState(() => _i++);
                   await prefs.setBool(HomeTips.prefKey, true);

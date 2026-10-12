@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/i18n/strings.dart';
 import '../../core/models/models.dart';
@@ -150,6 +151,33 @@ class ChatMessageView extends StatelessWidget {
     }
     if (m.error != null) {
       return ChatBubble(outgoing: false, error: true, at: m.at, child: Text(errorMessage(context, m.error!)));
+    }
+    if (m.isHelp) {
+      return ChatBubble(
+        outgoing: false,
+        at: m.at,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(m.text),
+            if (m.route != null) ...[
+              const SizedBox(height: 8),
+              FilledButton.icon(
+                key: const Key('mintHelpOpen'),
+                style: FilledButton.styleFrom(minimumSize: const Size(48, 48)),
+                icon: const Icon(Icons.arrow_forward_rounded, size: 18),
+                label: Text(m.routeLabel ?? s.openScreen),
+                onPressed: () {
+                  final router = GoRouter.of(context);
+                  Navigator.of(context).maybePop();
+                  router.push(m.route!);
+                },
+              ),
+            ],
+          ],
+        ),
+      );
     }
     final r = m.reply!;
     switch (r.kind) {

@@ -111,13 +111,18 @@ async function adjustUsed(ctx: Ctx, leave: any, sign: 1 | -1) {
   await LeaveBalance.updateOne({ companyId: ctx.companyId, employeeId: leave.employeeId, year }, { $inc: { [field]: sign * leave.days } }, { upsert: true });
 }
 
-export async function decideLeave(ctx: Ctx, id: string, decision: 'approved' | 'rejected', note?: string) {
+/**
+ * Approve or reject. [opts.asUnpaid]: approve as unpaid leave (used when the
+ * person has no paid/sick leave left, so salary is cut for those days).
+ */
+export async function decideLeave(ctx: Ctx, id: string, decision: 'approved' | 'rejected', note?: string, opts: { asUnpaid?: boolean } = {}) {
   const leave = await Leave.findOne({ _id: id, companyId: ctx.companyId, deletedAt: null });
   if (!leave) throw notFound('Leave');
   const emp = await assertEmployeeInScope(ctx, leave.employeeId);
   if (leave.status !== 'pending') throw new AppError('CONFLICT', `Leave is already ${leave.status}`);
   const before = leave.toObject();
   leave.status = decision;
+  if (decision === 'approved' && opts.asUnpaid) leave.type = 'unpaid';
   leave.decidedBy = ctx.userId ?? undefined;
   leave.decidedAt = new Date();
   leave.note = note;
@@ -133,8 +138,8 @@ export async function decideLeave(ctx: Ctx, id: string, decision: 'approved' | '
     emp._id,
     {
       template: 'leave_status',
-      title: decision === 'approved' ? 'Leave approved' : 'Leave rejected',
-      titleHi: decision === 'approved' ? 'छुट्टी मंज़ूर' : 'छुट्टी नामंज़ूर',
+      title: decision === 'approved' ? (leave.type === 'unpaid' && opts.asUnpaid ? 'Leave approved (unpaid)' : 'Leave approved') : 'Leave rejected',
+      titleHi: decision === 'approved' ? (leave.type === 'unpaid' && opts.asUnpaid ? 'छुट्टी मंज़ूर (बिना पैसे)' : 'छुट्टी मंज़ूर') : 'छुट्टी नामंज़ूर',
       body: `${range}${note ? ` — ${note}` : ''}`,
       bodyHi: `${range}${note ? ` — ${note}` : ''}`,
       data: { type: 'leave_status', leaveId: String(leave._id), status: decision },

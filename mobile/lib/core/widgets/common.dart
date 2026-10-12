@@ -361,3 +361,37 @@ class LanguageToggle extends StatelessWidget {
     onSelectionChanged: (v) => onChanged(v.first),
   );
 }
+
+/// Save button fixed above the bottom tabs, so the Ask Mint button never
+/// covers it on long pages. Use as `Scaffold.bottomNavigationBar`.
+class StickySaveBar extends StatelessWidget {
+  const StickySaveBar({super.key, required this.label, required this.onPressed, this.note, this.buttonKey});
+  final String label;
+  final VoidCallback? onPressed;
+  final String? note;
+  final Key? buttonKey;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: Colors.white,
+    elevation: 8,
+    child: SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (note != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(note!, style: const TextStyle(color: AppColors.muted, fontSize: 13)),
+              ),
+            FilledButton(key: buttonKey, onPressed: onPressed, child: Text(label)),
+          ],
+        ),
+      ),
+    ),
+  );
+}

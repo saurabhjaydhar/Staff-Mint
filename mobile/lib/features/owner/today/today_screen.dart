@@ -142,9 +142,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
     final s = context.s;
     final lang = s.languageCode;
     final isToday = Dates.isSameDay(_date, Dates.today());
-    final subtitle = _monthMode
-        ? Dates.monthTitle(_month, lang)
-        : (isToday ? s.todayOn(Dates.weekdayShort(_date, lang)) : Dates.weekdayShort(_date, lang));
+    final subtitle = _monthMode ? Dates.monthTitle(_month, lang) : Dates.weekdayShort(_date, lang);
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -192,7 +190,13 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
           onShowList: () => setState(() => _showOffList = true),
         );
       } else {
-        sheet = _Ledger(rows: list, me: session.user?.id, onPill: _openRow, onRow: _openRow);
+        sheet = _Ledger(
+          rows: list,
+          me: session.user?.id,
+          beforeShift: isToday ? _beforeShift(list) : null,
+          onPill: _openRow,
+          onRow: _openRow,
+        );
       }
     } else if (rows.hasError) {
       sheet = ErrorView(error: rows.error!, onRetry: () => ref.invalidate(dayAttendanceProvider(_dateKey)));
@@ -206,8 +210,13 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
         padding: const EdgeInsets.only(bottom: 24),
         children: [
           if (isToday && session.isOwner) const HomeTips(),
-          if (setup != null) ...[SetupChecklistCard(setup: setup), InviteStatusBanner(setup: setup)],
-          if (dash != null) NeedsYouCard(dashboard: dash),
+          if (setup != null) SetupChecklistCard(setup: setup),
+          if (dash != null)
+            NeedsYouCard(
+              dashboard: dash,
+              notJoined: session.isOwner ? (setup?.notJoined ?? 0) : 0,
+              onRemindAll: () => remindNotJoined(context, ref),
+            ),
           sheet,
           const TrialBanner(padding: EdgeInsets.fromLTRB(14, 12, 14, 0)),
         ],
@@ -217,6 +226,19 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
 }
 
 const _offStatuses = {'week_off', 'holiday'};
+
+/// Earliest shift start ("09:00") while nobody is due yet today; null once a
+/// shift has started or someone has checked in.
+String? _beforeShift(List<DayRow> rows) {
+  final working = rows.where((r) => !_offStatuses.contains(r.displayStatus)).toList();
+  if (working.isEmpty || working.any((r) => r.record?.firstIn != null)) return null;
+  final starts = [for (final r in working) ?r.shiftStart]..sort();
+  if (starts.isEmpty) return null;
+  final m = Dates.hhmmToMinutes(starts.first);
+  final now = DateTime.now();
+  if (m == null || now.hour * 60 + now.minute >= m) return null;
+  return starts.first;
+}
 
 /// Days off say so, instead of "0 / 9 present" and nine grey rows.
 class _DayOffCard extends StatelessWidget {
@@ -269,9 +291,12 @@ class _DayOffCard extends StatelessWidget {
 }
 
 class _Ledger extends StatelessWidget {
-  const _Ledger({required this.rows, required this.me, required this.onPill, required this.onRow});
+  const _Ledger({required this.rows, required this.me, required this.onPill, required this.onRow, this.beforeShift});
   final List<DayRow> rows;
   final String? me;
+
+  /// "09:00" when no shift has started yet today: the header says when it starts instead of "0 of 9".
+  final String? beforeShift;
   final ValueChanged<DayRow> onPill;
   final ValueChanged<DayRow> onRow;
 
@@ -296,7 +321,8 @@ class _Ledger extends StatelessWidget {
         if (!r.employee.linked) {
           return [s.rowNotInstalled, if (r.employee.invitedAt != null) s.rowInvited].join(' · ');
         }
-        return s.rowNotCheckedIn;
+        final start = r.shiftStart;
+        return start == null ? null : s.rowShift(Dates.hhmmToDisplay(start, s.languageCode));
       case 'leave':
         return s.rowLeaveApproved;
     }
@@ -324,24 +350,34 @@ class _Ledger extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  s.atWorkSummary(atWork, expected),
-                  key: const Key('atWorkSummary'),
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    if (present > 0) LedgerChip(label: s.chipPresentN(present), status: 'present'),
-                    if (late > 0) LedgerChip(label: s.chipLateN(late), status: 'late'),
-                    if (half > 0) LedgerChip(label: s.chipHalfDayN(half), status: 'half_day'),
-                    if (leave > 0) LedgerChip(label: s.chipLeaveN(leave), status: 'leave'),
-                    if (absent > 0) LedgerChip(label: s.chipAbsentN(absent), status: 'absent'),
-                    if (notIn > 0) LedgerChip(label: s.chipNotInN(notIn), status: 'not_marked'),
-                  ],
-                ),
+                if (beforeShift != null) ...[
+                  Text(
+                    s.shiftStartsAt2(Dates.hhmmToDisplay(beforeShift!, s.languageCode)),
+                    key: const Key('beforeShift'),
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.mintDark),
+                  ),
+                  Text(s.shiftStartsBody(expected), style: const TextStyle(color: AppColors.muted)),
+                ] else ...[
+                  Text(
+                    s.atWorkSummary(atWork, expected),
+                    key: const Key('atWorkSummary'),
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 6),
+                ],
+                if (beforeShift == null)
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      if (present > 0) LedgerChip(label: s.chipPresentN(present), status: 'present'),
+                      if (late > 0) LedgerChip(label: s.chipLateN(late), status: 'late'),
+                      if (half > 0) LedgerChip(label: s.chipHalfDayN(half), status: 'half_day'),
+                      if (leave > 0) LedgerChip(label: s.chipLeaveN(leave), status: 'leave'),
+                      if (absent > 0) LedgerChip(label: s.chipAbsentN(absent), status: 'absent'),
+                      if (notIn > 0) LedgerChip(label: s.chipNotInN(notIn), status: 'not_marked'),
+                    ],
+                  ),
               ],
             ),
           ),

@@ -68,6 +68,14 @@ class _RulesPageState extends ConsumerState<_RulesPage> {
           ],
         ),
       ),
+      bottomNavigationBar: company.hasValue
+          ? StickySaveBar(
+              buttonKey: const Key('saveRules'),
+              label: s.save,
+              note: s.appliesFromToday,
+              onPressed: _busy ? null : _save,
+            )
+          : null,
       body: AsyncBody<Company>(
         value: company,
         onRetry: () => ref.invalidate(companyProvider),
@@ -75,7 +83,7 @@ class _RulesPageState extends ConsumerState<_RulesPage> {
           _base ??= c.settings.toJson();
           _draft ??= Json.of(_base!);
           return ListView(
-            padding: const EdgeInsets.only(bottom: 32),
+            padding: const EdgeInsets.only(bottom: 96),
             children: [
               if (widget.intro != null)
                 Padding(
@@ -83,14 +91,6 @@ class _RulesPageState extends ConsumerState<_RulesPage> {
                   child: Text(widget.intro!, style: const TextStyle(color: AppColors.muted, height: 1.35)),
                 ),
               ...widget.builder(context, _draft!, (k, v) => setState(() => _draft![k] = v)),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                child: Text(s.appliesFromToday, style: const TextStyle(color: AppColors.muted, fontSize: 13)),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                child: FilledButton(key: const Key('saveRules'), onPressed: _busy ? null : _save, child: Text(s.save)),
-              ),
             ],
           );
         },
