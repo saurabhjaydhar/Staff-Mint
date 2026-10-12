@@ -70,6 +70,10 @@ export interface CompanySettings {
   outsideGeofencePolicy: "block" | "request_approval";
   phoneLockPolicy: "off" | "recommended" | "required";
   faceMatchPolicy: "off" | "review";
+  /** Staff check in on their phone, or the owner/manager marks it. Each staff member can differ. */
+  attendanceMarking?: "self" | "owner";
+  /** Staff the owner marks are counted present at night unless marked otherwise. */
+  presentByDefault?: boolean;
   language: Lang;
   digestTime: string;
   roundToRupee: boolean;

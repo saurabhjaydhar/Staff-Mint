@@ -55,6 +55,8 @@ const settingsSchema = z
     outsideGeofencePolicy: z.enum(['block', 'request_approval']),
     phoneLockPolicy: z.enum(['off', 'recommended', 'required']),
     faceMatchPolicy: z.enum(['off', 'review']),
+    attendanceMarking: z.enum(['self', 'owner']),
+    presentByDefault: z.boolean(),
     language: z.enum(['en', 'hi']),
     digestTime: zTime,
     roundToRupee: z.boolean(),

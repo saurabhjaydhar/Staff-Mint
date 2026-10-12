@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StaffMint · Owner marks attendance + Present by default: flow</title>
+<style>
+  body { margin: 0; background: #FFFDF7; color: #1C1A17; font-family: Mukta, "Noto Sans", system-ui, sans-serif; }
+  main { max-width: 1400px; margin: 0 auto; padding: 32px 20px 60px; }
+  h1 { font-size: 34px; margin: 0 0 6px; }
+  .sub { color: #7B7262; margin: 0 0 18px; font-size: 18px; }
+  .stage { margin: 40px 0 0; }
+  .stage > h2 { font-size: 24px; margin: 0 0 4px; }
+  .stage > h2 .who { display: inline-block; font-size: 14px; color: #fff; padding: 2px 12px; border-radius: 999px; margin-left: 8px; vertical-align: middle; }
+  .owner { background: #1C1A17; } .staff { background: #1E9E64; } .system { background: #B7791F; }
+  .flow { display: flex; align-items: flex-start; gap: 10px; overflow-x: auto; padding: 14px 4px 10px; }
+  .step { flex: 0 0 280px; }
+  .step img { width: 100%; border-radius: 24px; border: 7px solid #1C1A17; box-sizing: border-box; display: block; }
+  .num { display: inline-flex; width: 28px; height: 28px; border-radius: 50%; background: #1E9E64; color: #fff; font-weight: 800; align-items: center; justify-content: center; margin-right: 6px; }
+  .step h3 { font-size: 17px; margin: 10px 0 4px; display: flex; align-items: center; }
+  .step p { margin: 0; font-size: 15.5px; line-height: 1.4; color: #3d372e; }
+  .arrow { flex: 0 0 34px; align-self: center; font-size: 34px; color: #B9AE98; text-align: center; margin-top: -80px; }
+  .rules { background: #fff; border: 2px solid #EFE6D3; border-radius: 18px; padding: 14px 20px; margin-top: 18px; font-size: 16.5px; line-height: 1.5; }
+  .rules b { color: #1E9E64; }
+  .before .num { background: #D64545; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Owner marks attendance + Present by default</h1>
+  <p class="sub">The flow from start to finish, using real screenshots of the updated app with sample data. Amit, Pooja, Mohan and Kishan are marked by the owner. Ramesh and Suresh still check in on their phones.</p>
+
+  <section class="stage">
+    <h2>A. One-time setup <span class="who owner">Owner</span></h2>
+    <div class="flow">
+      <div class="step">
+        <img src="images/owner-marks/settings-en.png" alt="Check-in safety settings">
+        <h3><span class="num">1</span>More → Check-in safety</h3>
+        <p>"Who marks attendance": pick <b>I or my manager mark it</b>. Turn on <b>Present by default</b> if most staff come every day.</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="step">
+        <img src="images/owner-marks/staff-profile.png" alt="Staff profile Who marks attendance row">
+        <h3><span class="num">2</span>Optional: one person different</h3>
+        <p>Staff profile → Work → "Who marks attendance". Only the owner can change it.</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="step">
+        <img src="images/owner-marks/staff-profile-choice.png" alt="Choice dialog">
+        <h3><span class="num">3</span>Pick for this person</h3>
+        <p>Same as business · Checks in on phone · You mark it.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="stage">
+    <h2>B. During the day <span class="who staff">Staff</span> <span class="who owner">Owner</span></h2>
+    <div class="flow">
+      <div class="step">
+        <img src="images/owner-marks/staff-home-day-en.png" alt="Staff home: Today Not marked, no check-in button">
+        <h3><span class="num">4</span>Staff opens the app</h3>
+        <p>No check-in button, no location or selfie. "Your attendance is marked by your owner or manager." Month, leave and salary are all still there.</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="step">
+        <img src="images/owner-marks/today-after.png" alt="Owner Today list with Not marked rows">
+        <h3><span class="num">5</span>Owner sees who to mark</h3>
+        <p>"3 to mark". Each row says <b>Not marked · Present unless you change it</b>. Staff who check in work as before.</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="step">
+        <img src="images/owner-marks/today-sheet.png" alt="Status sheet for Mohan Lal">
+        <h3><span class="num">6</span>Mark only the exceptions</h3>
+        <p>Tap a row → Absent, Half day or Leave (with an optional reason). Kishan was marked Absent this way.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="stage">
+    <h2>C. At 11:59 PM <span class="who system">Automatic</span></h2>
+    <div class="flow">
+      <div class="step">
+        <img src="images/owner-marks/today-night.png" alt="Today list after the night: counted present automatically">
+        <h3><span class="num">7</span>Everyone not marked → Present</h3>
+        <p>Amit, Pooja and Mohan: <b>Counted present automatically</b>. Kishan stays Absent and Ramesh Gupta stays on Leave. The owner can still change any day before salary is final.</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="step">
+        <img src="images/owner-marks/staff-home-after-en.png" alt="Staff home: Today Present">
+        <h3><span class="num">8</span>Staff sees the result</h3>
+        <p>"Today: Present". Their month and "Earned till today" count it.</p>
+      </div>
+    </div>
+    <div class="rules">
+      <b>Present by default ON:</b> unmarked owner-marked staff → Present at 11:59 PM.<br>
+      <b>Present by default OFF</b> (the starting setting): unmarked → Absent, same as today. Rows say "You mark · tap to mark".<br>
+      <b>Never changed:</b> leave, holiday, week off, days already marked, and staff who check in themselves.
+    </div>
+  </section>
+
+  <section class="stage before">
+    <h2>Before vs after</h2>
+    <div class="flow">
+      <div class="step">
+        <img src="images/owner-marks/staff-home-before-en.png" alt="Old staff home with check-in button">
+        <h3><span class="num">✕</span>Before: staff app</h3>
+        <p>Everyone had to check in with a selfie and location.</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="step">
+        <img src="images/owner-marks/staff-home-day-en.png" alt="New staff home">
+        <h3><span class="num" style="background:#1E9E64">✓</span>After: staff app</h3>
+        <p>For owner-marked staff: view only.</p>
+      </div>
+      <div class="arrow" style="visibility:hidden">→</div>
+      <div class="step">
+        <img src="images/owner-marks/today-before.png" alt="Old Today list with Not in yet">
+        <h3><span class="num">✕</span>Before: owner's Today</h3>
+        <p>"Not in yet" for staff without the app. All became Absent at night.</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="step">
+        <img src="images/owner-marks/today-after.png" alt="New Today list">
+        <h3><span class="num" style="background:#1E9E64">✓</span>After: owner's Today</h3>
+        <p>"Not marked · Present unless you change it", and "3 to mark".</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="stage">
+    <h2>हिन्दी</h2>
+    <div class="flow">
+      <div class="step">
+        <img src="images/owner-marks/settings-hi.png" alt="Settings in Hindi">
+        <h3>सेटिंग</h3>
+        <p>हाज़िरी कौन लगाएगा · अपने-आप हाज़िर</p>
+      </div>
+      <div class="step">
+        <img src="images/owner-marks/staff-home-day-hi.png" alt="Staff home in Hindi, not marked">
+        <h3>स्टाफ़ ऐप (दिन में)</h3>
+        <p>आज: दर्ज नहीं</p>
+      </div>
+      <div class="step">
+        <img src="images/owner-marks/staff-home-after-hi.png" alt="Staff home in Hindi, present">
+        <h3>स्टाफ़ ऐप (रात के बाद)</h3>
+        <p>आज: हाज़िर</p>
+      </div>
+    </div>
+  </section>
+</main>
+</body>
+</html>

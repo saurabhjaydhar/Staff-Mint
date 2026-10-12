@@ -40,7 +40,15 @@ employeesRouter.get('/:id', requireRole('owner', 'manager', 'ca'), async (req, r
 });
 
 employeesRouter.patch('/:id', requireRole('owner', 'manager'), async (req, res) => {
-  const b = body(req, employeeSchema.partial().extend({ effectiveFrom: zDate.optional(), language: z.enum(['en', 'hi']).optional() }));
+  const b = body(
+    req,
+    employeeSchema.partial().extend({
+      effectiveFrom: zDate.optional(),
+      language: z.enum(['en', 'hi']).optional(),
+      // null = follow the business setting. Owner only (checked in the service).
+      attendanceMarking: z.enum(['self', 'owner']).nullable().optional(),
+    }),
+  );
   res.json({ data: employeeView(await svc.updateEmployee(ctxOf(req), param(req, 'id'), b)) });
 });
 

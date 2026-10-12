@@ -15,6 +15,8 @@ const employeeSchema = new Schema(
     exitDate: String,
     status: { type: String, enum: ['active', 'inactive'], default: 'active' },
     appRole: { type: String, enum: ['employee', 'manager'], default: 'employee' },
+    /** null = follow the business setting (settings.attendanceMarking). */
+    attendanceMarking: { type: String, enum: ['self', 'owner'], default: null },
     consent: { location: { type: Boolean, default: false }, at: Date },
     /** Face match reference photo. Explicit, separate consent; deleted on exit or withdrawal. */
     face: {

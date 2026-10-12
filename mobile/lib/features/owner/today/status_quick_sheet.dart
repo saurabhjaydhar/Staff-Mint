@@ -96,7 +96,10 @@ class _QuickSheetState extends State<_QuickSheet> {
                   ],
                 ),
               ),
-              StatusPill(status: row.displayStatus),
+              StatusPill(
+                status: row.displayStatus,
+                label: row.ownerMarks && row.displayStatus == 'not_marked' ? s.statusLabel('not_marked') : null,
+              ),
             ],
           ),
           const SizedBox(height: 14),
@@ -176,17 +179,21 @@ class _QuickSheetState extends State<_QuickSheet> {
           const SizedBox(height: 14),
           Row(
             children: [
-              Expanded(
-                child: TextButton.icon(
-                  key: const Key('quickDetails'),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    widget.onDetails();
-                  },
-                  icon: const Icon(Icons.photo_camera_outlined),
-                  label: Text(s.seePhotoMap, textAlign: TextAlign.center),
+              // Nothing to show for staff the owner marks who never checked in.
+              if (widget.row.ownerMarks && (widget.row.record?.punches.isEmpty ?? true))
+                const Spacer()
+              else
+                Expanded(
+                  child: TextButton.icon(
+                    key: const Key('quickDetails'),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      widget.onDetails();
+                    },
+                    icon: const Icon(Icons.photo_camera_outlined),
+                    label: Text(s.seePhotoMap, textAlign: TextAlign.center),
+                  ),
                 ),
-              ),
               const SizedBox(width: 8),
               FilledButton(
                 key: const Key('quickSave'),

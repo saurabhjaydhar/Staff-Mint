@@ -193,6 +193,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
         sheet = _Ledger(
           rows: list,
           me: session.user?.id,
+          presentByDefault: session.company?.settings.presentByDefault ?? false,
           beforeShift: isToday ? _beforeShift(list) : null,
           onPill: _openRow,
           onRow: _openRow,
@@ -291,9 +292,19 @@ class _DayOffCard extends StatelessWidget {
 }
 
 class _Ledger extends StatelessWidget {
-  const _Ledger({required this.rows, required this.me, required this.onPill, required this.onRow, this.beforeShift});
+  const _Ledger({
+    required this.rows,
+    required this.me,
+    required this.onPill,
+    required this.onRow,
+    this.beforeShift,
+    this.presentByDefault = false,
+  });
   final List<DayRow> rows;
   final String? me;
+
+  /// Unmarked staff the owner marks become present at night.
+  final bool presentByDefault;
 
   /// "09:00" when no shift has started yet today: the header says when it starts instead of "0 of 9".
   final String? beforeShift;
@@ -314,10 +325,12 @@ class _Ledger extends StatelessWidget {
         if (reason != null && reason.isNotEmpty && reason != 'Undo') reason,
       ].join(' · ');
     }
+    if (r.ownerMarks && rec != null && rec.autoMarked && r.displayStatus == 'present') return s.rowAutoPresent;
     switch (r.displayStatus) {
       case 'late':
         return (rec?.lateMinutes ?? 0) > 0 ? s.rowLateBy(rec!.lateMinutes) : null;
       case 'not_marked':
+        if (r.ownerMarks) return presentByDefault ? s.rowPresentByDefault : s.rowYouMark;
         if (!r.employee.linked) {
           return [s.rowNotInstalled, if (r.employee.invitedAt != null) s.rowInvited].join(' · ');
         }
@@ -340,7 +353,9 @@ class _Ledger extends StatelessWidget {
     final half = count('half_day');
     final leave = count('leave');
     final absent = count('absent');
-    final notIn = count('not_marked');
+    // Staff the owner marks aren't "not in yet": they're waiting to be marked.
+    final toMark = rows.where((r) => r.ownerMarks && r.displayStatus == 'not_marked').length;
+    final notIn = count('not_marked') - toMark;
     return LedgerSheet(
       header: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -376,6 +391,7 @@ class _Ledger extends StatelessWidget {
                       if (leave > 0) LedgerChip(label: s.chipLeaveN(leave), status: 'leave'),
                       if (absent > 0) LedgerChip(label: s.chipAbsentN(absent), status: 'absent'),
                       if (notIn > 0) LedgerChip(label: s.chipNotInN(notIn), status: 'not_marked'),
+                      if (toMark > 0) LedgerChip(label: s.chipToMarkN(toMark), status: 'not_marked'),
                     ],
                   ),
               ],
@@ -423,6 +439,7 @@ class _Ledger extends StatelessWidget {
                 trailing: StatusPill(
                   key: Key('pill_${r.employee.id}'),
                   status: r.needsCheck ? StatusStyle.needsCheck : r.displayStatus,
+                  label: r.ownerMarks && r.displayStatus == 'not_marked' ? s.statusLabel('not_marked') : null,
                   onTap: () => onPill(r),
                 ),
                 onTap: () => onRow(r),

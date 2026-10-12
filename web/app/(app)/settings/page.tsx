@@ -211,6 +211,14 @@ function SettingsForm({ settings, onSaved }: { settings: CompanySettings; onSave
               </Select>
             )}
           </Field>
+          <Field label="Who marks attendance (you can change it for one person on their profile in the app)">
+            {(id) => (
+              <Select id={id} value={d.attendanceMarking ?? "self"} onChange={(e) => set("attendanceMarking", e.target.value as Draft["attendanceMarking"])}>
+                <option value="self">Staff check in on their phone</option>
+                <option value="owner">I or my manager mark it</option>
+              </Select>
+            )}
+          </Field>
           <Field label="Check-in outside the shop area">
             {(id) => (
               <Select id={id} value={d.outsideGeofencePolicy} onChange={(e) => set("outsideGeofencePolicy", e.target.value as Draft["outsideGeofencePolicy"])}>
@@ -259,6 +267,11 @@ function SettingsForm({ settings, onSaved }: { settings: CompanySettings; onSave
           <Checkbox label="Holidays are paid" checked={d.holidaysPaid} onChange={(e) => set("holidaysPaid", e.target.checked)} />
           <Checkbox label="Sick leave is paid" checked={d.sickLeavePaid} onChange={(e) => set("sickLeavePaid", e.target.checked)} />
           <Checkbox label="Round salary to the nearest rupee" checked={d.roundToRupee} onChange={(e) => set("roundToRupee", e.target.checked)} />
+          <Checkbox
+            label="Present by default (staff you mark count as present at night unless you mark them otherwise)"
+            checked={d.presentByDefault === true}
+            onChange={(e) => set("presentByDefault", e.target.checked)}
+          />
           <Checkbox label="Selfie required at check-in" checked={d.selfieRequired} onChange={(e) => set("selfieRequired", e.target.checked)} />
           <Checkbox label="WhatsApp alerts" checked={d.whatsappAlerts} onChange={(e) => set("whatsappAlerts", e.target.checked)} />
           <Checkbox label={t("set_ex_staff")} checked={d.exStaffPayslips !== false} onChange={(e) => set("exStaffPayslips", e.target.checked)} />

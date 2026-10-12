@@ -93,6 +93,7 @@ class Attendance {
     this.overridden = false,
     this.overrideReason,
     this.overriddenBy,
+    this.autoMarked = false,
     this.flags = const [],
   });
 
@@ -110,6 +111,9 @@ class Attendance {
 
   /// User id of whoever changed the day by hand ("Changed by you").
   final String? overriddenBy;
+
+  /// Filled in by the nightly close (absent, or present by default), not by a person.
+  final bool autoMarked;
   final List<String> flags;
 
   Punch? get firstIn {
@@ -141,6 +145,7 @@ class Attendance {
       overridden: asBool(j['overridden']),
       overrideReason: asStringOrNull(j['overrideReason']),
       overriddenBy: asStringOrNull(j['overriddenBy']),
+      autoMarked: asBool(j['autoMarked']),
       flags: asStringList(j['flags']),
     );
   }
@@ -154,6 +159,7 @@ class DayRow {
     this.holidayName,
     this.shiftStart,
     this.shiftEnd,
+    this.ownerMarks = false,
   });
   final EmployeeRef employee;
   final Attendance? record;
@@ -164,6 +170,9 @@ class DayRow {
   final String? shiftStart;
   final String? shiftEnd;
 
+  /// The owner or a manager marks this person (no check-in on their phone).
+  final bool ownerMarks;
+
   /// Row rebuilt from a fresh record (e.g. the response of an override).
   /// Holiday / week-off / leave rows without a record keep [fallback].
   DayRow withRecord(Attendance? r, {String? fallback}) => DayRow(
@@ -173,6 +182,7 @@ class DayRow {
     holidayName: holidayName,
     shiftStart: shiftStart,
     shiftEnd: shiftEnd,
+    ownerMarks: ownerMarks,
   );
 
   /// Mirrors the server's `displayStatus` for a single record.
@@ -214,22 +224,29 @@ class DayRow {
     holidayName: asStringOrNull(j['holidayName']),
     shiftStart: asStringOrNull(asMap(j['shift'])['start']),
     shiftEnd: asStringOrNull(asMap(j['shift'])['end']),
+    ownerMarks: asBool(j['ownerMarks']),
   );
 }
 
 /// `GET /attendance/today` for employees.
 class TodayInfo {
-  const TodayInfo({required this.date, this.record, this.shift, this.branch});
+  const TodayInfo({required this.date, this.record, this.shift, this.branch, this.displayStatus, this.ownerMarks});
   final String date;
   final Attendance? record;
   final Shift? shift;
   final Branch? branch;
+  final String? displayStatus;
+
+  /// The owner or a manager marks attendance; null when the server didn't say (older cache).
+  final bool? ownerMarks;
 
   factory TodayInfo.fromJson(Json j) => TodayInfo(
     date: asString(j['date']),
     record: j['record'] is Map ? Attendance.fromJson(asMap(j['record'])) : null,
     shift: j['shift'] is Map ? Shift.fromJson(asMap(j['shift'])) : null,
     branch: j['branch'] is Map ? Branch.fromJson(asMap(j['branch'])) : null,
+    displayStatus: asStringOrNull(j['displayStatus']),
+    ownerMarks: j['ownerMarks'] is bool ? j['ownerMarks'] as bool : null,
   );
 }
 

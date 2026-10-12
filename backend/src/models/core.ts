@@ -15,6 +15,10 @@ const settingsSchema = new Schema(
     phoneLockPolicy: { type: String, enum: ['off', 'recommended', 'required'], default: 'recommended' },
     /** Compare check-in selfies with each person's approved face photo. Off until the owner turns it on. */
     faceMatchPolicy: { type: String, enum: ['off', 'review'], default: 'off' },
+    /** Who marks attendance: staff check in on their phone, or the owner/manager marks it. Each staff member can differ. */
+    attendanceMarking: { type: String, enum: ['self', 'owner'], default: 'self' },
+    /** Staff the owner marks are counted present at night unless marked otherwise. Off until the owner turns it on. */
+    presentByDefault: { type: Boolean, default: false },
     language: { type: String, enum: ['en', 'hi'], default: 'hi' },
     digestTime: { type: String, default: '09:30' },
     roundToRupee: { type: Boolean, default: true },

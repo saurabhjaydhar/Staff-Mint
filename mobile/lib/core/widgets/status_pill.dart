@@ -6,15 +6,18 @@ import '../theme/app_theme.dart';
 /// Attendance status as icon + word on a tinted pill. Tappable pills show a ▾
 /// so they obviously open something, and keep a 48 dp touch target.
 class StatusPill extends StatelessWidget {
-  const StatusPill({super.key, required this.status, this.onTap, this.large = false});
+  const StatusPill({super.key, required this.status, this.onTap, this.large = false, this.label});
   final String? status;
+
+  /// Overrides the usual word for [status] (e.g. "Not marked" for staff the owner marks).
+  final String? label;
   final VoidCallback? onTap;
   final bool large;
 
   @override
   Widget build(BuildContext context) {
     final st = StatusStyle.of(status);
-    final label = context.s.statusShort(status);
+    final label = this.label ?? context.s.statusShort(status);
     final pill = Container(
       constraints: BoxConstraints(minWidth: large ? 96 : 74),
       padding: EdgeInsets.symmetric(horizontal: large ? 12 : 8, vertical: large ? 6 : 3),

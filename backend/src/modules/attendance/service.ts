@@ -5,7 +5,7 @@ import { distanceMeters, fromGeoPoint } from '../../lib/geo.js';
 import { localDateOf, monthDays, todayIn, weekdayOf, dateRange } from '../../lib/dates.js';
 import type { Ctx } from '../../lib/context.js';
 import { Attendance, Branch, Company, Employee, Holiday, Leave, Membership, Shift, type AttendanceStatus } from '../../models/index.js';
-import { computeDay } from './rules.js';
+import { computeDay, ownerMarksAttendance } from './rules.js';
 import { audit } from '../audit/service.js';
 import { employeeScope, assertEmployeeInScope } from '../employees/service.js';
 import { provider } from '../../providers/registry.js';
@@ -71,6 +71,7 @@ export async function punch(ctx: Ctx, input: PunchInput, source: 'app' | 'offlin
   if (!ctx.employeeId) throw new AppError('FORBIDDEN', 'Only staff can check in');
   const { company, employee, branch, shift } = await loadEmployeeSetup(ctx.companyId, ctx.employeeId);
   if (employee.status !== 'active') throw new AppError('FORBIDDEN', 'Your staff account is inactive');
+  if (ownerMarksAttendance(company.settings, employee)) throw new AppError('FORBIDDEN', 'Your attendance is marked by your owner or manager', { reason: 'owner_marks_attendance' });
   if (!employee.consent?.location) throw new AppError('FORBIDDEN', 'Please accept the location consent first', { reason: 'consent_required' });
 
   // Phone binding is per business: the membership this staff record belongs to.
@@ -264,6 +265,8 @@ export async function attendanceView(r: any) {
     overridden: !!r.overridden,
     overrideReason: r.overrideReason ?? null,
     overriddenBy: r.overriddenBy ? String(r.overriddenBy) : null,
+    /** Filled in by the nightly close (absent, or present by default), not by a person. */
+    autoMarked: !!r.autoMarked,
     flags: r.flags ?? [],
   };
 }
@@ -336,6 +339,8 @@ export async function dayView(ctx: Ctx, date: string) {
       return {
         // linked/invitedAt: Home says "Hasn't installed the app · Invited" instead of a silent dash.
         employee: { id: String(e._id), name: e.name, phone: e.phone, designation: e.designation ?? null, linked: !!e.userId, invitedAt: e.invitedAt ?? null },
+        // Owner/manager marks this person: Home shows "Mark attendance" instead of "Hasn't installed the app".
+        ownerMarks: ownerMarksAttendance(company!.settings, e),
         record: r ? await attendanceView(r) : null,
         displayStatus: displayStatusOf(r, implicitStatus(dc, e, date), closed),
         holidayName: dc.holidayName(date) ?? null,
@@ -358,6 +363,8 @@ export async function todayForEmployee(ctx: Ctx) {
     record: r ? await attendanceView(r) : null,
     displayStatus: displayStatusOf(r, implicitStatus(dc, employee, date), false),
     nextAction: r && lastValidPunch(r)?.type === 'in' ? 'check_out' : 'check_in',
+    /** Staff can't check in themselves; the app shows their status only. */
+    ownerMarks: ownerMarksAttendance(company.settings, employee),
     shift: shift ? shiftView(shift) : null,
     branch: branch ? branchView(branch) : null,
   };
@@ -489,9 +496,11 @@ export async function closeDay(companyId: Types.ObjectId, date: string) {
     }
     if (r?.status) continue;
     const imp = implicitStatus(dc, e, date);
+    // "Present by default": staff the owner marks are present unless the owner said otherwise.
+    const fallback = company.settings?.presentByDefault && ownerMarksAttendance(company.settings, e) ? 'present' : 'absent';
     await Attendance.updateOne(
       { companyId, employeeId: e._id, date },
-      { $set: { status: imp?.status ?? 'absent', leaveType: imp?.leaveType ?? null, autoMarked: true }, $setOnInsert: { companyId, employeeId: e._id, date, punches: [] } },
+      { $set: { status: imp?.status ?? fallback, leaveType: imp?.leaveType ?? null, autoMarked: true }, $setOnInsert: { companyId, employeeId: e._id, date, punches: [] } },
       { upsert: true },
     );
     marked++;

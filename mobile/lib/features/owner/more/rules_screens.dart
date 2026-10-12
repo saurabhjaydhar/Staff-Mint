@@ -297,6 +297,39 @@ class CheckInSafetyScreen extends ConsumerWidget {
         final lock = d['phoneLockPolicy']?.toString() ?? 'off';
         return [
           Card(
+            key: const Key('safetyWhoMarks'),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.how_to_reg_rounded, color: AppColors.mintDark),
+                  title: Text(s.whoMarksTitle, style: const TextStyle(fontWeight: FontWeight.w700)),
+                  subtitle: Text(s.whoMarksHint),
+                ),
+                RadioGroup<String>(
+                  groupValue: d['attendanceMarking']?.toString() ?? 'self',
+                  onChanged: (v) {
+                    if (v != null) set('attendanceMarking', v);
+                  },
+                  child: Column(
+                    children: [
+                      RadioListTile<String>(dense: true, value: 'self', title: Text(s.marksSelf)),
+                      RadioListTile<String>(dense: true, value: 'owner', title: Text(s.marksOwner)),
+                    ],
+                  ),
+                ),
+                SwitchListTile(
+                  key: const Key('safetyPresentByDefault'),
+                  secondary: const Icon(Icons.event_available_rounded),
+                  value: d['presentByDefault'] == true,
+                  title: Text(s.presentByDefaultTitle, style: const TextStyle(fontWeight: FontWeight.w700)),
+                  subtitle: Text(s.presentByDefaultHint),
+                  onChanged: (v) => set('presentByDefault', v),
+                ),
+              ],
+            ),
+          ),
+          Card(
             child: Column(
               children: [
                 ListTile(

@@ -1,4 +1,5 @@
 import '../utils/json.dart';
+import 'company.dart';
 import 'leave.dart';
 import 'profile.dart';
 import 'statutory.dart';
@@ -23,6 +24,7 @@ class Employee {
     this.invitedAt,
     this.language = 'en',
     this.appRole = 'employee',
+    this.attendanceMarking,
     this.leaveBalance,
     this.advanceBalancePaise,
     this.bank,
@@ -56,6 +58,12 @@ class Employee {
   final String appRole;
   bool get isManager => appRole == 'manager';
 
+  /// self | owner for this person; null follows the business setting.
+  final String? attendanceMarking;
+
+  /// The owner or a manager marks this person's attendance (no check-in on their phone).
+  bool ownerMarks(CompanySettings? settings) => (attendanceMarking ?? settings?.attendanceMarking ?? 'self') == 'owner';
+
   /// Present only on `GET /employees/:id`.
   final LeaveBalance? leaveBalance;
   final int? advanceBalancePaise;
@@ -87,6 +95,7 @@ class Employee {
       hasDevice: asBool(j['hasDevice']),
       linked: asBool(j['linked']),
       appRole: asString(j['appRole'], 'employee'),
+      attendanceMarking: asStringOrNull(j['attendanceMarking']),
       invitedAt: asDateTimeOrNull(j['invitedAt']),
       language: asString(j['language'], 'en'),
       leaveBalance: j['leaveBalance'] is Map ? LeaveBalance.fromJson(asMap(j['leaveBalance'])) : null,
