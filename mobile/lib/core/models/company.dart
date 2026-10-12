@@ -251,6 +251,7 @@ class Shift {
     required this.end,
     this.graceMinutes,
     this.weeklyOff = const [0],
+    this.isDefault = false,
   });
   final String id;
   final String name;
@@ -259,6 +260,9 @@ class Shift {
   final int? graceMinutes;
   final List<int> weeklyOff;
 
+  /// Used for staff who have no shift of their own.
+  final bool isDefault;
+
   factory Shift.fromJson(Json j) => Shift(
     id: asString(j['id']),
     name: asString(j['name']),
@@ -266,6 +270,7 @@ class Shift {
     end: asString(j['end'], '19:00'),
     graceMinutes: asIntOrNull(j['graceMinutes']),
     weeklyOff: asIntList(j['weeklyOff']),
+    isDefault: asBool(j['isDefault']),
   );
 }
 

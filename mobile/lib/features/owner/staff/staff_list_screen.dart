@@ -27,7 +27,7 @@ class StaffListScreen extends ConsumerStatefulWidget {
 
 class _StaffListScreenState extends ConsumerState<StaffListScreen> {
   String _search = '';
-  bool _showInactive = false;
+  bool _showLeft = false;
   Timer? _debounce;
 
   @override
@@ -36,12 +36,13 @@ class _StaffListScreenState extends ConsumerState<StaffListScreen> {
     super.dispose();
   }
 
-  EmployeeQuery get _query => (search: _search, status: _showInactive ? 'all' : 'active');
+  EmployeeQuery get _query => (search: _search, status: 'all');
 
   @override
   Widget build(BuildContext context) {
     final s = context.s;
     final list = ref.watch(employeesProvider(_query));
+    final all = list.value ?? const <Employee>[];
     final today = ref.watch(dayAttendanceProvider(Dates.toApiDate(DateTime.now()))).value ?? const <DayRow>[];
     final todayStatus = {for (final r in today) r.employee.id: r.displayStatus};
     final isOwner = ref.watch(authControllerProvider.select((v) => v.isOwner));
@@ -59,12 +60,14 @@ class _StaffListScreenState extends ConsumerState<StaffListScreen> {
                   : (ref.watch(authControllerProvider.select((v) => v.company?.name)) ?? s.appName),
               title: s.staffTitle,
               actions: [
-                IconButton.filled(
+                FilledButton.icon(
                   key: const Key('addStaff'),
-                  tooltip: s.addStaff,
-                  icon: const Icon(Icons.person_add_alt_1_rounded),
+                  style: FilledButton.styleFrom(minimumSize: const Size(48, 44)),
+                  icon: const Icon(Icons.add_rounded),
+                  label: Text(s.add),
                   onPressed: () => context.push(Routes.ownerStaffAdd),
                 ),
+                const SizedBox(width: 8),
               ],
             ),
             if (isOwner)
@@ -89,42 +92,61 @@ class _StaffListScreenState extends ConsumerState<StaffListScreen> {
                 },
               ),
             ),
-            SwitchListTile(
-              dense: true,
-              value: _showInactive,
-              title: Text(s.showInactive, style: const TextStyle(color: AppColors.muted)),
-              onChanged: (v) => setState(() => _showInactive = v),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+              child: Row(
+                children: [
+                  for (final (left, label) in [
+                    (false, s.workingN(all.where((e) => e.isActive).length)),
+                    (true, s.leftN(all.where((e) => !e.isActive).length)),
+                  ])
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ChoiceChip(
+                        key: Key(left ? 'filterLeft' : 'filterWorking'),
+                        label: Text(label),
+                        selected: _showLeft == left,
+                        onSelected: (_) => setState(() => _showLeft = left),
+                      ),
+                    ),
+                ],
+              ),
             ),
             Expanded(
               child: AsyncBody<List<Employee>>(
                 value: list,
                 onRetry: () => ref.invalidate(employeesProvider(_query)),
-                data: (emps) => RefreshableList(
-                  onRefresh: () => ref.refresh(employeesProvider(_query).future),
-                  children: [
-                    if (emps.isEmpty)
-                      EmptyView(
-                        message: s.noStaffYet,
-                        icon: Icons.people_outline,
-                        action: FilledButton.icon(
-                          onPressed: () => context.push(Routes.ownerStaffAdd),
-                          icon: const Icon(Icons.person_add_alt_1_rounded),
-                          label: Text(s.addStaff),
+                data: (everyone) {
+                  final emps = everyone.where((e) => e.isActive != _showLeft).toList();
+                  return RefreshableList(
+                    onRefresh: () => ref.refresh(employeesProvider(_query).future),
+                    children: [
+                      if (emps.isEmpty && _showLeft)
+                        EmptyView(message: s.noneLeft, icon: Icons.people_outline)
+                      else if (emps.isEmpty)
+                        EmptyView(
+                          message: s.noStaffYet,
+                          icon: Icons.people_outline,
+                          action: FilledButton.icon(
+                            onPressed: () => context.push(Routes.ownerStaffAdd),
+                            icon: const Icon(Icons.person_add_alt_1_rounded),
+                            label: Text(s.addStaff),
+                          ),
                         ),
-                      ),
-                    if (emps.isNotEmpty)
-                      Card(
-                        child: Column(
-                          children: [
-                            for (var i = 0; i < emps.length; i++) ...[
-                              if (i > 0) const Divider(indent: 72),
-                              _StaffTile(employee: emps[i], status: todayStatus[emps[i].id]),
+                      if (emps.isNotEmpty)
+                        Card(
+                          child: Column(
+                            children: [
+                              for (var i = 0; i < emps.length; i++) ...[
+                                if (i > 0) const Divider(indent: 72),
+                                _StaffTile(employee: emps[i], status: todayStatus[emps[i].id]),
+                              ],
                             ],
-                          ],
+                          ),
                         ),
-                      ),
-                  ],
-                ),
+                    ],
+                  );
+                },
               ),
             ),
           ],

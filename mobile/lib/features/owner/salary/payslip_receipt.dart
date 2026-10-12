@@ -89,9 +89,9 @@ class PayslipReceipt extends ConsumerWidget {
                     ],
                   ),
                 ),
-              for (final l in p.lines) _line(l),
-              if (p.lines.every((l) => !l.isDeduction))
-                ReceiptRow(label: s.deductions, value: '− ${Money.format(0)}', valueColor: AppColors.red),
+              // Deductions show only when there are some (no "−₹0").
+              for (final l in p.lines)
+                if (!(l.isDeduction && l.amountPaise == 0)) _line(l),
               if (p.employerContributions.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Container(

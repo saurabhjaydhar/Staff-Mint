@@ -160,12 +160,14 @@ void main() {
     return api;
   }
 
-  testWidgets('owner: hero, completeness chips and business; email is validated before saving', (tester) async {
+  testWidgets('owner: hero, one next step and business; email is validated before saving', (tester) async {
     final api = await pump(tester, _owner());
     expect(find.byKey(const Key('profileName')), findsOneWidget);
     expect(find.text('Rakesh Sharma'), findsWidgets);
     expect(find.text('Owner'), findsOneWidget);
-    expect(find.text('Profile 33% complete'), findsOneWidget);
+    // One next step with a reason, not a percentage.
+    expect(find.text('Add your email'), findsOneWidget);
+    expect(find.textContaining('% complete'), findsNothing);
     expect(find.byKey(const Key('missing_email')), findsOneWidget);
     expect(find.text('Growth'), findsOneWidget);
     expect(find.byKey(const Key('addBank')), findsNothing);
@@ -188,6 +190,10 @@ void main() {
   testWidgets('staff: work is read-only; salary account needs the number twice and a valid IFSC', (tester) async {
     final api = await pump(tester, _staff);
     expect(find.text('Staff · Cashier'), findsOneWidget);
+    // The most useful next step for staff, with the reason; language lives only in the header.
+    expect(find.text('Add your bank or UPI'), findsOneWidget);
+    expect(find.text('So your salary can be sent straight to you.'), findsOneWidget);
+    expect(find.byKey(const Key('languageNote')), findsOneWidget);
     await scrollTo(tester, find.text('Set by your owner. Ask them to change it.'));
     expect(find.text('₹14,000 / month'), findsOneWidget);
 

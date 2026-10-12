@@ -7,12 +7,15 @@ import '../../../core/i18n/strings.dart';
 import '../../../core/models/models.dart';
 import '../../../core/router/routes.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/dates.dart';
 import '../../../core/utils/json.dart';
+import '../../../core/utils/shift_text.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/pickers.dart';
 import '../../auth/auth_controller.dart';
 import '../providers/owner_providers.dart';
+import 'shifts_screen.dart' show editShift;
 
 /// One small rules page: loads the shop's settings, edits a few of them and
 /// saves only what changed. Every page ends with "Changes apply from today".
@@ -376,39 +379,91 @@ class CheckInSafetyScreen extends ConsumerWidget {
   }
 }
 
-/// Shifts (with weekly off) and festival holidays.
-class TimingsScreen extends StatelessWidget {
+/// Shifts (with weekly off) and the next festival holidays, right on the page.
+class TimingsScreen extends ConsumerWidget {
   const TimingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final s = context.s;
+    final shifts = ref.watch(shiftsProvider);
+    final staff = ref.watch(activeEmployeesProvider).value ?? const <Employee>[];
+    final year = DateTime.now().year;
+    final today = Dates.toApiDate(DateTime.now());
+    final upcoming = [
+      ...?ref.watch(holidaysProvider(year)).value,
+      ...?ref.watch(holidaysProvider(year + 1)).value,
+    ].where((h) => h.date.compareTo(today) >= 0).toList()..sort((a, b) => a.date.compareTo(b.date));
     return Scaffold(
       appBar: AppBar(title: Text(s.timingsTitle)),
-      body: ListView(
-        children: [
-          Card(
-            child: Column(
-              children: [
-                ListTile(
-                  key: const Key('timingsShifts'),
-                  leading: const Icon(Icons.schedule_rounded),
-                  title: Text(s.shifts),
-                  subtitle: Text(s.timingsHint),
-                  trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => context.push(Routes.ownerShifts),
+      body: AsyncBody<List<Shift>>(
+        value: shifts,
+        onRetry: () => ref.invalidate(shiftsProvider),
+        data: (list) {
+          final fallback = defaultShiftOf(list);
+          int countFor(Shift sh) =>
+              staff.where((e) => e.shiftId == sh.id || (e.shiftId == null && sh.id == fallback?.id)).length;
+          return ListView(
+            padding: const EdgeInsets.only(bottom: 24),
+            children: [
+              SectionHeader(s.shifts),
+              Card(
+                key: const Key('timingsShifts'),
+                child: Column(
+                  children: [
+                    for (final sh in list)
+                      ListTile(
+                        key: Key('shift_${sh.id}'),
+                        title: Text(sh.name, style: const TextStyle(fontWeight: FontWeight.w800)),
+                        subtitle: Text('${shiftText(s, sh)} · ${s.staffN(countFor(sh))}'),
+                        trailing: TextButton(onPressed: () => editShift(context, ref, sh), child: Text(s.edit)),
+                      ),
+                    ListTile(
+                      leading: const Icon(Icons.add_rounded, color: AppColors.mintDark),
+                      title: Text(
+                        s.addShift,
+                        style: const TextStyle(color: AppColors.mintDark, fontWeight: FontWeight.w700),
+                      ),
+                      onTap: () => editShift(context, ref),
+                    ),
+                  ],
                 ),
-                ListTile(
-                  key: const Key('timingsHolidays'),
-                  leading: const Icon(Icons.celebration_rounded),
-                  title: Text(s.holidays),
-                  trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => context.push(Routes.ownerHolidays),
+              ),
+              SectionHeader(s.nextHolidays),
+              Card(
+                key: const Key('timingsHolidays'),
+                child: Column(
+                  children: [
+                    if (upcoming.isEmpty)
+                      ListTile(
+                        title: Text(s.noHolidaysYet, style: const TextStyle(color: AppColors.muted)),
+                      ),
+                    for (final h in upcoming.take(3))
+                      ListTile(
+                        leading: const Icon(Icons.celebration_rounded, color: AppColors.amber),
+                        title: Text(h.name),
+                        trailing: Text(
+                          Dates.weekdayShort(DateTime.parse(h.date), s.languageCode),
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    Row(
+                      children: [
+                        TextButton.icon(
+                          icon: const Icon(Icons.add_rounded),
+                          label: Text(s.addHoliday),
+                          onPressed: () => context.push(Routes.ownerHolidays),
+                        ),
+                        const Spacer(),
+                        TextButton(onPressed: () => context.push(Routes.ownerHolidays), child: Text(s.seeAll)),
+                      ],
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-        ],
+              ),
+            ],
+          );
+        },
       ),
     );
   }

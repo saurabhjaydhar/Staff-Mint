@@ -54,6 +54,13 @@ class Dates {
   /// `October` from an API month (`2026-10`).
   static String monthOnly(String apiMonth, [String locale = 'en']) => _fmt('MMMM', locale).format(parseMonth(apiMonth));
 
+  /// "Sunday, Monday" / "रविवार, सोमवार" for weekday numbers (0 = Sunday).
+  static String weekdayNames(List<int> days, [String locale = 'en']) {
+    final fmt = _fmt('EEEE', locale);
+    // 11 Oct 2026 is a Sunday.
+    return days.map((d) => fmt.format(DateTime(2026, 10, 11 + d))).join(', ');
+  }
+
   /// `October 2026`.
   static String monthTitle(DateTime d, [String locale = 'en']) => _fmt('MMMM yyyy', locale).format(d);
 
