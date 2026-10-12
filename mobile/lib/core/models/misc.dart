@@ -65,11 +65,31 @@ class AuditChange {
 }
 
 class BillingInfo {
-  const BillingInfo({this.subscription, this.plan, this.staffCount = 0, this.billedToName, this.trial});
+  const BillingInfo({
+    this.subscription,
+    this.plan,
+    this.staffCount = 0,
+    int? billStaffCount,
+    this.billedToName,
+    this.trial,
+    this.usage = const {},
+    this.recommendation,
+    this.priceLockMonths = 0,
+  }) : billStaffCount = billStaffCount ?? staffCount;
   final Subscription? subscription;
   final Trial? trial;
   final Plan? plan;
   final int staffCount;
+
+  /// Staff across every business on the bill: what plan limits count.
+  final int billStaffCount;
+
+  /// Paid features used since the trial started (at most 30 days back), e.g. `face_match: 85`.
+  final Map<String, int> usage;
+  final PlanRecommendation? recommendation;
+
+  /// The price stays the same this long after subscribing.
+  final int priceLockMonths;
 
   /// Paid together with this business (one bill); its plan is managed there.
   final String? billedToName;
@@ -78,8 +98,85 @@ class BillingInfo {
     subscription: j['subscription'] is Map ? Subscription.fromJson(asMap(j['subscription'])) : null,
     plan: j['plan'] is Map ? Plan.fromJson(asMap(j['plan'])) : null,
     staffCount: asInt(j['staffCount']),
+    billStaffCount: j['billStaffCount'] == null ? null : asInt(j['billStaffCount']),
     billedToName: j['billedTo'] is Map ? asStringOrNull(asMap(j['billedTo'])['name']) : null,
     trial: j['trial'] is Map ? Trial.fromJson(asMap(j['trial'])) : null,
+    usage: {
+      if (j['usage'] is Map)
+        for (final e in asMap(j['usage']).entries)
+          if (asInt(e.value) > 0) e.key: asInt(e.value),
+    },
+    recommendation: j['recommendation'] is Map ? PlanRecommendation.fromJson(asMap(j['recommendation'])) : null,
+    priceLockMonths: asInt(j['priceLockMonths']),
+  );
+}
+
+/// One reason a plan suits the shop: its staff fit, or a paid feature it used.
+class PlanReason {
+  const PlanReason.staff(int this.staff, int this.limit) : feature = null, count = 0;
+  const PlanReason.feature(String this.feature, this.count) : staff = null, limit = null;
+  final int? staff;
+  final int? limit;
+  final String? feature;
+  final int count;
+
+  static PlanReason fromJson(Json j) => asString(j['kind']) == 'staff'
+      ? PlanReason.staff(asInt(j['staff']), asInt(j['limit']))
+      : PlanReason.feature(asString(j['feature']), asInt(j['count']));
+}
+
+/// The cheapest plan that fits the shop, why, and what the next cheaper plan would lose.
+class PlanRecommendation {
+  const PlanRecommendation({
+    required this.planCode,
+    this.reasons = const [],
+    this.cheaperCode,
+    this.cheaperLoses = const [],
+  });
+  final String planCode;
+  final List<PlanReason> reasons;
+  final String? cheaperCode;
+  final List<({String feature, int count})> cheaperLoses;
+
+  factory PlanRecommendation.fromJson(Json j) {
+    final cheaper = j['cheaper'] is Map ? asMap(j['cheaper']) : null;
+    return PlanRecommendation(
+      planCode: asString(j['planCode']),
+      reasons: asList(j['reasons'], PlanReason.fromJson),
+      cheaperCode: cheaper == null ? null : asStringOrNull(cheaper['planCode']),
+      cheaperLoses: cheaper == null
+          ? const []
+          : asList(cheaper['loses'], (Json l) => (feature: asString(l['feature']), count: asInt(l['count']))),
+    );
+  }
+}
+
+/// Money taken for a plan.
+class Receipt {
+  const Receipt({
+    required this.id,
+    this.planName,
+    this.interval = 'monthly',
+    required this.amountPaise,
+    required this.paidAt,
+    this.hasInvoice = false,
+  });
+  final String id;
+  final String? planName;
+  final String interval;
+  final int amountPaise;
+  final DateTime paidAt;
+
+  /// The gateway made an invoice (with GST) that can be opened.
+  final bool hasInvoice;
+
+  factory Receipt.fromJson(Json j) => Receipt(
+    id: asString(j['id']),
+    planName: asStringOrNull(j['planName']),
+    interval: asString(j['interval'], 'monthly'),
+    amountPaise: asInt(j['amountPaise']),
+    paidAt: asDateTimeOrNull(j['paidAt']) ?? DateTime.now(),
+    hasInvoice: asBool(j['hasInvoice']),
   );
 }
 

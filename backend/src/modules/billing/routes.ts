@@ -27,6 +27,13 @@ billingRouter.post('/cancel', authenticate, requireRole('owner'), requireBilling
   res.json({ data: { subscription: { status: sub.status, planCode: sub.planCode, currentPeriodEnd: sub.currentPeriodEnd ?? null } } });
 });
 
+billingRouter.get('/receipts', authenticate, requireRole('owner'), requireBillingAccess, async (req, res) => {
+  res.json({ data: await svc.listReceipts(ctxOf(req)) });
+});
+billingRouter.get('/receipts/:id/link', authenticate, requireRole('owner'), requireBillingAccess, async (req, res) => {
+  res.json({ data: await svc.receiptLink(ctxOf(req), param(req, 'id')) });
+});
+
 // One bill for several businesses (main owner / billing-allowed co-owner of the paying business).
 billingRouter.get('/group', authenticate, requireRole('owner'), requireBillingAccess, async (req, res) => {
   res.json({ data: await group.billingGroup(ctxOf(req)) });
@@ -54,6 +61,6 @@ export const mockCheckoutRouter = Router();
 mockCheckoutRouter.get('/', async (req, res) => {
   if (isProd) throw new AppError('NOT_FOUND', 'Not found');
   const sub = String(req.query.sub ?? '');
-  await svc.handlePaymentEvents('mock', [{ type: 'subscription.activated', eventId: `checkout-${sub}`, providerSubId: sub, raw: { sub } }]);
+  await svc.handlePaymentEvents('mock', [{ type: 'subscription.activated', eventId: `checkout-${sub}`, providerSubId: sub, payment: { id: `mockpay_${sub}`, amountPaise: 0 }, raw: { sub } }]);
   res.type('html').send(`<html><body style="font-family:sans-serif;text-align:center;padding:40px"><h2 style="color:#2BB673">Payment successful (mock)</h2><p>Subscription ${sub} is now active. You can close this window.</p></body></html>`);
 });

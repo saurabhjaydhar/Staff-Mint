@@ -1,10 +1,11 @@
 import { Types } from 'mongoose';
 import { AppError } from '../../lib/errors.js';
 import type { Ctx } from '../../lib/context.js';
-import { Company, Plan, Subscription, User, WebhookEvent } from '../../models/index.js';
+import { Company, Plan, Receipt, Subscription, User, WebhookEvent } from '../../models/index.js';
 import { provider } from '../../providers/registry.js';
-import type { PaymentEvent } from '../../providers/types.js';
-import { activeStaffCount, billingGroupIds, billingStaffCount, companyPlan, getPlan } from './plans.js';
+import type { PaymentEvent, PaymentInfo } from '../../providers/types.js';
+import { activeStaffCount, billingGroupIds, billingStaffCount, companyPlan, getPlan, listPlans } from './plans.js';
+import { featureUsage, recommend, usageSince } from './usage.js';
 import { getConfig } from '../config/service.js';
 import { trialFromSubscription } from './trial.js';
 import { audit } from '../audit/service.js';
@@ -13,6 +14,14 @@ import { logger } from '../../lib/logger.js';
 
 export async function subscriptionSummary(ctx: Ctx) {
   const { plan, subscription } = await companyPlan({ _id: ctx.companyId });
+  const company = await Company.findById(ctx.companyId).select('country').lean();
+  const [ids, billStaff, plans, lockMonths] = await Promise.all([
+    billingGroupIds(ctx.companyId),
+    billingStaffCount(ctx.companyId),
+    listPlans(company?.country ?? 'IN'),
+    getConfig<number>('billing.priceLockMonths'),
+  ]);
+  const usage = await featureUsage(ids, usageSince(subscription as any));
   return {
     plan,
     subscription: subscription
@@ -29,6 +38,13 @@ export async function subscriptionSummary(ctx: Ctx) {
       : null,
     staffCount: await activeStaffCount(ctx.companyId),
     trial: await trialFromSubscription(subscription),
+    /** Staff across every business on the bill (what the plan limit counts). */
+    billStaffCount: billStaff,
+    /** Paid features used since the trial started (at most 30 days back). */
+    usage,
+    /** The cheapest plan that fits the staff and what they use, and why. */
+    recommendation: recommend(plans, billStaff, usage),
+    priceLockMonths: lockMonths ?? 0,
     /** Paid together with another business (one bill); manage the plan there. */
     billedTo: await payerOf(ctx.companyId),
   };
@@ -55,6 +71,10 @@ export async function subscribe(ctx: Ctx, planCode: string, interval: 'monthly' 
   const extra = Math.max(0, staff - plan.staffLimit) * plan.extraStaffPricePaise * yearly;
   const extraBusinesses = (group.length - 1) * (await getConfig<number>('billing.extraBusinessPricePaise')) * yearly;
   const amountPaise = (interval === 'yearly' ? plan.priceYearlyPaise : plan.priceMonthlyPaise) + extra + extraBusinesses;
+  // During a free trial the first charge waits until the trial ends: nothing is taken today.
+  const { subscription: current } = await companyPlan({ _id: ctx.companyId });
+  const trial = await trialFromSubscription(current);
+  const trialDays = trial?.active ? trial.daysLeft : 0;
   const payments = await provider('payments', company!.paymentProvider);
   const planDoc = await Plan.findOne({ code: planCode }).lean();
   const providerPlanId = (planDoc?.providerPlanIds as any)?.[payments.name]?.[interval];
@@ -65,6 +85,7 @@ export async function subscribe(ctx: Ctx, planCode: string, interval: 'monthly' 
     amountPaise,
     currency: plan.currency,
     customer: { name: company!.name, phone: owner?.phone ?? '', companyId: String(ctx.companyId) },
+    trialDays: trialDays || undefined,
   });
   const lockMonths = await getConfig<number>('billing.priceLockMonths');
   await Subscription.create({
@@ -79,7 +100,15 @@ export async function subscribe(ctx: Ctx, planCode: string, interval: 'monthly' 
     priceLockedUntil: new Date(Date.now() + lockMonths * 30 * 86400_000),
   });
   await audit(ctx, { action: 'billing.subscribe', entity: 'subscription', after: { planCode, interval, amountPaise, provider: payments.name } });
-  return { provider: payments.name, subscriptionId: created.providerSubId, checkoutUrl: created.checkoutUrl, keyId: created.keyId ?? null, amountPaise };
+  return {
+    provider: payments.name,
+    subscriptionId: created.providerSubId,
+    checkoutUrl: created.checkoutUrl,
+    keyId: created.keyId ?? null,
+    amountPaise,
+    /** First charge date: the trial end while a trial runs, otherwise now. */
+    firstChargeAt: trial?.active ? trial.endsAt : new Date(),
+  };
 }
 
 export async function cancel(ctx: Ctx) {
@@ -139,6 +168,55 @@ export async function handlePaymentEvents(providerName: string, events: PaymentE
         break;
     }
     await sub.save();
+    const paid = ev.type === 'payment.succeeded' ? { id: ev.providerPaymentId, amountPaise: ev.amountPaise, invoiceId: ev.invoiceId ?? null } : 'payment' in ev ? ev.payment : undefined;
+    if (paid && (ev.type === 'payment.succeeded' || ev.type === 'subscription.charged' || ev.type === 'subscription.activated')) await recordReceipt(sub, providerName, paid);
     await audit(systemCtx(sub.companyId as Types.ObjectId), { action: `billing.${ev.type}`, entity: 'subscription', entityId: sub._id, before, after: sub });
   }
+}
+
+/** One receipt per gateway payment; the same payment can arrive in two webhooks. */
+async function recordReceipt(sub: any, providerName: string, pay: PaymentInfo) {
+  await Receipt.updateOne(
+    { companyId: sub.companyId, provider: providerName, providerPaymentId: pay.id },
+    {
+      $setOnInsert: {
+        subscriptionId: sub._id,
+        planCode: sub.planCode,
+        interval: sub.interval,
+        amountPaise: pay.amountPaise || sub.pricePaise || 0,
+        currency: sub.currency ?? 'INR',
+        paidAt: new Date(),
+        periodEnd: sub.currentPeriodEnd ?? null,
+      },
+      ...(pay.invoiceId ? { $set: { invoiceId: pay.invoiceId } } : {}),
+    },
+    { upsert: true },
+  );
+}
+
+export async function listReceipts(ctx: Ctx) {
+  const rows = await Receipt.find({ companyId: ctx.companyId }).sort({ paidAt: -1 }).limit(36).lean();
+  const plans = new Map<string, string>();
+  for (const r of rows) if (r.planCode && !plans.has(r.planCode)) plans.set(r.planCode, (await getPlan(r.planCode)).name);
+  return rows.map((r) => ({
+    id: String(r._id),
+    planCode: r.planCode ?? null,
+    planName: r.planCode ? plans.get(r.planCode) ?? r.planCode : null,
+    interval: r.interval ?? 'monthly',
+    amountPaise: r.amountPaise,
+    currency: r.currency ?? 'INR',
+    paidAt: r.paidAt,
+    periodEnd: r.periodEnd ?? null,
+    hasInvoice: !!r.invoiceId,
+  }));
+}
+
+/** The gateway's invoice for one receipt (GST invoice for Razorpay). */
+export async function receiptLink(ctx: Ctx, id: string) {
+  const r = Types.ObjectId.isValid(id) ? await Receipt.findOne({ _id: id, companyId: ctx.companyId }).lean() : null;
+  if (!r) throw new AppError('NOT_FOUND', 'Receipt not found');
+  const p = r.invoiceId ? await provider('payments', r.provider).catch(() => null) : null;
+  const url = p?.invoiceUrl && r.invoiceId ? await p.invoiceUrl(r.invoiceId) : null;
+  if (!url) throw new AppError('NOT_FOUND', 'No invoice for this payment yet');
+  return { url };
 }

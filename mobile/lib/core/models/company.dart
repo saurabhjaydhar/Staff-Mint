@@ -23,7 +23,8 @@ class Plan {
     required this.extraStaffPricePaise,
     required this.trialDays,
     required this.features,
-  });
+    int? maxStaffHardCap,
+  }) : maxStaffHardCap = maxStaffHardCap ?? staffLimit;
 
   final String code;
   final String name;
@@ -35,7 +36,13 @@ class Plan {
   final int trialDays;
   final List<String> features;
 
+  /// Most staff the plan takes, counting paid extra staff.
+  final int maxStaffHardCap;
+
   bool has(String feature) => features.contains(feature);
+
+  /// Holds this many staff (Pro takes more than its limit, for a price per extra person).
+  bool fits(int staff) => staff <= staffLimit || (extraStaffPricePaise > 0 && staff <= maxStaffHardCap);
 
   factory Plan.fromJson(Json j) => Plan(
     code: asString(j['code']),
@@ -47,19 +54,33 @@ class Plan {
     extraStaffPricePaise: asInt(j['extraStaffPricePaise']),
     trialDays: asInt(j['trialDays']),
     features: asStringList(j['features']),
+    maxStaffHardCap: j['maxStaffHardCap'] == null ? null : asInt(j['maxStaffHardCap']),
   );
 }
 
 class Subscription {
-  const Subscription({required this.status, this.planCode, this.currentPeriodEnd});
+  const Subscription({
+    required this.status,
+    this.planCode,
+    this.currentPeriodEnd,
+    this.interval = 'monthly',
+    this.pricePaise,
+  });
   final String status;
   final String? planCode;
   final DateTime? currentPeriodEnd;
+  final String interval;
+  final int? pricePaise;
+
+  /// Paid and running (or paid but the last renewal failed).
+  bool get isPaid => status == 'active' || status == 'past_due';
 
   factory Subscription.fromJson(Json j) => Subscription(
     status: asString(j['status'], 'free'),
     planCode: asStringOrNull(j['planCode']),
     currentPeriodEnd: asDateTimeOrNull(j['currentPeriodEnd']),
+    interval: asString(j['interval'], 'monthly'),
+    pricePaise: j['pricePaise'] == null ? null : asInt(j['pricePaise']),
   );
 }
 

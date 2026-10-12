@@ -202,7 +202,9 @@ Fields: `name, phone, ratePaise, wageType, designation, joiningDate, branch, adv
 
 ### Billing
 | GET | /billing/plans | (public) | `Plan[]` |
-| GET | /billing/subscription | | `{subscription, plan, staffCount, trial: Trial\|null, billedTo}` |
+| GET | /billing/subscription | | `{subscription, plan, staffCount, billStaffCount, trial: Trial\|null, usage, recommendation, priceLockMonths, billedTo}`. `usage`: paid features used since the trial started (at most 30 days back), e.g. `{face_match: 85, whatsapp_payslips: 12, branches: 0, ca_access: 0, payroll, payslips, advances, assistant, whatsapp_assistant}`. `recommendation`: `{planCode, reasons: ({kind:'staff', staff, limit} \| {kind:'feature', feature, count})[], cheaper: {planCode, loses: {feature, count}[]}\|null}`, the cheapest plan that holds the staff on the bill and covers every paid feature in use |
+| GET | /billing/receipts | | `{id, planCode, planName, interval, amountPaise, currency, paidAt, periodEnd, hasInvoice}[]`, newest first: one per gateway payment |
+| GET | /billing/receipts/:id/link | | `{url}` of the gateway's invoice (GST invoice on Razorpay); 404 when there is none |
 | POST | /billing/subscribe | `{planCode, interval:'monthly'\|'yearly'}` | `{provider, subscriptionId, checkoutUrl, keyId?}` |
 | POST | /billing/cancel | | `{subscription}` |
 

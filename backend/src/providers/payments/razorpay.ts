@@ -52,8 +52,14 @@ export class RazorpayPaymentProvider implements PaymentProvider {
     const type = map[body?.event];
     if (!type) return [];
     if (type.startsWith('payment.')) {
-      return [{ type: type as 'payment.succeeded' | 'payment.failed', eventId, providerSubId: pay?.subscription_id, providerPaymentId: pay?.id, amountPaise: pay?.amount ?? 0, raw: body }];
+      return [{ type: type as 'payment.succeeded' | 'payment.failed', eventId, providerSubId: pay?.subscription_id, providerPaymentId: pay?.id, amountPaise: pay?.amount ?? 0, invoiceId: pay?.invoice_id ?? null, raw: body }];
     }
-    return [{ type: type as any, eventId, providerSubId: sub?.id, currentPeriodEnd: sub?.current_end ? new Date(sub.current_end * 1000) : undefined, raw: body }];
+    // subscription.charged carries the payment it took.
+    const payment = type === 'subscription.charged' && pay?.id ? { id: String(pay.id), amountPaise: pay.amount ?? 0, invoiceId: pay.invoice_id ?? null } : undefined;
+    return [{ type: type as any, eventId, providerSubId: sub?.id, currentPeriodEnd: sub?.current_end ? new Date(sub.current_end * 1000) : undefined, payment, raw: body }];
+  }
+  async invoiceUrl(invoiceId: string) {
+    const inv = await this.call('GET', `/invoices/${invoiceId}`);
+    return (inv?.short_url as string) ?? null;
   }
 }

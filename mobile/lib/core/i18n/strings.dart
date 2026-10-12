@@ -508,7 +508,7 @@ class S {
   String get leaveRequests => _t('Leave requests', 'छुट्टी की अर्ज़ियाँ');
   String get reports => _t('Reports', 'रिपोर्ट');
   String get settings => _t('Settings', 'सेटिंग्स');
-  String get billing => _t('Plan & billing', 'प्लान और बिलिंग');
+  String get billing => _t('Plan & payment', 'प्लान और पेमेंट');
   String get auditLog => _t('Audit log', 'बदलावों का रिकॉर्ड');
   String get exportData => _t('Export all data', 'सारा डेटा डाउनलोड करें');
   String get exportHint => _t('Excel + salary slip PDFs. Always free.', 'Excel + सैलरी स्लिप PDF। हमेशा मुफ़्त।');
@@ -640,9 +640,9 @@ class S {
       case 'payslips':
         return _t('Salary slips', 'सैलरी स्लिप');
       case 'assistant':
-        return _t('Mint AI assistant', 'Mint सहायक');
+        return _t('Ask Mint', 'Mint से पूछें');
       case 'branches':
-        return _t('Multiple branches', 'कई ब्रांच');
+        return _t('More branches', 'कई ब्रांच');
       case 'reports':
         return _t('Reports', 'रिपोर्ट');
       case 'whatsapp_payslips':
@@ -1933,6 +1933,200 @@ class S {
   String billedWith(String name) =>
       _t('Paid together with $name. Change the plan there.', '$name के साथ पेमेंट होता है। प्लान वहीं बदलें।');
   String totalStaffOnBill(int n) => _t('$n staff on this bill', 'इस बिल में $n स्टाफ़');
+
+  // ---------------------------------------------------------------- Plan & payment (pick the right plan)
+  String billTrialLeft(int days) => days <= 1
+      ? _t('Free trial: last day', 'फ़्री ट्रायल: आख़िरी दिन')
+      : _t('Free trial: $days days left', 'फ़्री ट्रायल: $days दिन बचे');
+  String billTrialEnds(String date) => _t('ends $date', '$date तक');
+  String billTrialEnded(String date) => _t(
+    'Free trial ended on $date. You are on Free now.',
+    'फ़्री ट्रायल $date को ख़त्म हुआ। अब आप फ़्री प्लान पर हैं।',
+  );
+  String billRenews(String plan, String date) =>
+      _t('Your plan: $plan · renews on $date', 'आपका प्लान: $plan · $date को रिन्यू');
+  String billPaymentDue(String plan) => _t(
+    'Payment for $plan did not go through. Pay to keep it.',
+    '$plan का पेमेंट नहीं हुआ। चालू रखने के लिए पेमेंट करें।',
+  );
+  String billStopsOn(String plan, String date) => _t('$plan stops on $date', '$plan $date को बंद होगा');
+  String get billBestTitle => _t('Best plan for your shop', 'आपकी दुकान के लिए सबसे सही प्लान');
+  String get billBestBadge => _t('Best for you', 'आपके लिए सबसे सही');
+  String planWho(String code, int staffLimit) => switch (code) {
+    'free' => _t('Just starting out', 'अभी शुरुआत'),
+    'starter' => _t('One shop, pay salary in the app', 'एक दुकान, ऐप से सैलरी'),
+    'growth' => _t('Growing shop, uses WhatsApp', 'बढ़ती दुकान, WhatsApp वाले'),
+    'pro' => _t('Big business, 30+ staff', 'बड़ा बिज़नेस, 30+ स्टाफ़'),
+    _ => staffLimit > 0 ? this.staffLimit(staffLimit) : '',
+  };
+  String get aMonth => _t('a month', 'हर महीने');
+  String get aYear => _t('a year', 'हर साल');
+  String get monthUnit => _t('month', 'महीना');
+  String get yearUnit => _t('year', 'साल');
+  String aboutPerDay(String p) => _t('About $p a day', 'रोज़ लगभग $p');
+  String perDayShort(String p) => _t('≈ $p a day', '≈ $p रोज़');
+  String get whyThisPlan => _t('Why this plan', 'यह प्लान क्यों');
+  String reasonStaff(int n, int limit) => n == 0
+      ? _t('Up to $limit staff', '$limit स्टाफ़ तक')
+      : _t('Your $n staff fit (up to $limit)', 'आपके $n स्टाफ़ आ जाते हैं ($limit तक)');
+
+  /// Why a plan fits, from how much a paid feature was used ("You used Face check 85 times in your trial").
+  String reasonFeature(String feature, int n, {required bool trial}) {
+    final when = trial ? _t(' in your trial', ' ट्रायल में') : _t(' in the last 30 days', ' पिछले 30 दिन में');
+    return switch (feature) {
+      'face_match' => _t('You used Face check $n times$when', 'आपने$when चेहरा मिलान $n बार इस्तेमाल किया'),
+      'whatsapp_payslips' => _t('You sent $n salary slips on WhatsApp', 'आपने WhatsApp पर $n सैलरी स्लिप भेजीं'),
+      'whatsapp_assistant' => _t('You used Mint on WhatsApp $n times', 'आपने WhatsApp पर Mint $n बार इस्तेमाल किया'),
+      'branches' => _t('You have $n branches', 'आपकी $n ब्रांच हैं'),
+      'ca_access' => _t('Your CA logs in to this business', 'आपका CA इस बिज़नेस में लॉगिन करता है'),
+      'payroll' => _t('You worked out salary $n times', 'आपने $n बार सैलरी बनाई'),
+      'payslips' => _t('You made $n salary slips', 'आपने $n सैलरी स्लिप बनाईं'),
+      'advances' => _t('You gave $n advances', 'आपने $n एडवांस दिए'),
+      'assistant' => _t('You asked Mint $n times', 'आपने Mint से $n बार पूछा'),
+      _ => _t('${featureLabel(feature)}: used $n times', '${featureLabel(feature)}: $n बार इस्तेमाल'),
+    };
+  }
+
+  String keepPlanNamed(String name) => _t('Keep $name', '$name रखें');
+  String choosePlanNamed(String name) => _t('Choose $name', '$name लें');
+  String get thisIsYourPlan => _t('This is your plan', 'यही आपका प्लान है');
+  String billFootTrial(String date) =>
+      _t('₹0 today · first payment $date · stop anytime', 'आज ₹0 · पहला पेमेंट $date · कभी भी बंद करें');
+  String get billFootPaid =>
+      _t('UPI, card or net banking · stop anytime', 'UPI, कार्ड या नेट बैंकिंग · कभी भी बंद करें');
+  String freeIsEnough({required bool trial}) => trial
+      ? _t(
+          'Free is enough for you. Nothing to pay: after the trial you move to Free on its own.',
+          'आपके लिए फ़्री प्लान काफ़ी है। कुछ नहीं देना: ट्रायल के बाद आप अपने-आप फ़्री प्लान पर आ जाएँगे।',
+        )
+      : _t('Free is enough for you. Nothing to pay.', 'आपके लिए फ़्री प्लान काफ़ी है। कुछ नहीं देना।');
+  String spendLess(String name) => _t('Want to spend less? $name', 'कम ख़र्च? $name');
+  String priceMonthDay(String price, String day) =>
+      _t('$price a month · about $day a day', '$price महीना · रोज़ लगभग $day');
+  String fitsButStops(int n, String what) =>
+      _t('Fits your $n staff, but $what will stop.', '$n स्टाफ़ आ जाएँगे, पर $what बंद होगा।');
+  String andJoin(List<String> items) => items.length < 2
+      ? items.join()
+      : '${items.sublist(0, items.length - 1).join(', ')} ${_t('and', 'और')} ${items.last}';
+  String get allPlans => _t('All plans', 'सभी प्लान');
+  String monthsFree(int n) => n == 1 ? _t('1 month free', '1 महीना फ़्री') : _t('$n months free', '$n महीने फ़्री');
+  String yearlyPerMonthSave(String perMonth, String save) =>
+      _t('$perMonth a month · you save $save', '$perMonth महीना · $save की बचत');
+  String get freeForever => _t('free forever', 'हमेशा फ़्री');
+  String notForYouStaff(int limit) =>
+      _t('Not for you: allows only $limit staff', 'आपके लिए नहीं: सिर्फ़ $limit स्टाफ़');
+  String get onTrialNow => _t('On trial now', 'अभी ट्रायल पर');
+  String staffChip(int n, {bool more = false}) => _t('$n${more ? '+' : ''} staff', '$n${more ? '+' : ''} स्टाफ़');
+  String get plansNested => _t(
+    'Each plan has everything in the plan above it, plus more',
+    'हर प्लान में ऊपर वाले प्लान का सब कुछ, और ज़्यादा',
+  );
+  String get comparePlans => _t('Compare plans', 'प्लान की तुलना');
+  String compareRow(String key) => switch (key) {
+    'staff' => _t('Staff', 'स्टाफ़'),
+    'attendance' => _t('Attendance & leave', 'हाज़िरी और छुट्टी'),
+    'salary' => _t('Salary & advances', 'सैलरी और एडवांस'),
+    'slips' => _t('Salary slips & reports', 'सैलरी स्लिप, रिपोर्ट'),
+    'mint' => _t('Ask Mint (voice)', 'Mint से पूछें (आवाज़)'),
+    'branches' => _t('More branches', 'कई ब्रांच'),
+    'whatsapp' => _t('Slips & helper on WhatsApp', 'WhatsApp पर स्लिप, सहायक'),
+    'face' => _t('Face check at punch-in', 'हाज़िरी पर चेहरा मिलान'),
+    'ca' => _t('Your CA can log in', 'आपका CA लॉगिन कर सके'),
+    'support' => _t('Fast help on call', 'फ़ोन पर तुरंत मदद'),
+    _ => key,
+  };
+  String get priceADay => _t('Price a day', 'रोज़ का ख़र्च');
+  String priceLocked(int months) => months % 12 == 0
+      ? (months == 12
+            ? _t('Your price stays the same for 1 year.', 'आपकी क़ीमत 1 साल तक नहीं बढ़ेगी।')
+            : _t(
+                'Your price stays the same for ${months ~/ 12} years.',
+                'आपकी क़ीमत ${months ~/ 12} साल तक नहीं बढ़ेगी।',
+              ))
+      : _t('Your price stays the same for $months months.', 'आपकी क़ीमत $months महीने तक नहीं बढ़ेगी।');
+  String extraStaffNote(String plan, int limit, String price) => _t(
+    '$plan: more than $limit staff? $price a month for each extra person.',
+    '$plan: $limit से ज़्यादा स्टाफ़? हर एक्स्ट्रा व्यक्ति $price / महीना।',
+  );
+  String get payments => _t('Payments', 'पेमेंट');
+  String get nextPayment => _t('Next payment', 'अगला पेमेंट');
+  String nextPaymentTrial(String amount, String date, String plan) =>
+      _t('$amount on $date, only if you choose $plan', '$date को $amount, अगर आप $plan लें');
+  String nextPaymentOn(String amount, String date) => _t('$amount on $date', '$date को $amount');
+  String get nothingToPay => _t('Nothing to pay on Free', 'फ़्री प्लान पर कुछ नहीं देना');
+  String get receipts => _t('Receipts', 'रसीदें');
+  String get receiptsEmpty =>
+      _t('Your receipts show here after the first payment', 'पहले पेमेंट के बाद रसीदें यहाँ दिखेंगी');
+  String receiptFor(String plan, bool yearly) =>
+      yearly ? _t('$plan · 1 year', '$plan · 1 साल') : _t('$plan · 1 month', '$plan · 1 महीना');
+  String get openInvoice => _t('Open invoice (with GST)', 'इनवॉइस खोलें (GST के साथ)');
+  String get paymentQuestions => _t('Questions about payment?', 'पेमेंट के बारे में सवाल?');
+  String get stopPlan => _t('Stop plan', 'प्लान बंद करें');
+  String stopPlanTitle(String plan) => _t('Stop $plan?', '$plan बंद करें?');
+  String stopPlanBody(String date) => _t(
+    'Your plan stays on until $date. After that you move to Free. Your data stays safe and you can download it for 30 days.',
+    '$date तक आपका प्लान चालू रहेगा। उसके बाद आप फ़्री प्लान पर आ जाएँगे। आपका डेटा सुरक्षित रहेगा, 30 दिन तक डाउनलोड कर सकते हैं।',
+  );
+  String get planStopped =>
+      _t('Plan stopped. Nothing more will be charged.', 'प्लान बंद हो गया। अब कोई पैसा नहीं कटेगा।');
+  String get dataSafeNote => _t(
+    'Your data stays safe. You can download it for 30 days.',
+    'आपका डेटा सुरक्षित रहेगा। 30 दिन तक डाउनलोड कर सकते हैं।',
+  );
+  String get paySheetSub => _t('Here is exactly what happens', 'आगे क्या होगा, साफ़-साफ़');
+  String get cardShort => _t('Card', 'कार्ड');
+  String get netBanking => _t('Net banking', 'नेट बैंकिंग');
+  String get payTodayZero => _t('Today you pay ₹0', 'आज ₹0 देना है');
+  String get paySetUp => _t('Set up UPI autopay or a card', 'UPI ऑटोपे या कार्ड जोड़ें');
+  String payOnDate(String date, String amount) => _t('$date: $amount', '$date: $amount');
+  String payToday(String amount) => _t('Today: $amount', 'आज: $amount');
+  String get payBy => _t('Pay by UPI, card or net banking', 'UPI, कार्ड या नेट बैंकिंग से पेमेंट');
+  String payThenMonthly(int day) => _t('Then on the ${_ordinal(day)} of every month', 'फिर हर महीने की $day तारीख़ को');
+  String get payThenYearly => _t('Then once a year on the same date', 'फिर हर साल इसी तारीख़ को');
+  String payThenEvery(String amount, bool yearly) => yearly
+      ? _t('Then $amount every year', 'फिर हर साल $amount')
+      : _t('Then $amount every month', 'फिर हर महीने $amount');
+  String get payReceiptHere => _t('Receipt saved here', 'रसीद यहीं मिलेगी');
+  String get payReceiptHereSub => _t('In Plan & payment, after each payment', 'हर पेमेंट के बाद, प्लान और पेमेंट में');
+  String payExtraStaff(int n, String price) =>
+      _t('Includes $n extra staff × $price', 'इसमें $n एक्स्ट्रा स्टाफ़ × $price');
+  String payExtraBusinesses(int n, String price) =>
+      _t('Includes $n more businesses on this bill × $price', 'इसमें इस बिल के $n और बिज़नेस × $price');
+  String payLockLine(int months) => months >= 12 && months % 12 == 0
+      ? _t(
+          'Price fixed for ${months ~/ 12} ${months == 12 ? 'year' : 'years'} · stop anytime from this screen',
+          'क़ीमत ${months ~/ 12} साल तक तय · इसी स्क्रीन से कभी भी बंद करें',
+        )
+      : _t('Stop anytime from this screen', 'इसी स्क्रीन से कभी भी बंद करें');
+  String get payButtonZero => _t('Set up payment · ₹0 today', 'पेमेंट सेट करें · आज ₹0');
+  String payButton(String amount) => _t('Pay $amount', '$amount दें');
+  String switchToQ(String name) => _t('Switch to $name?', '$name पर जाएँ?');
+  String switchTo(String name) => _t('Switch to $name', '$name पर जाएँ');
+  String youSave(String save, String a, String b) =>
+      _t('You save $save a month ($a instead of $b)', 'हर महीने $save बचेंगे ($b की जगह $a)');
+  String get willStop => _t('These will stop working', 'ये काम करना बंद कर देंगे');
+  String usedTimes(String label, int n) => _t('$label (used $n times)', '$label ($n बार इस्तेमाल)');
+  String staffFitIn(int n, String name, int limit) =>
+      _t('Your $n staff fit in $name (up to $limit)', 'आपके $n स्टाफ़ $name में आ जाएँगे ($limit तक)');
+  String staffNoFit(int n, String name, int limit) => _t(
+    'You have $n staff. $name allows $limit. Remove ${n - limit} first.',
+    'आपके $n स्टाफ़ हैं। $name में $limit तक। पहले ${n - limit} हटाएँ।',
+  );
+  String freeAfterTrial(String date) => _t(
+    'You don’t need to do anything. When the trial ends on $date you move to Free on its own.',
+    'कुछ करने की ज़रूरत नहीं। $date को ट्रायल ख़त्म होते ही आप अपने-आप फ़्री प्लान पर आ जाएँगे।',
+  );
+
+  static String _ordinal(int n) {
+    final rem100 = n % 100;
+    if (rem100 >= 11 && rem100 <= 13) return '${n}th';
+    return switch (n % 10) {
+      1 => '${n}st',
+      2 => '${n}nd',
+      3 => '${n}rd',
+      _ => '${n}th',
+    };
+  }
 
   // ---------------------------------------------------------------- Misc
   String get thisMonth => _t('This month', 'इस महीने');

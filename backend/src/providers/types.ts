@@ -97,8 +97,21 @@ export interface PdfRenderer {
 
 // ---------- Payments ----------
 export type PaymentEvent =
-  | { type: 'subscription.activated' | 'subscription.charged' | 'subscription.pending' | 'subscription.halted' | 'subscription.cancelled' | 'subscription.completed'; eventId: string; providerSubId: string; currentPeriodEnd?: Date; raw: unknown }
-  | { type: 'payment.succeeded' | 'payment.failed'; eventId: string; providerSubId?: string; providerPaymentId: string; amountPaise: number; raw: unknown };
+  | {
+      type: 'subscription.activated' | 'subscription.charged' | 'subscription.pending' | 'subscription.halted' | 'subscription.cancelled' | 'subscription.completed';
+      eventId: string;
+      providerSubId: string;
+      currentPeriodEnd?: Date;
+      /** The money taken with this event, when there was one (kept as a receipt). */
+      payment?: PaymentInfo;
+      raw: unknown;
+    }
+  | { type: 'payment.succeeded' | 'payment.failed'; eventId: string; providerSubId?: string; providerPaymentId: string; amountPaise: number; invoiceId?: string | null; raw: unknown };
+export interface PaymentInfo {
+  id: string;
+  amountPaise: number;
+  invoiceId?: string | null;
+}
 export interface CreateSubscriptionInput {
   planCode: string;
   providerPlanId?: string;
@@ -114,6 +127,8 @@ export interface PaymentProvider {
   cancelSubscription(providerSubId: string): Promise<void>;
   verifyWebhook(headers: Record<string, string | string[] | undefined>, rawBody: Buffer): boolean;
   parseWebhook(body: any): PaymentEvent[];
+  /** Link to the gateway's invoice (with GST) for a payment, when it makes one. */
+  invoiceUrl?(invoiceId: string): Promise<string | null>;
 }
 
 // ---------- Email ----------

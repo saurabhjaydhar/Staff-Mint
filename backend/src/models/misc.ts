@@ -71,6 +71,28 @@ const subscriptionSchema = new Schema(
 subscriptionSchema.plugin(tenantPlugin);
 export const Subscription = model('Subscription', subscriptionSchema);
 
+/** Money taken for a plan, one per gateway payment. Shown to the owner as receipts. */
+const receiptSchema = new Schema(
+  {
+    ...tenantFields,
+    subscriptionId: { type: Schema.Types.ObjectId, ref: 'Subscription' },
+    provider: { type: String, required: true },
+    providerPaymentId: { type: String, required: true },
+    invoiceId: { type: String, default: null },
+    planCode: String,
+    interval: String,
+    amountPaise: { type: Number, required: true },
+    currency: { type: String, default: 'INR' },
+    paidAt: { type: Date, required: true },
+    periodEnd: { type: Date, default: null },
+  },
+  { timestamps: true },
+);
+receiptSchema.plugin(tenantPlugin);
+receiptSchema.index({ provider: 1, providerPaymentId: 1 }, { unique: true });
+receiptSchema.index({ companyId: 1, paidAt: -1 });
+export const Receipt = model('Receipt', receiptSchema);
+
 /** Global (not tenant) — dynamic pricing. */
 const planSchema = new Schema(
   {

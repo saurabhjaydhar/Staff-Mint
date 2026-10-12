@@ -79,6 +79,11 @@ class BillingApi {
   }
 
   Future<void> cancel() async => _c.post('/billing/cancel');
+
+  Future<List<Receipt>> receipts() async => asList(await _c.get('/billing/receipts'), Receipt.fromJson);
+
+  /// The gateway's invoice (with GST) for one receipt.
+  Future<String> receiptLink(String id) async => asString(asMap(await _c.get('/billing/receipts/$id/link'))['url']);
 }
 
 class AuditApi {
