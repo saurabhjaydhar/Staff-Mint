@@ -92,6 +92,7 @@ class Attendance {
     this.workedMinutes = 0,
     this.overridden = false,
     this.overrideReason,
+    this.overriddenBy,
     this.flags = const [],
   });
 
@@ -106,6 +107,9 @@ class Attendance {
   final int workedMinutes;
   final bool overridden;
   final String? overrideReason;
+
+  /// User id of whoever changed the day by hand ("Changed by you").
+  final String? overriddenBy;
   final List<String> flags;
 
   Punch? get firstIn {
@@ -136,16 +140,18 @@ class Attendance {
       workedMinutes: asInt(j['workedMinutes']),
       overridden: asBool(j['overridden']),
       overrideReason: asStringOrNull(j['overrideReason']),
+      overriddenBy: asStringOrNull(j['overriddenBy']),
       flags: asStringList(j['flags']),
     );
   }
 }
 
 class DayRow {
-  const DayRow({required this.employee, this.record, required this.displayStatus});
+  const DayRow({required this.employee, this.record, required this.displayStatus, this.holidayName});
   final EmployeeRef employee;
   final Attendance? record;
   final String displayStatus;
+  final String? holidayName;
 
   /// Row rebuilt from a fresh record (e.g. the response of an override).
   /// Holiday / week-off / leave rows without a record keep [fallback].
@@ -153,6 +159,7 @@ class DayRow {
     employee: employee,
     record: r,
     displayStatus: displayStatusFor(r, fallback: fallback),
+    holidayName: holidayName,
   );
 
   /// Mirrors the server's `displayStatus` for a single record.
@@ -191,6 +198,7 @@ class DayRow {
     employee: EmployeeRef.fromJson(asMap(j['employee'])),
     record: j['record'] is Map ? Attendance.fromJson(asMap(j['record'])) : null,
     displayStatus: asString(j['displayStatus'], 'not_marked'),
+    holidayName: asStringOrNull(j['holidayName']),
   );
 }
 

@@ -238,6 +238,24 @@ export async function inviteStaff(ctx: Ctx, employeeId: string | Types.ObjectId,
 }
 
 
+/** "Remind" on Home: re-sends the app invite to every active staff member who hasn't joined yet. */
+export async function remindNotJoined(ctx: Ctx) {
+  const emps = await Employee.find({ ...employeeScope(ctx), status: 'active', userId: null }).select('_id invitedAt').lean();
+  let sent = 0;
+  let skipped = 0;
+  for (const e of emps) {
+    if (e.invitedAt && Date.now() - new Date(e.invitedAt).getTime() < INVITE_GAP_MS) {
+      skipped++;
+      continue;
+    }
+    await inviteStaff(ctx, e._id, { auto: true });
+    sent++;
+  }
+  if (sent) await audit(ctx, { action: 'employee.invite_all', entity: 'employee', after: { sent } });
+  return { sent, skipped };
+}
+
+
 // ------------------------------------------------------------ Phase 4
 
 /** Pin an account to the top of the chooser (accountants with many clients). */

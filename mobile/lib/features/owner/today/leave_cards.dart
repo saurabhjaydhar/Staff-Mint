@@ -31,7 +31,12 @@ class LeaveDecisionCard extends StatelessWidget {
                   child: const Icon(Icons.beach_access_rounded, color: AppColors.indigo, size: 20),
                 ),
                 const SizedBox(width: 10),
-                Expanded(child: Text(l.employeeName, style: Theme.of(context).textTheme.titleMedium)),
+                Expanded(
+                  child: Text(
+                    l.isPending ? s.wantsLeave(l.employeeName) : l.employeeName,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
                 if (!l.isPending)
                   Text(
                     s.leaveStatusLabel(l.status),
@@ -62,7 +67,21 @@ class LeaveDecisionCard extends StatelessWidget {
                 style: const TextStyle(fontStyle: FontStyle.italic, color: AppColors.muted),
               ),
             ],
-            if (l.isPending) ...[const SizedBox(height: 10), DecisionButtons(busy: busy, onDecide: onDecide)],
+            if (l.isPending && l.balanceLeft != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                s.leaveBalanceEffect(s.leaveTypeLabel(l.type).toLowerCase(), l.balanceLeft!, l.balanceAfter!),
+                key: Key('leaveEffect_${l.id}'),
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: l.balanceAfter! < 0 ? AppColors.red : AppColors.ink,
+                ),
+              ),
+            ],
+            if (l.isPending) ...[
+              const SizedBox(height: 10),
+              DecisionButtons(busy: busy, onDecide: onDecide, rejectLabel: s.sayNo),
+            ],
           ],
         ),
       ),
@@ -72,12 +91,15 @@ class LeaveDecisionCard extends StatelessWidget {
 
 /// Reject (red outline) + Approve (mint) pair.
 class DecisionButtons extends StatelessWidget {
-  const DecisionButtons({super.key, required this.busy, required this.onDecide, this.rejectLabel});
+  const DecisionButtons({super.key, required this.busy, required this.onDecide, this.rejectLabel, this.approveLabel});
   final bool busy;
   final ValueChanged<bool> onDecide;
 
   /// Overrides "Reject" (e.g. "Ask for a new photo").
   final String? rejectLabel;
+
+  /// Overrides "Approve" (e.g. "Count it"), so each button says exactly what it does.
+  final String? approveLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -100,7 +122,7 @@ class DecisionButtons extends StatelessWidget {
           child: FilledButton.icon(
             onPressed: busy ? null : () => onDecide(true),
             icon: const Icon(Icons.check_rounded),
-            label: Text(s.approve),
+            label: Text(approveLabel ?? s.approve, maxLines: 1, overflow: TextOverflow.ellipsis),
           ),
         ),
       ],

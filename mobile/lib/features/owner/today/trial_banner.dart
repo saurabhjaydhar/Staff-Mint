@@ -10,8 +10,9 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/dates.dart';
 import '../../auth/auth_controller.dart';
 
-/// "Pro free trial: 9 days left" on the owner's home screen; after the trial,
-/// "Your free trial has ended" with what keeps working (dismissible).
+/// Free trial on the owner's home screen: one small line ("Free trial: 9
+/// days left · See plans") until the last 3 days, then a full card; after the
+/// trial, "Your free trial has ended" with what keeps working (dismissible).
 class TrialBanner extends ConsumerStatefulWidget {
   const TrialBanner({super.key, this.padding = const EdgeInsets.fromLTRB(14, 4, 14, 6)});
   final EdgeInsets padding;
@@ -42,6 +43,43 @@ class _TrialBannerState extends ConsumerState<TrialBanner> {
     final paused = trial.paidFeatures.where((f) => f != 'priority_support').map(s.featureLabel).join(', ');
     final color = active ? (soon ? AppColors.amberDark : AppColors.mintDark) : AppColors.ink;
     final bg = active ? (soon ? AppColors.amberLight : AppColors.mintLight) : AppColors.mutedLight;
+
+    if (active && !soon) {
+      return Padding(
+        padding: widget.padding,
+        child: Material(
+          key: const Key('trialBanner'),
+          color: AppColors.mintFaint,
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            key: const Key('trialSeePlans'),
+            borderRadius: BorderRadius.circular(12),
+            onTap: () => GoRouter.maybeOf(context)?.push(Routes.ownerBilling),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Row(
+                children: [
+                  const Icon(Icons.auto_awesome_rounded, size: 18, color: AppColors.mintDark),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      s.trialLeft(trial.planName, days),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 13.5, color: AppColors.mintDark, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  Text(
+                    s.seePlans,
+                    style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.mintDark),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     return Padding(
       padding: widget.padding,

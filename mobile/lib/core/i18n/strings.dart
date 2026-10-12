@@ -40,6 +40,9 @@ class S {
   /// Hindi with an English hint when the app is in Hindi, plain English otherwise.
   Bi _b(String en, String hi) => isHindi ? Bi(hi, en) : Bi(en);
 
+  /// 2 → "2", 1.5 → "1.5".
+  String _num(num n) => n == n.roundToDouble() ? '${n.round()}' : '$n';
+
   // ---------------------------------------------------------------- General
   String get appName => 'StaffMint';
   String get tagline => _t('Staff & salary, sorted from your phone.', 'स्टाफ़ और सैलरी, सब आपके फ़ोन से।');
@@ -992,6 +995,111 @@ class S {
   String get undo => _t('Undo', 'वापस लें');
   String get undone => _t('Change undone', 'बदलाव वापस लिया');
   String get dayMonthToggle => _t('Day / month view', 'दिन / महीना');
+
+  // ------------------------------------------------- Home (redesign, Oct 2026)
+  String get switchBusiness => _t('Switch', 'बदलें');
+  String todayOn(String day) => _t('Today, $day', 'आज, $day');
+  String get dayTab => _t('Day', 'दिन');
+  String get monthTab => _t('Month', 'महीना');
+  String atWorkSummary(int n, int total) => _t('$n of $total at work', '$total में से $n काम पर');
+  String chipPresentN(int n) => _t('$n present', '$n हाज़िर');
+  String chipLateN(int n) => _t('$n late', '$n लेट');
+  String chipLeaveN(int n) => _t('$n on leave', '$n छुट्टी पर');
+  String chipAbsentN(int n) => _t('$n absent', '$n ग़ैरहाज़िर');
+  String chipHalfDayN(int n) => _t('$n half day', '$n आधा दिन');
+  String chipNotInN(int n) => _t('$n not in yet', '$n अभी नहीं आए');
+  String get colInAt => _t('In at', 'आए');
+  String get colName => _t('Name', 'नाम');
+  String get colStatus => _t('Status', 'स्थिति');
+  String get rowNotInstalled => _t('Hasn’t installed the app', 'ऐप इंस्टॉल नहीं किया');
+  String get rowInvited => _t('Invited', 'बुलाया');
+  String get rowNotCheckedIn => _t('Not checked in yet', 'अभी चेक-इन नहीं किया');
+  String get rowLeaveApproved => _t('Leave approved', 'छुट्टी मंज़ूर');
+  String rowLateBy(int m) => _t('$m min late', '$m मिनट लेट');
+  String get rowChangedByYou => _t('Changed by you', 'आपने बदला');
+  String get rowChangedByOther => _t('Changed by owner', 'मालिक ने बदला');
+  String rowAway(num m) => _t('${m.round()} m from shop', 'दुकान से ${m.round()} मी दूर');
+  String get weeklyOffTitle => _t('Weekly off today', 'आज साप्ताहिक छुट्टी');
+  String get weeklyOffBody =>
+      _t('Shop is closed today. Nobody needs to check in.', 'आज दुकान बंद है। किसी को चेक-इन नहीं करना है।');
+  String holidayTitle(String name) => _t('Holiday: $name', 'छुट्टी: $name');
+  String get holidayBody => _t('Nobody needs to check in today.', 'आज किसी को चेक-इन नहीं करना है।');
+  String get dayOffPastTitle => _t('Shop was closed this day', 'इस दिन दुकान बंद थी');
+  String get showStaffList => _t('Show staff list', 'स्टाफ़ की सूची देखें');
+  String get changeDate => _t('change', 'बदलें');
+  String needYourOk(int n) =>
+      _t(n == 1 ? '1 thing needs your OK' : '$n things need your OK', '$n काम आपकी मंज़ूरी के लिए');
+  String get review => _t('Review', 'देखें');
+  String okAskedLeave(String name) => _t('$name asked for leave', '$name ने छुट्टी माँगी');
+  String okFarPunch(String name) => _t('$name checked in away from shop', '$name ने दुकान से दूर चेक-इन किया');
+  String okCheck(String name) => _t('$name: please check', '$name: जाँच लें');
+  String wantsLeave(String name) => _t('$name wants leave', '$name छुट्टी चाहते हैं');
+  String leaveBalanceEffect(String type, num left, num after) => _t(
+    'Has ${_num(left)} $type leaves left. After this: ${_num(after)}.',
+    '${_num(left)} $type छुट्टियाँ बाकी हैं। इसके बाद: ${_num(after)}।',
+  );
+  String get sayNo => _t('Say no', 'मना करें');
+  String checkedInAway(String name, String away) => _t('$name checked in $away', '$name ने चेक-इन किया · $away');
+  String get countIt => _t('Count it', 'मान लें');
+  String get dontCount => _t('Don’t count', 'न मानें');
+  String statusMeaning(String status) => switch (status) {
+    'present' => _t('full day', 'पूरा दिन'),
+    'half_day' => _t('half pay', 'आधा पैसा'),
+    'absent' => _t('no pay', 'पैसा नहीं'),
+    'leave' => _t('uses leave', 'छुट्टी कटेगी'),
+    'holiday' => _t('paid', 'पैसा मिलेगा'),
+    'week_off' => _t('shop closed', 'दुकान बंद'),
+    _ => '',
+  };
+  String get whatHappened => _t('What happened this day?', 'इस दिन क्या हुआ?');
+  String get reasonOptional => _t('Reason (optional)', 'कारण (ज़रूरी नहीं)');
+  String get writeReason => _t('Write', 'लिखें');
+  String get seePhotoMap => _t('See check-in photo & map', 'चेक-इन फ़ोटो और नक्शा देखें');
+  String cameInAt(String t) => _t('came in $t', '$t पर आए');
+  String get pickStatusFirst => _t('Pick what happened', 'पहले चुनें क्या हुआ');
+  String markedAs(String name, String status) => _t('$name marked $status', '$name: $status');
+  String get monthPersonHeader => _t('Person · tap for their calendar', 'व्यक्ति · कैलेंडर के लिए दबाएँ');
+  String get daysPresentHeader => _t('Days present', 'हाज़िर दिन');
+  String get seeEveryoneGrid => _t('See everyone day by day', 'सबको दिन-ब-दिन देखें');
+  String get gridHint => _t(
+    'Full grid for the month, good for checking before salary.',
+    'पूरे महीने की तालिका — सैलरी से पहले जाँचने के लिए।',
+  );
+  String get gridLabel => _t('Grid', 'तालिका');
+  String get personMonthHint =>
+      _t('Tap any day to see times or change it.', 'समय देखने या बदलने के लिए कोई भी दिन दबाएँ।');
+  String daysPresentOf(num n, num of) =>
+      _t('${_num(n)} of ${_num(of)} days present', '${_num(of)} में से ${_num(n)} दिन हाज़िर');
+  String get allGood => _t('All good', 'सब ठीक');
+  String get offShort => _t('Off', 'बंद');
+  String get setupTitle => _t('Let’s get your shop running', 'चलिए दुकान शुरू करते हैं');
+  String setupCount(int d, int t) => _t('$d of $t', '$t में से $d');
+  String get setupBusiness => _t('Create your business', 'बिज़नेस बनाएँ');
+  String get setupStaff => _t('Add your staff', 'स्टाफ़ जोड़ें');
+  String get setupJoin => _t('Staff install the app & check in', 'स्टाफ़ ऐप इंस्टॉल करके चेक-इन करें');
+  String get setupSalary => _t('Set each person’s salary', 'हर व्यक्ति की सैलरी डालें');
+  String get setupTeam => _t('Add your CA or partner (optional)', 'CA या पार्टनर जोड़ें (ज़रूरी नहीं)');
+  String invitedJoined(int n, int j) => _t('$n staff invited · $j have joined', '$n स्टाफ़ को बुलाया · $j जुड़े');
+  String get remind => _t('Remind', 'याद दिलाएँ');
+  String remindSent(int n) => _t(
+    n == 0 ? 'Invites were sent a few minutes ago' : 'Invite sent again to $n',
+    n == 0 ? 'कुछ मिनट पहले भेजा जा चुका है' : '$n को फिर से भेजा',
+  );
+  String get emptyStaffHome =>
+      _t('Your staff will appear here once you add them.', 'स्टाफ़ जोड़ने के बाद वे यहाँ दिखेंगे।');
+  String get askMint => _t('Ask Mint', 'Mint से पूछें');
+  String get tipMonth =>
+      _t('Month: see the whole month and each person’s totals.', 'महीना: पूरा महीना और हर व्यक्ति का हिसाब देखें।');
+  String get tipStatus => _t(
+    'Tap a status to change it. Nothing changes until you press Save.',
+    'बदलने के लिए स्थिति दबाएँ। सेव दबाने तक कुछ नहीं बदलेगा।',
+  );
+  String get tipMint => _t(
+    'Ask Mint: hold to speak or tap to type, in Hindi or English.',
+    'Mint से पूछें: बोलने के लिए दबाकर रखें या लिखें — हिंदी या अंग्रेज़ी में।',
+  );
+  String tipCount(int i, int n) => _t('$i of $n', '$n में से $i');
+  String get gotIt => _t('Got it', 'समझ गया');
 
   // ------------------------------------------------------- Employee home
   String shiftShort(String a, String b) => _t('Shift $a – $b', 'शिफ़्ट $a – $b');

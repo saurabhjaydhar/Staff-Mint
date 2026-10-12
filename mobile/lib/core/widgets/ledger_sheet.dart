@@ -128,10 +128,21 @@ class LedgerChip extends StatelessWidget {
 
 /// One ledger line: time in the margin | name | meta | trailing (status pill).
 class LedgerRow extends StatelessWidget {
-  const LedgerRow({super.key, required this.margin, required this.title, this.meta, this.trailing, this.onTap});
+  const LedgerRow({
+    super.key,
+    required this.margin,
+    required this.title,
+    this.meta,
+    this.subtitle,
+    this.trailing,
+    this.onTap,
+  });
   final String margin;
   final String title;
   final String? meta;
+
+  /// One muted line under the name that says why (e.g. "7 min late", "Hasn't installed the app").
+  final String? subtitle;
   final Widget? trailing;
   final VoidCallback? onTap;
 
@@ -152,11 +163,27 @@ class LedgerRow extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w600),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w600),
+                  ),
+                  if (subtitle != null)
+                    Text(
+                      subtitle!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 12.5, color: AppColors.muted),
+                    ),
+                ],
+              ),
             ),
           ),
           if (meta != null)

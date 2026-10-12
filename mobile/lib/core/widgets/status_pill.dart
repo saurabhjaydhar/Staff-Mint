@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../i18n/strings.dart';
 import '../theme/app_theme.dart';
 
-/// Attendance status as icon + word on a tinted pill. Tappable pills keep a
-/// 48 dp touch target around the visual pill.
+/// Attendance status as icon + word on a tinted pill. Tappable pills show a ▾
+/// so they obviously open something, and keep a 48 dp touch target.
 class StatusPill extends StatelessWidget {
   const StatusPill({super.key, required this.status, this.onTap, this.large = false});
   final String? status;
@@ -33,6 +33,7 @@ class StatusPill extends StatelessWidget {
               style: TextStyle(color: st.fg, fontWeight: FontWeight.w800, fontSize: large ? 15 : 13),
             ),
           ),
+          if (onTap != null) Icon(Icons.arrow_drop_down_rounded, size: large ? 20 : 17, color: st.fg),
         ],
       ),
     );

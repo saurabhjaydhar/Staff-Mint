@@ -11,15 +11,16 @@ import '../../../core/widgets/status_pill.dart';
 const overrideStatuses = ['present', 'half_day', 'absent', 'leave', 'holiday', 'week_off'];
 
 class StatusChoice {
-  const StatusChoice({required this.status, required this.reason, this.leaveType});
+  const StatusChoice({required this.status, this.reason, this.leaveType});
   final String status;
-  final String reason;
+
+  /// Optional: the owner picks what happened first, and may say why.
+  final String? reason;
   final String? leaveType;
 }
 
-/// "Fix attendance in 2 taps": pick a reason chip (first is pre-selected),
-/// tap a big status button and the sheet closes with the choice.
-/// Leave asks one more tap for the leave type.
+/// "What happened this day?": pick a status (each with what it means for
+/// pay), optionally a reason, then Save. Nothing changes until Save.
 Future<StatusChoice?> showStatusQuickSheet(
   BuildContext context, {
   required DayRow row,
@@ -43,24 +44,42 @@ class _QuickSheet extends StatefulWidget {
 }
 
 class _QuickSheetState extends State<_QuickSheet> {
-  int _reason = 0;
-  bool _pickLeaveType = false;
+  String? _status;
+  String _leaveType = 'paid';
+  int? _reason;
+  final _written = TextEditingController();
+  bool _writing = false;
 
-  void _pick(String status, {String? leaveType}) {
-    final s = context.s;
-    final reasons = _reasons(s);
-    Navigator.pop(context, StatusChoice(status: status, reason: reasons[_reason].joined, leaveType: leaveType));
+  @override
+  void dispose() {
+    _written.dispose();
+    super.dispose();
   }
 
-  List<Bi> _reasons(S s) => [s.reasonOwnerConfirmed, s.reasonDoctor, s.reasonLateBus, s.reasonPhoneIssue];
+  List<Bi> _reasons(S s) => [s.reasonLateBus, s.reasonDoctor, s.reasonPhoneIssue, s.reasonOwnerConfirmed];
+
+  void _save() {
+    final s = context.s;
+    final typed = _written.text.trim();
+    final reason = _writing && typed.isNotEmpty ? typed : (_reason == null ? null : _reasons(s)[_reason!].joined);
+    Navigator.pop(
+      context,
+      StatusChoice(status: _status!, reason: reason, leaveType: _status == 'leave' ? _leaveType : null),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final s = context.s;
     final row = widget.row;
     final reasons = _reasons(s);
+    final firstIn = row.record?.firstIn;
+    final when = [
+      Dates.prettyApiDate(widget.date, s.languageCode),
+      if (firstIn != null) s.cameInAt(Dates.clock(firstIn.clientTime)),
+    ].join(' · ');
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(18, 0, 18, 16),
+      padding: EdgeInsets.fromLTRB(18, 0, 18, 16 + MediaQuery.viewInsetsOf(context).bottom),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -73,10 +92,7 @@ class _QuickSheetState extends State<_QuickSheet> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(row.employee.name, style: Theme.of(context).textTheme.titleLarge),
-                    Text(
-                      Dates.prettyApiDate(widget.date, s.languageCode),
-                      style: const TextStyle(color: AppColors.muted),
-                    ),
+                    Text(when, style: const TextStyle(color: AppColors.muted)),
                   ],
                 ),
               ),
@@ -84,7 +100,45 @@ class _QuickSheetState extends State<_QuickSheet> {
             ],
           ),
           const SizedBox(height: 14),
-          Text(s.reason, style: Theme.of(context).textTheme.titleSmall),
+          Text(s.whatHappened, style: Theme.of(context).textTheme.titleSmall),
+          const SizedBox(height: 8),
+          GridView.count(
+            crossAxisCount: 3,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
+            childAspectRatio: 1.2,
+            children: [
+              for (final st in overrideStatuses)
+                _StatusButton(
+                  key: Key('quickStatus_$st'),
+                  status: st,
+                  selected: _status == st,
+                  current: row.record?.status == st,
+                  onTap: () => setState(() => _status = st),
+                ),
+            ],
+          ),
+          if (_status == 'leave') ...[
+            const SizedBox(height: 12),
+            Text(s.leaveTypeTitle, style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 8,
+              children: [
+                for (final t in const ['paid', 'sick', 'unpaid'])
+                  ChoiceChip(
+                    key: Key('quickLeave_$t'),
+                    label: Text(s.leaveTypeLabel(t)),
+                    selected: _leaveType == t,
+                    onSelected: (_) => setState(() => _leaveType = t),
+                  ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 14),
+          Text(s.reasonOptional, style: Theme.of(context).textTheme.titleSmall),
           const SizedBox(height: 6),
           Wrap(
             spacing: 8,
@@ -94,75 +148,52 @@ class _QuickSheetState extends State<_QuickSheet> {
                 ChoiceChip(
                   key: Key('quickReason_$i'),
                   label: Text(reasons[i].joined),
-                  selected: _reason == i,
-                  showCheckmark: false,
-                  selectedColor: AppColors.ink,
-                  labelStyle: TextStyle(
-                    color: _reason == i ? Colors.white : AppColors.ink,
-                    fontWeight: FontWeight.w700,
-                  ),
-                  onSelected: (_) => setState(() => _reason = i),
+                  selected: !_writing && _reason == i,
+                  onSelected: (on) => setState(() {
+                    _writing = false;
+                    _reason = on ? i : null;
+                  }),
                 ),
+              ChoiceChip(
+                key: const Key('quickReasonWrite'),
+                avatar: const Icon(Icons.edit_rounded, size: 16),
+                label: Text(s.writeReason),
+                selected: _writing,
+                onSelected: (on) => setState(() => _writing = on),
+              ),
             ],
           ),
-          const SizedBox(height: 16),
-          if (!_pickLeaveType)
-            GridView.count(
-              crossAxisCount: 3,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
-              childAspectRatio: 1.35,
-              children: [
-                for (final st in overrideStatuses)
-                  _StatusButton(
-                    key: Key('quickStatus_$st'),
-                    status: st,
-                    current: row.record?.status == st,
-                    onTap: () => st == 'leave' ? setState(() => _pickLeaveType = true) : _pick(st),
-                  ),
-              ],
-            )
-          else ...[
-            Text(s.leaveTypeTitle, style: Theme.of(context).textTheme.titleSmall),
+          if (_writing) ...[
             const SizedBox(height: 8),
-            Row(
-              children: [
-                for (final t in const ['paid', 'sick', 'unpaid']) ...[
-                  if (t != 'paid') const SizedBox(width: 8),
-                  Expanded(
-                    child: FilledButton(
-                      key: Key('quickLeave_$t'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.indigoLight,
-                        foregroundColor: AppColors.indigo,
-                        minimumSize: const Size(48, 60),
-                        padding: const EdgeInsets.symmetric(horizontal: 6),
-                      ),
-                      onPressed: () => _pick('leave', leaveType: t),
-                      child: Text(s.leaveTypeLabel(t), textAlign: TextAlign.center),
-                    ),
-                  ),
-                ],
-              ],
+            TextField(
+              key: const Key('quickReasonText'),
+              controller: _written,
+              autofocus: true,
+              maxLength: 300,
+              decoration: InputDecoration(labelText: s.reason),
             ),
-            TextButton(onPressed: () => setState(() => _pickLeaveType = false), child: Text(s.back)),
           ],
-          const SizedBox(height: 10),
-          Text(
-            s.tapStatusHint,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.muted, fontSize: 13.5),
-          ),
-          TextButton.icon(
-            key: const Key('quickDetails'),
-            onPressed: () {
-              Navigator.pop(context);
-              widget.onDetails();
-            },
-            icon: const Icon(Icons.receipt_long_rounded),
-            label: Text(s.details),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: TextButton.icon(
+                  key: const Key('quickDetails'),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    widget.onDetails();
+                  },
+                  icon: const Icon(Icons.photo_camera_outlined),
+                  label: Text(s.seePhotoMap, textAlign: TextAlign.center),
+                ),
+              ),
+              const SizedBox(width: 8),
+              FilledButton(
+                key: const Key('quickSave'),
+                onPressed: _status == null ? null : _save,
+                child: Text(_status == null ? s.pickStatusFirst : s.save),
+              ),
+            ],
           ),
         ],
       ),
@@ -171,34 +202,62 @@ class _QuickSheetState extends State<_QuickSheet> {
 }
 
 class _StatusButton extends StatelessWidget {
-  const _StatusButton({super.key, required this.status, required this.current, required this.onTap});
+  const _StatusButton({
+    super.key,
+    required this.status,
+    required this.selected,
+    required this.current,
+    required this.onTap,
+  });
   final String status;
+  final bool selected;
   final bool current;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final s = context.s;
     final st = StatusStyle.of(status);
-    return Material(
-      color: st.bg,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: current ? const BorderSide(color: AppColors.ink, width: 2) : BorderSide.none,
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(st.icon, color: st.fg, size: 26),
-            const SizedBox(height: 2),
-            Text(
-              context.s.statusShort(status),
-              textAlign: TextAlign.center,
-              style: TextStyle(color: st.fg, fontWeight: FontWeight.w800, fontSize: 15),
-            ),
-          ],
+    return Semantics(
+      selected: selected,
+      button: true,
+      child: Material(
+        color: st.bg,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: selected
+              ? const BorderSide(color: AppColors.ink, width: 2.5)
+              : current
+              ? BorderSide(color: st.fg.withValues(alpha: 0.5), width: 1.5)
+              : BorderSide.none,
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Stack(
+            children: [
+              Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(st.icon, color: st.fg, size: 24),
+                    const SizedBox(height: 2),
+                    Text(
+                      s.statusShort(status),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: st.fg, fontWeight: FontWeight.w800, fontSize: 14.5),
+                    ),
+                    Text(
+                      s.statusMeaning(status),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: st.fg.withValues(alpha: 0.8), fontSize: 11.5),
+                    ),
+                  ],
+                ),
+              ),
+              if (selected) const Positioned(top: 6, right: 6, child: Icon(Icons.check_circle_rounded, size: 18)),
+            ],
+          ),
         ),
       ),
     );

@@ -60,7 +60,8 @@ void main() {
   testWidgets('owners see the countdown with a way to the plans', (tester) async {
     await pump(tester, user: _owner, trial: _trial(const Duration(days: 9, hours: 2)));
     expect(find.text('Pro free trial: 10 days left'), findsOneWidget);
-    expect(find.textContaining('All features are on until'), findsOneWidget);
+    // One small line until the last 3 days.
+    expect(find.textContaining('All features are on until'), findsNothing);
     expect(find.text('See plans'), findsOneWidget);
   });
 

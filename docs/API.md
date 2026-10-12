@@ -34,8 +34,8 @@ Punch     { id, type:'in'|'out', clientTime /* effective time: server time onlin
             mockLocation, lockCheck:'passed'|'failed'|'unavailable'|null, face:{result:'match'|'unsure'|'mismatch'|'no_face'|'many_faces'|'error', similarity}|null, deviceId, source:'app'|'offline_sync'|'owner'|'assistant'|'import', flags:string[], approval:'not_required'|'pending'|'approved'|'rejected' }
             // flags: late_sync, device_time_drift, mock_location, low_accuracy, outside_geofence, phone_lock_failed, no_phone_lock, face_mismatch, face_unsure, face_no_face, face_many_faces, face_check_failed
 Attendance { id, employeeId, date, status:'present'|'absent'|'half_day'|'leave'|'holiday'|'week_off'|null, leaveType?:'paid'|'sick'|'unpaid',
-             punches: Punch[], lateMinutes, earlyOutMinutes, workedMinutes, overridden, overrideReason?, flags:string[] }
-DayRow    { employee: {id,name,phone,designation}, record: Attendance|null,
+             punches: Punch[], lateMinutes, earlyOutMinutes, workedMinutes, overridden, overrideReason|null, overriddenBy|null /* user id */, flags:string[] }
+DayRow    { employee: {id,name,phone,designation,linked,invitedAt}, record: Attendance|null, holidayName|null,
             displayStatus:'present'|'late'|'checked_in'|'absent'|'half_day'|'leave'|'holiday'|'week_off'|'not_marked' }
 Leave     { id, employeeId, employeeName, type:'paid'|'sick'|'unpaid', from, to, days, halfDay, reason?, status:'pending'|'approved'|'rejected'|'cancelled', decidedAt?, note? }
 LeaveBalance { employeeId, year, paid, sick, usedPaid, usedSick }
@@ -117,7 +117,7 @@ Phone: E.164 (`+919876543210`) or 10-digit Indian (`9876543210`, normalised serv
 | DELETE | /holidays/:id | | |
 
 ### Dashboard (owner/manager)
-| GET | /dashboard/today | — | `{date, counts:{total,present,late,absent,onLeave,notMarked,checkedIn}, needsAction:{leaveRequests:Leave[], punchApprovals:{attendanceId,employeeName,punch,facePhotoUrl}[], faceEnrollments:{employeeId,employeeName,status,photoUrl,enrolledAt}[], flags:{employeeName,date,flags}[]}, plan:{staffCount, staffLimit}}` |
+| GET | /dashboard/today | — | `{date, counts:{total,present,late,absent,onLeave,notMarked,checkedIn}, needsAction:{leaveRequests:(Leave & {balance:{left,after}|null})[], punchApprovals:{attendanceId,employeeName,punch,facePhotoUrl}[], faceEnrollments:{employeeId,employeeName,status,photoUrl,enrolledAt}[], flags:{employeeName,date,flags}[]}, plan:{staffCount, staffLimit}, setup: {steps:{business,staffAdded,staffJoined,salarySet,teamAdded}, done, total:5, staff, joined, notJoined}|null}` (setup: owners only — the Home checklist; `balance`: paid/sick leaves left before and after approving) |
 
 ### Employees (owner/manager)
 | GET | /employees | `?search&status=active\|inactive\|all&branchId` | `Employee[]` |
@@ -152,7 +152,7 @@ Fields: `name, phone, ratePaise, wageType, designation, joiningDate, branch, adv
 | GET | /attendance/today | (employee) | `{date, record: Attendance\|null, shift: Shift, branch: Branch}` |
 | GET | /attendance | `?date=YYYY-MM-DD` (owner/manager day view) | `DayRow[]` |
 | GET | /attendance/month | `?month=YYYY-MM&employeeId?` (employee: own only) | `{month, days:string[], rows: {employee, days: {[date]: displayStatus}, totals}[]}` |
-| POST | /attendance/override | `{employeeId, date, status, leaveType?, reason}` (owner/manager) | `Attendance` (audited) |
+| POST | /attendance/override | `{employeeId, date, status, leaveType?, reason?}` (owner/manager; reason optional) | `Attendance` (audited) |
 | POST | /attendance/:id/punches/:punchId/decision | `{approve:boolean}` | `Attendance` |
 | POST | /attendance/clear-override | `{employeeId, date, reason}` (owner/manager) | `Attendance` with status recomputed from punches/leave/holiday (may be `null`), or `null` if no record. Used for Undo |
 
@@ -296,6 +296,7 @@ A fresh free trial for one business, or every business a phone owns (testing, su
 | POST | /company/close | `{confirmName, deviceId, refreshToken?}` (main owner) | `Session` on the owner's next account. Everyone's access ends (reason `closed`), paid plan cancelled, restorable for `accounts.restoreDays` (30) |
 | POST | /me/businesses/:companyId/restore | `{deviceId, refreshToken?}` | `Session` in the restored business; everyone who had access gets it back |
 | GET | /company/accountants · DELETE /company/accountants/:membershipId | — | list / remove accountants (owner) |
+| POST | /employees/remind-invites | — (owner/manager) | `{sent, skipped}`: re-sends the app invite to every active staff member who hasn't joined; skips anyone invited in the last 10 min |
 | POST | /employees/:id/invite | — | `{invitedAt}`; WhatsApp `staff_invite` with the app link; at most once per 10 min. `POST /employees` sends it automatically unless `invite:false` |
 
 - **Soft landing:** when an account ends or its role changes, the next request with that token gets `401 TOKEN_EXPIRED` with `details.reason:'account_changed'`. Apps refresh as usual; `POST /auth/refresh` then returns `accountChange: {kind:'ended'|'role_changed', reason, companyName, role, activeMembershipId}` and the new tokens open the next account (or none). Nobody is logged out of their other businesses.

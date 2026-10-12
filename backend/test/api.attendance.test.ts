@@ -148,7 +148,11 @@ describe('attendance — check-in/out', () => {
     expect(log!.after).toMatchObject({ status: 'half_day' });
     const grid = await api().get(`${V}/attendance/month?month=2026-10`).set(auth(owner.token));
     expect(grid.body.data.rows[0].codes['2026-10-01']).toBe('HD');
-    expect((await api().post(`${V}/attendance/override`).set(auth(owner.token)).send({ employeeId: emp.id, date: '2026-10-01', status: 'absent' })).status).toBe(400);
+    // The reason is optional (owners pick what happened first); an invalid status is still refused.
+    const noReason = await api().post(`${V}/attendance/override`).set(auth(owner.token)).send({ employeeId: emp.id, date: '2026-10-01', status: 'absent' });
+    expect(noReason.status).toBe(200);
+    expect(noReason.body.data.overrideReason).toBeNull();
+    expect((await api().post(`${V}/attendance/override`).set(auth(owner.token)).send({ employeeId: emp.id, date: '2026-10-01', status: 'sick' })).status).toBe(400);
   });
 });
 

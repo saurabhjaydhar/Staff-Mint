@@ -43,11 +43,15 @@ class DateSwitcher extends StatelessWidget {
         : isYesterday
         ? '${s.yesterday} · $day'
         : day;
+    final prev = date.subtract(const Duration(days: 1));
+    final next = date.add(const Duration(days: 1));
     return _Switcher(
-      label: label,
+      label: '$label · ${s.changeDate}',
       icon: Icons.calendar_month_rounded,
-      onPrev: () => onChanged(date.subtract(const Duration(days: 1))),
-      onNext: isToday ? null : () => onChanged(date.add(const Duration(days: 1))),
+      prevLabel: Dates.weekdayOnly(prev, s.languageCode),
+      nextLabel: isToday ? null : Dates.weekdayOnly(next, s.languageCode),
+      onPrev: () => onChanged(prev),
+      onNext: isToday ? null : () => onChanged(next),
       onLabel: () async {
         final picked = await showDatePicker(
           context: context,
@@ -62,12 +66,24 @@ class DateSwitcher extends StatelessWidget {
 }
 
 class _Switcher extends StatelessWidget {
-  const _Switcher({required this.label, required this.onPrev, required this.onNext, this.onLabel, this.icon});
+  const _Switcher({
+    required this.label,
+    required this.onPrev,
+    required this.onNext,
+    this.onLabel,
+    this.icon,
+    this.prevLabel,
+    this.nextLabel,
+  });
   final String label;
   final VoidCallback onPrev;
   final VoidCallback? onNext;
   final VoidCallback? onLabel;
   final IconData? icon;
+
+  /// Short words beside the arrows ("Sat", "Mon") so it's clear which way they go.
+  final String? prevLabel;
+  final String? nextLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -76,11 +92,20 @@ class _Switcher extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
       child: Row(
         children: [
-          IconButton(
-            tooltip: loc.previousPageTooltip,
-            icon: const Icon(Icons.chevron_left_rounded, size: 30),
-            onPressed: onPrev,
-          ),
+          if (prevLabel != null)
+            TextButton.icon(
+              key: const Key('switcherPrev'),
+              onPressed: onPrev,
+              style: TextButton.styleFrom(foregroundColor: AppColors.muted, padding: const EdgeInsets.only(right: 6)),
+              icon: const Icon(Icons.chevron_left_rounded, size: 26),
+              label: Text(prevLabel!),
+            )
+          else
+            IconButton(
+              tooltip: loc.previousPageTooltip,
+              icon: const Icon(Icons.chevron_left_rounded, size: 30),
+              onPressed: onPrev,
+            ),
           Expanded(
             child: Center(
               child: Material(
@@ -112,11 +137,22 @@ class _Switcher extends StatelessWidget {
               ),
             ),
           ),
-          IconButton(
-            tooltip: loc.nextPageTooltip,
-            icon: const Icon(Icons.chevron_right_rounded, size: 30),
-            onPressed: onNext,
-          ),
+          if (nextLabel != null)
+            TextButton(
+              key: const Key('switcherNext'),
+              onPressed: onNext,
+              style: TextButton.styleFrom(foregroundColor: AppColors.muted, padding: const EdgeInsets.only(left: 6)),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [Text(nextLabel!), const Icon(Icons.chevron_right_rounded, size: 26)],
+              ),
+            )
+          else
+            IconButton(
+              tooltip: loc.nextPageTooltip,
+              icon: const Icon(Icons.chevron_right_rounded, size: 30),
+              onPressed: onNext,
+            ),
         ],
       ),
     );
