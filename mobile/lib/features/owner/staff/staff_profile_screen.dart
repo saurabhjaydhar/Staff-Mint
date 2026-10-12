@@ -9,6 +9,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/dates.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/utils/phone.dart';
+import '../../../core/utils/shift_text.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/skeleton.dart';
 import '../../../core/widgets/pickers.dart';
@@ -62,7 +63,7 @@ class StaffProfileScreen extends ConsumerWidget {
         value: emp,
         onRetry: () => ref.invalidate(employeeDetailProvider(employeeId)),
         data: (e) {
-          final shift = shifts.where((x) => x.id == e.shiftId).firstOrNull;
+          final shift = shifts.where((x) => x.id == e.shiftId).firstOrNull ?? defaultShiftOf(shifts);
           final lb = e.leaveBalance;
           // Only the owner may set where salary goes.
           final canEditBank = ref.read(authControllerProvider).user?.isOwner ?? false;
@@ -165,11 +166,11 @@ class StaffProfileScreen extends ConsumerWidget {
                     _InfoRow(
                       label: s.shift,
                       value: shift == null
-                          ? s.defaultShift
+                          ? '—'
                           : '${Dates.hhmmToDisplay(shift.start, s.languageCode)} – ${Dates.hhmmToDisplay(shift.end, s.languageCode)}',
                     ),
                     if (shift != null && shift.weeklyOff.isNotEmpty)
-                      _InfoRow(label: s.weeklyOffLabel, value: _weekdays(shift.weeklyOff, s.languageCode)),
+                      _InfoRow(label: s.weeklyOffLabel, value: Dates.weekdayNames(shift.weeklyOff, s.languageCode)),
                     if (e.joiningDate != null)
                       _InfoRow(label: s.joinedLabel, value: Dates.prettyApiDate(e.joiningDate!, s.languageCode)),
                   ],
@@ -456,13 +457,6 @@ class _ThisMonth extends ConsumerWidget {
   }
 }
 
-/// "Sunday" / "रविवार" for weekday numbers (0 = Sunday).
-String _weekdays(List<int> days, String locale) {
-  final fmt = DateFormat('EEEE', locale);
-  // 2026-10-11 is a Sunday.
-  return days.map((d) => fmt.format(DateTime(2026, 10, 11 + d))).join(', ');
-}
-
 class _InfoRow extends StatelessWidget {
   const _InfoRow({super.key, required this.label, required this.value, this.valueColor});
   final String label;
@@ -582,16 +576,20 @@ class _EditStaffSheetState extends ConsumerState<_EditStaffSheet> {
               onChanged: (d) => setState(() => _effectiveFrom = d),
             ),
             const SizedBox(height: 12),
-            DropdownButtonFormField<String?>(
-              initialValue: shifts.any((x) => x.id == _shiftId) ? _shiftId : null,
-              decoration: InputDecoration(labelText: s.shift),
-              items: [
-                DropdownMenuItem(value: null, child: Text(s.defaultShift)),
-                for (final sh in shifts)
-                  DropdownMenuItem(value: sh.id, child: Text('${sh.name} (${sh.start}–${sh.end})')),
-              ],
-              onChanged: (v) => setState(() => _shiftId = v),
-            ),
+            if (shifts.isNotEmpty)
+              DropdownButtonFormField<String>(
+                initialValue: shifts.any((x) => x.id == _shiftId) ? _shiftId : defaultShiftOf(shifts)?.id,
+                isExpanded: true,
+                decoration: InputDecoration(labelText: s.shift),
+                items: [
+                  for (final sh in shifts)
+                    DropdownMenuItem(
+                      value: sh.id,
+                      child: Text(shiftText(s, sh, withName: shifts.length > 1), overflow: TextOverflow.ellipsis),
+                    ),
+                ],
+                onChanged: (v) => setState(() => _shiftId = v),
+              ),
             const SizedBox(height: 20),
             FilledButton(onPressed: _busy ? null : _save, child: Text(s.save)),
           ],

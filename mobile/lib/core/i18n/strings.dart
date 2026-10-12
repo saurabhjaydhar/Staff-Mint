@@ -1449,6 +1449,87 @@ class S {
   String get giveAdvanceShort => _t('Give advance', 'एडवांस दें');
   String get bonusCutShort => _t('Bonus / cut', 'बोनस / कटौती');
 
+  // ------------------------------------------------ Round 2 (simpler)
+  String daysOff(String days) => _t('$days off', '$days छुट्टी');
+  String workingN(int n) => _t('Working ($n)', 'काम पर ($n)');
+  String leftN(int n) => _t('Left ($n)', 'छोड़ चुके ($n)');
+  String get noneLeft => _t('Nobody has left.', 'किसी ने काम नहीं छोड़ा।');
+  String staffN(int n) => _t(n == 1 ? '1 staff' : '$n staff', '$n स्टाफ़');
+  String get nextHolidays => _t('Next holidays', 'आने वाली छुट्टियाँ');
+  String get noHolidaysYet => _t('No holidays added yet.', 'अभी कोई छुट्टी नहीं जोड़ी।');
+  String get savesAtOnce => _t('Saves as soon as you change it.', 'बदलते ही सेव हो जाता है।');
+  String get alertsOnWhatsapp => _t('Alerts on WhatsApp too', 'अलर्ट WhatsApp पर भी');
+  String get alertsOnWhatsappHint => _t(
+    'Leave requests and check-ins that need you also come to your WhatsApp.',
+    'छुट्टी की अर्ज़ी और जिन चेक-इन पर आपकी मंज़ूरी चाहिए, वे WhatsApp पर भी आएँगे।',
+  );
+  String get oldStaffSlips => _t('Old staff can see old salary slips', 'पुराने स्टाफ़ पुरानी सैलरी स्लिप देख सकें');
+  String get oldStaffSlipsHint =>
+      _t('For 12 months after they leave (for loans, ITR).', 'काम छोड़ने के 12 महीने तक (लोन, ITR के लिए)।');
+  String get shopAreaHint => _t('Where staff must be to check in', 'चेक-इन के लिए स्टाफ़ को कहाँ होना चाहिए');
+  String get howWorkedOut => _t('How it’s worked out', 'हिसाब कैसे बना');
+  String wkPresent(num n) => _t(n == 1 ? '1 day present' : '${_num(n)} days present', '${_num(n)} दिन हाज़िर');
+  String wkHalfDays(num n) => n == 1
+      ? _t('1 half day = ½ day', '1 आधा दिन = ½ दिन')
+      : _t(
+          '${_num(n)} half days = ${n / 2 == 1 ? '1 day' : '${_num(n / 2)} days'}',
+          '${_num(n)} आधे दिन = ${_num(n / 2)} दिन',
+        );
+  String wkPaidLeave(num n) => _t('${_num(n)} paid leave', '${_num(n)} पेड छुट्टी');
+  String wkWeekOffs(num n) => _t('${_num(n)} weekly offs', '${_num(n)} साप्ताहिक छुट्टी');
+  String wkHolidays(num n) => _t('${_num(n)} holidays', '${_num(n)} त्योहार की छुट्टी');
+  String wkOffsPaid(num n) => _t('${_num(n)} offs & holidays', '${_num(n)} छुट्टी और त्योहार');
+  String get paidByRule => _t('paid by shop rule', 'दुकान के नियम से पैसे');
+  String wkNotPaid(num absent, num unmarked, num unpaid) => [
+    if (absent > 0) _t('${_num(absent)} absent', '${_num(absent)} ग़ैरहाज़िर'),
+    if (unpaid > 0) _t('${_num(unpaid)} unpaid leave', '${_num(unpaid)} बिना पैसे की छुट्टी'),
+    if (unmarked > 0) _t('${_num(unmarked)} not marked', '${_num(unmarked)} दिन हाज़िरी नहीं'),
+  ].join(' · ');
+  String get notPaidWord => _t('not paid', 'पैसे नहीं');
+  String oneDayRate(String rate, String div, String day) =>
+      _t('1 day = $rate ÷ $div = $day', '1 दिन = $rate ÷ $div = $day');
+  String slipPaidLine(String date, String method) => _t('Paid $date · $method', '$date को मिली · $method');
+  String get nextBank => _t('Add your bank or UPI', 'अपना बैंक या UPI जोड़ें');
+  String get nextBankWhy => _t('So your salary can be sent straight to you.', 'ताकि सैलरी सीधे आपको भेजी जा सके।');
+  String get nextEmergency => _t('Add an emergency contact', 'आपात संपर्क जोड़ें');
+  String get nextEmergencyWhy =>
+      _t('So the shop can call someone if you need help.', 'ताकि ज़रूरत पड़ने पर दुकान किसी को कॉल कर सके।');
+  String get nextPhoto => _t('Add your photo', 'अपनी फ़ोटो लगाएँ');
+  String get nextPhotoWhy => _t('So your team can recognise you.', 'ताकि टीम आपको पहचान सके।');
+  String get nextName => _t('Add your full name', 'अपना पूरा नाम लिखें');
+  String get nextNameWhy => _t('It goes on salary slips.', 'यह सैलरी स्लिप पर आता है।');
+  String get nextEmail => _t('Add your email', 'अपना ईमेल जोड़ें');
+  String get nextEmailWhy =>
+      _t('For salary slips and reports by email.', 'सैलरी स्लिप और रिपोर्ट ईमेल पर पाने के लिए।');
+  String get languageNote =>
+      _t('Language: use हि / En at the top of any screen.', 'भाषा: किसी भी स्क्रीन पर ऊपर हि / En दबाएँ।');
+  String get chooseAWay => _t('Choose a way', 'कोई एक तरीका चुनें');
+  String get wayContactsHint => _t('Fastest. Choose many at once.', 'सबसे जल्दी। एक साथ कई चुनें।');
+  String get wayType => _t('Type name & phone', 'नाम और फ़ोन लिखें');
+  String get wayTypeHint => _t('One person at a time.', 'एक बार में एक व्यक्ति।');
+  String get wayTypeButton => _t('Type', 'लिखें');
+  String get wayExcel => _t('From Excel / SalaryBox', 'Excel / SalaryBox से');
+  String get wayExcelHint =>
+      _t('Easier on a computer: app.staffmint.app → Import', 'कंप्यूटर पर आसान: app.staffmint.app → Import');
+  String get sendLink => _t('Send link', 'लिंक भेजें');
+  String get importLinkText => _t(
+    'Add staff to StaffMint from Excel: open https://app.staffmint.app/import on a computer.',
+    'StaffMint में Excel से स्टाफ़ जोड़ें: कंप्यूटर पर https://app.staffmint.app/import खोलें।',
+  );
+  String get whatHappensNext => _t('What happens next', 'आगे क्या होगा');
+  String get next1 =>
+      _t('Each person gets a WhatsApp invite with the app link.', 'हर व्यक्ति को WhatsApp पर ऐप का लिंक जाएगा।');
+  String get next2 =>
+      _t('They log in with their own number, no password.', 'वे अपने नंबर से लॉगिन करेंगे, कोई पासवर्ड नहीं।');
+  String get next3 => _t('You see them on Home when they check in.', 'चेक-इन करते ही वे आपको होम पर दिखेंगे।');
+  String get newStaff => _t('New staff', 'नया स्टाफ़');
+  String get howSalaryPaid => _t('How is salary paid?', 'सैलरी कैसे मिलती है?');
+  String get everyMonth => _t('Every month', 'हर महीने');
+  String get everyDay => _t('Every day', 'हर दिन');
+  String joiningLine(String date) => _t('Joining date: $date', 'जुड़ने की तारीख़: $date');
+  String get changeLink => _t('change', 'बदलें');
+  String get addAndInvite => _t('Add & send invite', 'जोड़ें और बुलावा भेजें');
+
   // ------------------------------------------------------- Employee home
   String shiftShort(String a, String b) => _t('Shift $a – $b', 'शिफ़्ट $a – $b');
   Bi get atShop => _b('At shop', 'दुकान पर');

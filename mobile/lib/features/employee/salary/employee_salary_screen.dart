@@ -57,15 +57,8 @@ class EmployeeSalaryScreen extends ConsumerWidget {
                           ],
                         ),
                       ),
-                      SectionHeader(s.runningEstimate),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: PayslipReceipt(payslip: o.estimate!),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Text(s.estimateNote, style: const TextStyle(color: AppColors.muted, fontSize: 14)),
-                      ),
+                      SectionHeader(s.howWorkedOut),
+                      _WorkedOut(payslip: o.estimate!),
                     ],
                     SectionHeader(s.advanceBalance),
                     Card(
@@ -89,9 +82,34 @@ class EmployeeSalaryScreen extends ConsumerWidget {
                         child: Column(
                           children: [
                             for (final p in o.payslips)
-                              PayslipTile(
-                                payslip: p,
-                                title: Dates.monthTitle(Dates.parseMonth(p.month), s.languageCode),
+                              ListTile(
+                                key: Key('mySlip_${p.month}'),
+                                leading: const CircleAvatar(
+                                  backgroundColor: AppColors.mintLight,
+                                  child: Text('🧾', style: TextStyle(fontSize: 18)),
+                                ),
+                                title: Text(
+                                  Dates.monthTitle(Dates.parseMonth(p.month), s.languageCode),
+                                  style: const TextStyle(fontWeight: FontWeight.w700),
+                                ),
+                                subtitle: Text(
+                                  p.paidOn == null
+                                      ? s.notPaidYet
+                                      : s.slipPaidLine(
+                                          Dates.dayMonth(DateTime.parse(p.paidOn!), s.languageCode),
+                                          s.paymentMethodLabel(p.paymentMethod ?? 'cash'),
+                                        ),
+                                ),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      Money.format(p.netPaise),
+                                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                                    ),
+                                    const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
+                                  ],
+                                ),
                                 onTap: () => openPayslipDetail(context, p, stamp: payslipStamp(s, p)),
                               ),
                           ],
@@ -107,3 +125,80 @@ class EmployeeSalaryScreen extends ConsumerWidget {
     );
   }
 }
+
+/// One line per reason, each with its amount; deductions only when there are some.
+class _WorkedOut extends StatelessWidget {
+  const _WorkedOut({required this.payslip});
+  final Payslip payslip;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.s;
+    final p = payslip;
+    final sm = p.summary;
+    final daily = p.wageType == 'daily';
+    final dayRate = daily ? p.ratePaise.toDouble() : (p.divisor > 0 ? p.ratePaise / p.divisor : 0.0);
+    // Whole rupees, like the slip.
+    int rupees(num paise) => (paise / 100).round() * 100;
+    String amt(num days) => Money.format(rupees(days * dayRate));
+    // Days paid by the shop's rules (weekly offs, holidays) are what's left of payable days.
+    final ruled = p.payableDays - sm.present - sm.halfDay / 2 - sm.paidLeave;
+    final rows = <(String, String?, String, bool)>[
+      if (sm.present > 0)
+        (s.wkPresent(sm.present), '${_n(sm.present)} × ${Money.format(rupees(dayRate))}', amt(sm.present), false),
+      if (sm.halfDay > 0) (s.wkHalfDays(sm.halfDay), null, amt(sm.halfDay / 2), false),
+      if (sm.paidLeave > 0) (s.wkPaidLeave(sm.paidLeave), null, amt(sm.paidLeave), false),
+      if (ruled > 0 && ruled == sm.weekOffs) (s.wkWeekOffs(sm.weekOffs), s.paidByRule, amt(ruled), false),
+      if (ruled > 0 && ruled == sm.holidays) (s.wkHolidays(sm.holidays), s.paidByRule, amt(ruled), false),
+      if (ruled > 0 && ruled != sm.weekOffs && ruled != sm.holidays)
+        (s.wkOffsPaid(ruled), s.paidByRule, amt(ruled), false),
+      if (sm.absent + sm.unmarked + sm.unpaidLeave > 0)
+        (s.wkNotPaid(sm.absent, sm.unmarked, sm.unpaidLeave), s.notPaidWord, Money.format(0), false),
+      for (final l in p.lines)
+        if (l.isDeduction && l.amountPaise != 0) (l.label, null, '− ${Money.format(l.amountPaise.abs())}', true),
+    ];
+    return Card(
+      key: const Key('workedOut'),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 6, 14, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (final (label, detail, amount, minus) in rows)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 7),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+                          if (detail != null)
+                            Text(detail, style: const TextStyle(color: AppColors.muted, fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      amount,
+                      style: TextStyle(fontWeight: FontWeight.w800, color: minus ? AppColors.red : AppColors.ink),
+                    ),
+                  ],
+                ),
+              ),
+            if (!daily && p.divisor > 0) ...[
+              const Divider(),
+              Text(
+                s.oneDayRate(Money.format(p.ratePaise), _n(p.divisor), Money.format(rupees(dayRate))),
+                style: const TextStyle(color: AppColors.muted, fontSize: 13),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+String _n(num v) => v == v.roundToDouble() ? '${v.round()}' : '$v';

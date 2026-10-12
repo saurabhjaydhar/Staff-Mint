@@ -12,6 +12,7 @@ import 'package:staffmint/features/auth/session_state.dart';
 import 'package:staffmint/features/employee/attendance/employee_attendance_screen.dart';
 import 'package:staffmint/features/employee/employee_providers.dart';
 import 'package:staffmint/features/employee/leave/employee_leave_screen.dart';
+import 'package:staffmint/features/employee/salary/employee_salary_screen.dart';
 import 'package:staffmint/features/employee/punch/punch_providers.dart';
 
 class _FakeAuth extends AuthController {
@@ -122,5 +123,53 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Unpaid leave: salary is cut for these days.'), findsOneWidget);
     expect(find.text('Send to owner'), findsOneWidget);
+  });
+
+  testWidgets('My salary: amount once, one line per reason, no "−₹0", slips show when they were paid', (tester) async {
+    await pump(tester, const EmployeeSalaryScreen(), [
+      mySalaryProvider.overrideWith(
+        (ref) async => const SalaryOverview(
+          estimate: Payslip(
+            id: '',
+            employeeId: 'e1',
+            employeeName: 'Ramesh',
+            month: '2026-10',
+            ratePaise: 1500000,
+            divisor: 30,
+            payableDays: 7,
+            summary: PayslipSummary(present: 4, halfDay: 2, weekOffs: 2, absent: 3, unmarked: 1),
+            lines: [
+              PayslipLine(code: 'basic', kind: 'earning', label: 'Basic', amountPaise: 350000),
+              PayslipLine(code: 'advance', kind: 'deduction', label: 'Advance', amountPaise: 0),
+            ],
+            netPaise: 350000,
+          ),
+          payslips: [
+            Payslip(
+              id: 'p9',
+              employeeId: 'e1',
+              employeeName: 'Ramesh Kumar',
+              month: '2026-09',
+              netPaise: 1350000,
+              paidOn: '2026-10-03',
+              paymentMethod: 'upi',
+            ),
+          ],
+        ),
+      ),
+    ]);
+    expect(find.text('₹3,500'), findsOneWidget);
+    expect(find.text('4 days present'), findsOneWidget);
+    expect(find.text('4 × ₹500'), findsOneWidget);
+    expect(find.text('₹2,000'), findsOneWidget);
+    expect(find.text('2 half days = 1 day'), findsOneWidget);
+    expect(find.text('2 weekly offs'), findsOneWidget);
+    expect(find.text('paid by shop rule'), findsOneWidget);
+    expect(find.text('3 absent · 1 not marked'), findsOneWidget);
+    expect(find.text('1 day = ₹15,000 ÷ 30 = ₹500'), findsOneWidget);
+    expect(find.textContaining('− ₹0'), findsNothing);
+    await tester.scrollUntilVisible(find.byKey(const Key('mySlip_2026-09')), 200);
+    expect(find.text('Paid 3 Oct · UPI'), findsOneWidget);
+    expect(find.text('RK'), findsNothing);
   });
 }

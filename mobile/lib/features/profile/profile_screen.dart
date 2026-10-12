@@ -7,7 +7,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/api/providers.dart';
-import '../../core/i18n/locale_provider.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/models/models.dart';
 import '../../core/router/routes.dart';
@@ -83,7 +82,6 @@ class _ProfileBody extends ConsumerWidget {
     final s = context.s;
     final p = profile;
     final api = ref.read(profileApiProvider);
-    final lang = ref.watch(localeProvider);
 
     /// Saved → fresh profile, and the session (name, phone, language) too.
     Future<void> refresh({bool session = false}) async {
@@ -224,7 +222,7 @@ class _ProfileBody extends ConsumerWidget {
       padding: EdgeInsets.zero,
       children: [
         _Hero(profile: p, showBack: showBack, onPhoto: changePhoto),
-        if (p.completePercent < 100) _Completeness(profile: p, onTap: openMissing),
+        if (p.missing.isNotEmpty) _NextStep(profile: p, onTap: openMissing),
         _Section(
           title: s.personalBi,
           children: [
@@ -252,18 +250,12 @@ class _ProfileBody extends ConsumerWidget {
               placeholder: s.notAdded,
               onTap: editEmail,
             ),
-            _Row(
-              icon: Icons.translate_rounded,
-              label: s.language,
-              trailing: LanguageToggle(
-                value: lang,
-                onChanged: (v) {
-                  setAppLanguage(ref, v);
-                  refresh();
-                },
-              ),
-            ),
           ],
+        ),
+        Padding(
+          key: const Key('languageNote'),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+          child: Text(s.languageNote, style: const TextStyle(color: AppColors.muted, fontSize: 13)),
         ),
         if (w != null)
           _Section(
@@ -627,74 +619,49 @@ class _Hero extends StatelessWidget {
   }
 }
 
-/// Ring with the percentage and one chip per missing item.
-class _Completeness extends StatelessWidget {
-  const _Completeness({required this.profile, required this.onTap});
+/// One useful next step with the reason, instead of a "25% complete" ring.
+class _NextStep extends StatelessWidget {
+  const _NextStep({required this.profile, required this.onTap});
   final Profile profile;
   final ValueChanged<String> onTap;
+
+  static const _staffOrder = ['bank', 'emergency', 'name', 'photo', 'email'];
+  static const _otherOrder = ['name', 'email', 'photo', 'bank', 'emergency'];
 
   @override
   Widget build(BuildContext context) {
     final s = context.s;
-    final pct = profile.completePercent;
+    final order = profile.isStaff ? _staffOrder : _otherOrder;
+    final k = order.firstWhere(profile.missing.contains, orElse: () => profile.missing.first);
+    final (icon, title, why) = switch (k) {
+      'bank' => ('🏦', s.nextBank, s.nextBankWhy),
+      'emergency' => ('🆘', s.nextEmergency, s.nextEmergencyWhy),
+      'photo' => ('🙂', s.nextPhoto, s.nextPhotoWhy),
+      'name' => ('👤', s.nextName, s.nextNameWhy),
+      _ => ('✉️', s.nextEmail, s.nextEmailWhy),
+    };
     return Card(
-      key: const Key('completenessCard'),
+      key: const Key('nextStepCard'),
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      color: AppColors.mintFaint,
       child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+        child: Row(
           children: [
-            Row(
-              children: [
-                SizedBox(
-                  width: 54,
-                  height: 54,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      CircularProgressIndicator(
-                        value: pct / 100,
-                        strokeWidth: 6,
-                        strokeCap: StrokeCap.round,
-                        backgroundColor: AppColors.line,
-                        color: AppColors.mint,
-                      ),
-                      Center(
-                        child: Text('$pct%', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(s.profileComplete(pct), style: Theme.of(context).textTheme.titleMedium),
-                      Text(s.profileCompleteHint, style: const TextStyle(color: AppColors.muted, fontSize: 13)),
-                    ],
-                  ),
-                ),
-              ],
+            Text(icon, style: const TextStyle(fontSize: 26)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15.5)),
+                  const SizedBox(height: 2),
+                  Text(why, style: const TextStyle(color: AppColors.muted, fontSize: 13, height: 1.3)),
+                ],
+              ),
             ),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final k in profile.missing)
-                  ActionChip(
-                    key: Key('missing_$k'),
-                    avatar: const Icon(Icons.add_rounded, size: 18, color: AppColors.mintDark),
-                    label: Text(s.missingLabel(k)),
-                    labelStyle: const TextStyle(color: AppColors.mintDark, fontWeight: FontWeight.w600),
-                    backgroundColor: AppColors.mintFaint,
-                    side: const BorderSide(color: AppColors.mintLight),
-                    onPressed: () => onTap(k),
-                  ),
-              ],
-            ),
+            const SizedBox(width: 8),
+            FilledButton(key: Key('missing_$k'), onPressed: () => onTap(k), child: Text(s.add)),
           ],
         ),
       ),

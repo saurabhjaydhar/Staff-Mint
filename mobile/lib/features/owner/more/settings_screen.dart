@@ -44,81 +44,142 @@ class _SettingsForm extends ConsumerStatefulWidget {
 
 class _SettingsFormState extends ConsumerState<_SettingsForm> {
   late final Json _settings = widget.company.settings.toJson();
-  late final _name = TextEditingController(text: widget.company.name);
+  late String _name = widget.company.name;
   late String _type = businessTypes.contains(widget.company.businessType) ? widget.company.businessType : 'other';
-  bool _busy = false;
 
-  @override
-  void dispose() {
-    _name.dispose();
-    super.dispose();
+  void _refresh() {
+    ref.invalidate(companyProvider);
+    ref.invalidate(rulesProvider);
+    ref.read(authControllerProvider.notifier).refreshMe().ignore();
   }
 
-  /// The only settings edited here; shop rules have their own pages.
-  static const _keys = ['whatsappAlerts', 'exStaffPayslips'];
-
-  void _set(String key, Object value) => setState(() => _settings[key] = value);
-
-  Future<void> _save() async {
-    final s = context.s;
-    setState(() => _busy = true);
-    final ok = await runGuarded(context, () async {
-      final api = ref.read(companyApiProvider);
-      if (_name.text.trim() != widget.company.name || _type != widget.company.businessType) {
-        await api.update(name: _name.text.trim(), businessType: _type);
-      }
-      await api.updateSettings({for (final k in _keys) k: _settings[k]});
-    }, success: s.settingsSaved);
+  /// Every change saves at once, with a small "Saved".
+  Future<void> _setSwitch(String key, bool value) async {
+    final before = _settings[key];
+    setState(() => _settings[key] = value);
+    final ok = await runGuarded(
+      context,
+      () => ref.read(companyApiProvider).updateSettings({key: value}),
+      success: context.s.saved,
+    );
     if (!mounted) return;
-    setState(() => _busy = false);
     if (ok) {
-      ref.invalidate(companyProvider);
-      ref.invalidate(rulesProvider);
-      ref.read(authControllerProvider.notifier).refreshMe().ignore();
+      _refresh();
+    } else {
+      setState(() => _settings[key] = before);
     }
+  }
+
+  Future<void> _saveBusiness({String? name, String? type}) async {
+    final ok = await runGuarded(
+      context,
+      () => ref.read(companyApiProvider).update(name: name ?? _name, businessType: type ?? _type),
+      success: context.s.saved,
+    );
+    if (!mounted || !ok) return;
+    setState(() {
+      _name = name ?? _name;
+      _type = type ?? _type;
+    });
+    _refresh();
+  }
+
+  Future<void> _editName() async {
+    final s = context.s;
+    final ctrl = TextEditingController(text: _name);
+    final ok = await showDialogWithControllers<bool>(
+      context,
+      [ctrl],
+      (ctx) => AlertDialog(
+        title: Text(s.businessName),
+        content: TextField(controller: ctrl, autofocus: true, textCapitalization: TextCapitalization.words),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(s.cancel)),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(s.save)),
+        ],
+      ),
+    );
+    final name = ctrl.text.trim();
+    if (ok == true && name.isNotEmpty && name != _name) await _saveBusiness(name: name);
+  }
+
+  Future<void> _editType() async {
+    final s = context.s;
+    final type = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: RadioGroup<String>(
+          groupValue: _type,
+          onChanged: (v) => Navigator.pop(ctx, v),
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              for (final t in businessTypes) RadioListTile<String>(value: t, title: Text(s.businessTypeLabel(t))),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (type != null && type != _type) await _saveBusiness(type: type);
   }
 
   @override
   Widget build(BuildContext context) {
     final s = context.s;
-    final rules = ref.watch(rulesProvider);
     return ListView(
       padding: const EdgeInsets.only(bottom: 32),
       children: [
-        SectionHeader(s.companySettings),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                TextField(
-                  controller: _name,
-                  decoration: InputDecoration(labelText: s.businessName),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  initialValue: _type,
-                  decoration: InputDecoration(labelText: s.businessType),
-                  items: [
-                    for (final t in businessTypes) DropdownMenuItem(value: t, child: Text(s.businessTypeLabel(t))),
-                  ],
-                  onChanged: (v) => setState(() => _type = v ?? _type),
-                ),
-              ],
-            ),
-          ),
-        ),
+        const SizedBox(height: 8),
         Card(
           child: Column(
             children: [
-              for (final (key, label) in [('whatsappAlerts', s.whatsappAlerts), ('exStaffPayslips', s.exStaffPayslips)])
-                SwitchListTile(value: _settings[key] == true, title: Text(label), onChanged: (v) => _set(key, v)),
+              ListTile(
+                key: const Key('businessName'),
+                title: Text(s.businessName, style: const TextStyle(color: AppColors.muted, fontSize: 13)),
+                subtitle: Text(
+                  _name,
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: AppColors.ink),
+                ),
+                trailing: const Icon(Icons.edit_rounded, size: 20),
+                onTap: _editName,
+              ),
+              ListTile(
+                key: const Key('businessType'),
+                title: Text(s.businessType, style: const TextStyle(color: AppColors.muted, fontSize: 13)),
+                subtitle: Text(
+                  s.businessTypeLabel(_type),
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: AppColors.ink),
+                ),
+                trailing: const Icon(Icons.edit_rounded, size: 20),
+                onTap: _editType,
+              ),
             ],
           ),
         ),
         Padding(
-          padding: const EdgeInsets.all(16),
-          child: FilledButton(onPressed: _busy ? null : _save, child: Text(s.save)),
+          padding: const EdgeInsets.fromLTRB(20, 2, 20, 6),
+          child: Text(s.savesAtOnce, style: const TextStyle(color: AppColors.muted, fontSize: 13)),
+        ),
+        Card(
+          child: Column(
+            children: [
+              SwitchListTile(
+                key: const Key('whatsappAlerts'),
+                value: _settings['whatsappAlerts'] == true,
+                title: Text(s.alertsOnWhatsapp),
+                subtitle: Text(s.alertsOnWhatsappHint),
+                onChanged: (v) => _setSwitch('whatsappAlerts', v),
+              ),
+              SwitchListTile(
+                key: const Key('exStaffPayslips'),
+                value: _settings['exStaffPayslips'] == true,
+                title: Text(s.oldStaffSlips),
+                subtitle: Text(s.oldStaffSlipsHint),
+                onChanged: (v) => _setSwitch('exStaffPayslips', v),
+              ),
+            ],
+          ),
         ),
         Card(
           child: Column(
@@ -126,17 +187,9 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
               ListTile(
                 leading: const Icon(Icons.location_on_rounded),
                 title: Text(s.geofence),
-                subtitle: Text(s.branches),
+                subtitle: Text(s.shopAreaHint),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () => context.push(Routes.ownerBranches),
-              ),
-              ListTile(
-                key: const Key('settingsTeam'),
-                leading: const Icon(Icons.key_rounded),
-                title: Text(s.teamAccess),
-                subtitle: Text(s.teamAccessHint),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => context.push(Routes.ownerTeam),
               ),
               ListTile(
                 key: const Key('settingsStatutory'),
@@ -149,17 +202,7 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
             ],
           ),
         ),
-        SectionHeader(s.rulesInPlainWords),
-        rules.when(
-          loading: () => const LoadingView(),
-          error: (e, _) => ErrorView(error: e, onRetry: () => ref.invalidate(rulesProvider)),
-          data: (list) => Card(
-            child: Column(
-              children: [for (final r in list) ListTile(leading: const Icon(Icons.rule_rounded), title: Text(r.text))],
-            ),
-          ),
-        ),
-        SectionHeader(s.dangerZone),
+        const SizedBox(height: 8),
         Card(
           child: ListTile(
             key: const Key('closeBusiness'),

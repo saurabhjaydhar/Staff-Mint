@@ -9,6 +9,18 @@ import '../../../core/widgets/common.dart';
 import '../../../core/widgets/pickers.dart';
 import '../providers/owner_providers.dart';
 
+/// Add or change a shift in a bottom sheet; refreshes the list when saved.
+Future<void> editShift(BuildContext context, WidgetRef ref, [Shift? shift]) async {
+  final changed = await showModalBottomSheet<bool>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    showDragHandle: true,
+    builder: (_) => _ShiftForm(shift: shift),
+  );
+  if (changed == true) ref.invalidate(shiftsProvider);
+}
+
 class ShiftsScreen extends ConsumerWidget {
   const ShiftsScreen({super.key});
 
@@ -16,16 +28,7 @@ class ShiftsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final s = context.s;
     final shifts = ref.watch(shiftsProvider);
-    Future<void> edit([Shift? shift]) async {
-      final changed = await showModalBottomSheet<bool>(
-        context: context,
-        isScrollControlled: true,
-        useSafeArea: true,
-        showDragHandle: true,
-        builder: (_) => _ShiftForm(shift: shift),
-      );
-      if (changed == true) ref.invalidate(shiftsProvider);
-    }
+    Future<void> edit([Shift? shift]) => editShift(context, ref, shift);
 
     return Scaffold(
       appBar: AppBar(
