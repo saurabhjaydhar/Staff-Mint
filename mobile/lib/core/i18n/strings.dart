@@ -1532,6 +1532,18 @@ class S {
   String get changeLink => _t('change', 'बदलें');
   String get addAndInvite => _t('Add & send invite', 'जोड़ें और बुलावा भेजें');
 
+  String contactsCount(int all, int canAdd) => all == canAdd
+      ? _t('$all contacts', '$all कॉन्टैक्ट')
+      : _t('$all contacts · $canAdd can be added', '$all कॉन्टैक्ट · $canAdd जोड़े जा सकते हैं');
+  String get notAMobile => _t('Not a mobile number', 'मोबाइल नंबर नहीं है');
+  String get cantAddContacts => _t('Can’t be added (no mobile number)', 'नहीं जोड़े जा सकते (मोबाइल नंबर नहीं)');
+  String get contactsOnlySome => _t(
+    'Your phone shared only some contacts with StaffMint.',
+    'आपके फ़ोन ने StaffMint को सिर्फ़ कुछ कॉन्टैक्ट दिखाए हैं।',
+  );
+  String get allowAll => _t('Allow all', 'सभी दिखाएँ');
+  String get openSettings => _t('Open settings', 'सेटिंग खोलें');
+
   // ------------------------------------------------------------- History
   String get historyHint =>
       _t('Every change in your business: who did it and when.', 'आपके बिज़नेस का हर बदलाव: किसने किया और कब।');

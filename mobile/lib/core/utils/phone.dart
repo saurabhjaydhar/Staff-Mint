@@ -6,16 +6,28 @@ class Phones {
   /// Returns a 10-digit Indian mobile, or an E.164 number for other
   /// countries, or null if it does not look like a phone number.
   static String? normalize(String raw) {
-    var digits = raw.replaceAll(RegExp(r'[^0-9+]'), '');
+    var digits = raw.trim().replaceAll(RegExp(r'[^0-9+]'), '');
     if (digits.isEmpty) return null;
+    // International form: "+91…", or "0091…" as some phones save it.
+    var intl = false;
     if (digits.startsWith('+')) {
-      final rest = digits.substring(1).replaceAll('+', '');
-      if (rest.startsWith('91') && rest.length == 12) {
-        return _validIndian(rest.substring(2));
+      intl = true;
+      digits = digits.substring(1).replaceAll('+', '');
+    } else {
+      digits = digits.replaceAll('+', '');
+      if (digits.startsWith('00')) {
+        intl = true;
+        digits = digits.substring(2);
       }
-      return rest.length >= 8 && rest.length <= 15 ? '+$rest' : null;
     }
-    digits = digits.replaceAll('+', '');
+    if (intl) {
+      if (digits.startsWith('91')) {
+        var nsn = digits.substring(2);
+        if (nsn.length == 11 && nsn.startsWith('0')) nsn = nsn.substring(1); // "+91 0 98765 43210"
+        return _validIndian(nsn);
+      }
+      return digits.length >= 8 && digits.length <= 15 ? '+$digits' : null;
+    }
     if (digits.length == 12 && digits.startsWith('91')) {
       digits = digits.substring(2);
     } else if (digits.length == 11 && digits.startsWith('0')) {
