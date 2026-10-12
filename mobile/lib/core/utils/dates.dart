@@ -48,6 +48,9 @@ class Dates {
   /// `Wed, 14 Oct`.
   static String weekdayShort(DateTime d, [String locale = 'en']) => _fmt('EEE, d MMM', locale).format(d);
 
+  /// "Sat" / "शनि".
+  static String weekdayOnly(DateTime d, [String locale = 'en']) => _fmt('EEE', locale).format(d);
+
   /// `October 2026`.
   static String monthTitle(DateTime d, [String locale = 'en']) => _fmt('MMMM yyyy', locale).format(d);
 

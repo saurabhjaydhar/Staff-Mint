@@ -94,17 +94,30 @@ class Employee {
 
 /// Short employee reference embedded in day rows / month grids.
 class EmployeeRef {
-  const EmployeeRef({required this.id, required this.name, this.phone, this.designation});
+  const EmployeeRef({
+    required this.id,
+    required this.name,
+    this.phone,
+    this.designation,
+    this.linked = true,
+    this.invitedAt,
+  });
   final String id;
   final String name;
   final String? phone;
   final String? designation;
+
+  /// Has opened StaffMint for this business. Rows say "Hasn't installed the app" when false.
+  final bool linked;
+  final String? invitedAt;
 
   factory EmployeeRef.fromJson(Json j) => EmployeeRef(
     id: asString(j['id']),
     name: asString(j['name']),
     phone: asStringOrNull(j['phone']),
     designation: asStringOrNull(j['designation']),
+    linked: j['linked'] is bool ? j['linked'] as bool : true,
+    invitedAt: asStringOrNull(j['invitedAt']),
   );
 }
 

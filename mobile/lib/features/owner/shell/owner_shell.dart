@@ -95,7 +95,8 @@ class _OwnerShellState extends ConsumerState<OwnerShell> {
             ],
             center: MintMicButton(
               recording: _recording,
-              semanticLabel: '${s.mint} · ${s.holdToTalk}',
+              semanticLabel: '${s.askMint} · ${s.holdToTalk}',
+              label: s.askMint,
               onTap: () => showMintSheet(context),
               onHoldStart: _holdStart,
               onHoldEnd: _holdEnd,

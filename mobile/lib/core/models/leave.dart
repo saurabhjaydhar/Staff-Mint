@@ -14,6 +14,8 @@ class Leave {
     this.status = 'pending',
     this.decidedAt,
     this.note,
+    this.balanceLeft,
+    this.balanceAfter,
   });
 
   final String id;
@@ -28,6 +30,10 @@ class Leave {
   final String status;
   final String? decidedAt;
   final String? note;
+
+  /// Paid/sick leaves left before and after approving this request (owner's approval card).
+  final num? balanceLeft;
+  final num? balanceAfter;
 
   bool get isPending => status == 'pending';
 
@@ -44,6 +50,8 @@ class Leave {
     status: asString(j['status'], 'pending'),
     decidedAt: asStringOrNull(j['decidedAt']),
     note: asStringOrNull(j['note']),
+    balanceLeft: j['balance'] is Map ? asNum(asMap(j['balance'])['left']) : null,
+    balanceAfter: j['balance'] is Map ? asNum(asMap(j['balance'])['after']) : null,
   );
 }
 

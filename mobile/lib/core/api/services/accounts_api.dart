@@ -65,6 +65,9 @@ class AccountsApi {
   Future<DateTime?> invite(String employeeId) async =>
       asDateTimeOrNull(asMap(await _c.post('/employees/$employeeId/invite'))['invitedAt']);
 
+  /// Re-sends the app invite to every staff member who hasn't joined. Returns how many were sent.
+  Future<int> remindNotJoined() async => asInt(asMap(await _c.post('/employees/remind-invites'))['sent']);
+
   // ---------------------------------------------------------------- Phase 3
 
   /// "Is this you?" answer after a paused login (public endpoint).

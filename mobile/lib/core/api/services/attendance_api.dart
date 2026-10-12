@@ -90,12 +90,12 @@ class AttendanceApi implements PunchSyncApi, PunchApi {
     required String date,
     required String status,
     String? leaveType,
-    required String reason,
+    String? reason,
   }) async => Attendance.fromJson(
     asMap(
       await _c.post(
         '/attendance/override',
-        body: {'employeeId': employeeId, 'date': date, 'status': status, 'leaveType': ?leaveType, 'reason': reason},
+        body: {'employeeId': employeeId, 'date': date, 'status': status, 'leaveType': ?leaveType, 'reason': ?reason},
       ),
     ),
   );

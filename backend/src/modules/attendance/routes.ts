@@ -52,7 +52,7 @@ attendanceRouter.get('/', requireRole('owner', 'manager', 'ca'), async (req, res
 });
 
 attendanceRouter.post('/override', requireRole('owner', 'manager'), async (req, res) => {
-  const b = body(req, z.object({ employeeId: z.string(), date: zDate, status: z.enum(ATTENDANCE_STATUSES), leaveType: z.enum(['paid', 'sick', 'unpaid']).optional(), reason: z.string().trim().min(2).max(300) }));
+  const b = body(req, z.object({ employeeId: z.string(), date: zDate, status: z.enum(ATTENDANCE_STATUSES), leaveType: z.enum(['paid', 'sick', 'unpaid']).optional(), reason: z.string().trim().max(300).optional() }));
   res.json({ data: await svc.attendanceView(await svc.overrideDay(ctxOf(req), b)) });
 });
 

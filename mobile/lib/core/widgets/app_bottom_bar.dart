@@ -105,12 +105,16 @@ class MintMicButton extends StatelessWidget {
     required this.onHoldEnd,
     this.recording = false,
     this.semanticLabel,
+    this.label,
   });
   final VoidCallback onTap;
   final VoidCallback onHoldStart;
   final VoidCallback onHoldEnd;
   final bool recording;
   final String? semanticLabel;
+
+  /// Word under the button ("Ask Mint") so people know what the mic is for.
+  final String? label;
 
   @override
   Widget build(BuildContext context) => Semantics(
@@ -124,26 +128,43 @@ class MintMicButton extends StatelessWidget {
       onLongPressStart: (_) => onHoldStart(),
       onLongPressEnd: (_) => onHoldEnd(),
       onLongPressCancel: onHoldEnd,
-      child: AnimatedScale(
-        scale: recording ? 1.12 : 1,
-        duration: const Duration(milliseconds: 150),
-        child: Container(
-          width: 66,
-          height: 66,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: recording ? AppColors.red : AppColors.mint,
-            border: Border.all(color: AppColors.paper, width: 5),
-            boxShadow: [
-              BoxShadow(
-                color: (recording ? AppColors.red : AppColors.mint).withValues(alpha: 0.45),
-                blurRadius: 14,
-                offset: const Offset(0, 6),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AnimatedScale(
+            scale: recording ? 1.12 : 1,
+            duration: const Duration(milliseconds: 150),
+            child: Container(
+              width: label == null ? 66 : 60,
+              height: label == null ? 66 : 60,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: recording ? AppColors.red : AppColors.mint,
+                border: Border.all(color: AppColors.paper, width: 5),
+                boxShadow: [
+                  BoxShadow(
+                    color: (recording ? AppColors.red : AppColors.mint).withValues(alpha: 0.45),
+                    blurRadius: 14,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
               ),
-            ],
+              child: Icon(recording ? Icons.graphic_eq_rounded : Icons.mic_rounded, color: Colors.white, size: 26),
+            ),
           ),
-          child: Icon(recording ? Icons.graphic_eq_rounded : Icons.mic_rounded, color: Colors.white, size: 28),
-        ),
+          if (label != null)
+            Text(
+              label!,
+              key: const Key('mintMicLabel'),
+              maxLines: 1,
+              style: const TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w800,
+                color: AppColors.mintDark,
+                height: 1.1,
+              ),
+            ),
+        ],
       ),
     ),
   );

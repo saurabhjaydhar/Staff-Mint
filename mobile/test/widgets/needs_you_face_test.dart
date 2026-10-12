@@ -88,7 +88,7 @@ void main() {
 
   testWidgets('a flagged selfie shows the approved photo next to it with the reason', (tester) async {
     await pump(tester);
-    expect(find.text('2 things need you'), findsOneWidget);
+    expect(find.text('2 things need your OK'), findsOneWidget);
     expect(find.textContaining('Face does not match'), findsOneWidget);
     // Inside the shop: no red "m away" line on a face-only flag.
     expect(find.textContaining('m away'), findsNothing);

@@ -263,6 +263,7 @@ export async function attendanceView(r: any) {
     workedMinutes: r.workedMinutes ?? 0,
     overridden: !!r.overridden,
     overrideReason: r.overrideReason ?? null,
+    overriddenBy: r.overriddenBy ? String(r.overriddenBy) : null,
     flags: r.flags ?? [],
   };
 }
@@ -332,9 +333,11 @@ export async function dayView(ctx: Ctx, date: string) {
     emps.map(async (e) => {
       const r = byEmp.get(String(e._id)) ?? null;
       return {
-        employee: { id: String(e._id), name: e.name, phone: e.phone, designation: e.designation ?? null },
+        // linked/invitedAt: Home says "Hasn't installed the app · Invited" instead of a silent dash.
+        employee: { id: String(e._id), name: e.name, phone: e.phone, designation: e.designation ?? null, linked: !!e.userId, invitedAt: e.invitedAt ?? null },
         record: r ? await attendanceView(r) : null,
         displayStatus: displayStatusOf(r, implicitStatus(dc, e, date), closed),
+        holidayName: dc.holidayName(date) ?? null,
       };
     }),
   );
@@ -396,7 +399,8 @@ export async function monthGrid(ctx: Ctx, month: string, employeeId?: string) {
   return { month, days, rows };
 }
 
-export async function overrideDay(ctx: Ctx, input: { employeeId: string; date: string; status: AttendanceStatus; leaveType?: 'paid' | 'sick' | 'unpaid'; reason: string }) {
+/** Reason is optional: the owner picks what happened first, and may say why. */
+export async function overrideDay(ctx: Ctx, input: { employeeId: string; date: string; status: AttendanceStatus; leaveType?: 'paid' | 'sick' | 'unpaid'; reason?: string | null }) {
   const emp = await assertEmployeeInScope(ctx, input.employeeId);
   if (input.status === 'leave' && !input.leaveType) input.leaveType = 'paid';
   let r = await Attendance.findOne({ companyId: ctx.companyId, employeeId: emp._id, date: input.date });
@@ -405,7 +409,7 @@ export async function overrideDay(ctx: Ctx, input: { employeeId: string; date: s
   r.status = input.status;
   r.leaveType = input.status === 'leave' ? input.leaveType! : null;
   r.overridden = true;
-  r.overrideReason = input.reason;
+  r.overrideReason = input.reason?.trim() || null;
   r.overriddenBy = ctx.userId ?? undefined;
   r.autoMarked = false;
   if (input.status !== 'present') r.lateMinutes = 0;
@@ -530,7 +534,20 @@ export async function dashboardToday(ctx: Ctx) {
   }
   const scopeIds = rows.map((r) => new Types.ObjectId(r.employee.id));
   const { leaveView } = await import('../views.js');
-  const leaveRequests = (await Leave.find({ companyId: ctx.companyId, status: 'pending', deletedAt: null, employeeId: { $in: scopeIds } }).sort({ createdAt: 1 }).populate('employeeId', 'name').lean()).map((l) => leaveView(l));
+  const year = Number(date.slice(0, 4));
+  const { getLeaveBalance } = await import('../leave/service.js');
+  const leaveRequests = await Promise.all(
+    (await Leave.find({ companyId: ctx.companyId, status: 'pending', deletedAt: null, employeeId: { $in: scopeIds } }).sort({ createdAt: 1 }).populate('employeeId', 'name').lean()).map(async (l) => {
+      // "He has 4 paid leaves left. After this: 2." — the effect of saying yes.
+      let balance: { left: number; after: number } | null = null;
+      if (l.type === 'paid' || l.type === 'sick') {
+        const b = await getLeaveBalance(ctx, (l.employeeId as any)._id ?? l.employeeId, Number(l.from.slice(0, 4)) || year);
+        const left = l.type === 'paid' ? b.paid - b.usedPaid : b.sick - b.usedSick;
+        balance = { left, after: left - l.days };
+      }
+      return { ...leaveView(l), balance };
+    }),
+  );
   const pending = await Attendance.find({ companyId: ctx.companyId, 'punches.approval': 'pending', employeeId: { $in: scopeIds } }).populate('employeeId', 'name face').lean();
   const punchApprovals = [];
   for (const r of pending)
@@ -565,7 +582,27 @@ export async function dashboardToday(ctx: Ctx) {
       flags: flagged.map((r) => ({ attendanceId: String(r._id), employeeName: (r.employeeId as any)?.name, date: r.date, flags: r.flags })),
     },
     plan: { code: plan.code, staffCount: await activeStaffCount(ctx.companyId), staffLimit: plan.staffLimit },
+    setup: ctx.role === 'owner' ? await setupProgress(ctx) : null,
   };
+}
+
+/** The "Let's get your shop running" checklist on a new owner's Home. Each step ticks itself. */
+export async function setupProgress(ctx: Ctx) {
+  const staff = await Employee.find({ companyId: ctx.companyId, status: 'active' }).select('userId ratePaise').lean();
+  const joined = staff.filter((e) => e.userId).length;
+  const checkedIn = staff.length ? await Attendance.exists({ companyId: ctx.companyId, 'punches.0': { $exists: true } }) : null;
+  const { Membership } = await import('../../models/index.js');
+  const team = await Membership.exists({ companyId: ctx.companyId, status: 'active', role: { $in: ['ca', 'manager'] } }).then(
+    async (m) => !!m || (await Membership.countDocuments({ companyId: ctx.companyId, status: 'active', role: 'owner' })) > 1,
+  );
+  const steps = {
+    business: true,
+    staffAdded: staff.length > 0,
+    staffJoined: staff.length > 0 && !!checkedIn,
+    salarySet: staff.length > 0 && staff.every((e) => (e.ratePaise ?? 0) > 0),
+    teamAdded: team,
+  };
+  return { steps, done: Object.values(steps).filter(Boolean).length, total: 5, staff: staff.length, joined, notJoined: staff.length - joined };
 }
 
 export const newClientPunchId = () => randomUUID();

@@ -49,6 +49,9 @@ accountsRouter.delete('/company/accountants/:id', authenticate, requireRole('own
   await svc.removeAccountant(ctxOf(req), param(req, 'id'));
   res.json({ data: { ok: true } });
 });
+accountsRouter.post('/employees/remind-invites', authenticate, requireRole('owner', 'manager'), async (req, res) => {
+  res.json({ data: await svc.remindNotJoined(ctxOf(req)) });
+});
 accountsRouter.post('/employees/:id/invite', authenticate, requireRole('owner', 'manager'), async (req, res) => {
   res.json({ data: await svc.inviteStaff(ctxOf(req), param(req, 'id')) });
 });

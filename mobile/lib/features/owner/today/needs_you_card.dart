@@ -10,8 +10,9 @@ import '../../../core/widgets/common.dart';
 import '../providers/owner_providers.dart';
 import 'leave_cards.dart';
 
-/// Dark "N काम आपके लिए" card that expands into the actionable list:
-/// swipeable leave requests and outside-shop punch approvals.
+/// Light "2 things need your OK" card that says what each request is, and
+/// expands into the actionable list: leave requests (with the effect of
+/// saying yes), check-ins away from the shop, face photos and new phones.
 class NeedsYouCard extends ConsumerStatefulWidget {
   const NeedsYouCard({super.key, required this.dashboard});
   final Dashboard dashboard;
@@ -65,11 +66,12 @@ class _NeedsYouCardState extends ConsumerState<NeedsYouCard> {
     final count = leaves.length + punches.length + faces.length + devices.length + d.flags.length;
     if (count == 0) return const SizedBox.shrink();
     final names = [
-      for (final l in leaves) s.needsYouLeave(l.employeeName),
-      for (final p in punches) s.needsYouPunch(p.employeeName),
+      for (final l in leaves) s.okAskedLeave(l.employeeName),
+      for (final p in punches)
+        p.punch.insideGeofence == false ? s.okFarPunch(p.employeeName) : s.needsYouPunch(p.employeeName),
       for (final f in faces) s.needsYouFace(f.employeeName),
       for (final r in devices) s.needsYouDevice(r.employeeName),
-      for (final f in d.flags) s.needsYouFlag(f.employeeName),
+      for (final f in d.flags) s.okCheck(f.employeeName),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -77,7 +79,11 @@ class _NeedsYouCardState extends ConsumerState<NeedsYouCard> {
         Container(
           key: const Key('needsYouCard'),
           margin: const EdgeInsets.fromLTRB(14, 12, 14, 0),
-          decoration: BoxDecoration(color: AppColors.ink, borderRadius: BorderRadius.circular(18)),
+          decoration: BoxDecoration(
+            color: AppColors.amberLight,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: AppColors.amberDark.withValues(alpha: 0.25)),
+          ),
           child: InkWell(
             borderRadius: BorderRadius.circular(18),
             onTap: () => setState(() => _open = !_open),
@@ -90,14 +96,14 @@ class _NeedsYouCardState extends ConsumerState<NeedsYouCard> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          s.needsYouTitle(count).joined,
-                          style: const TextStyle(color: Colors.white, fontSize: 15.5, fontWeight: FontWeight.w800),
+                          s.needYourOk(count),
+                          style: const TextStyle(color: AppColors.ink, fontSize: 15.5, fontWeight: FontWeight.w800),
                         ),
                         Text(
                           names.join(' · '),
-                          maxLines: 1,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 12.5),
+                          style: const TextStyle(color: AppColors.muted, fontSize: 13),
                         ),
                       ],
                     ),
@@ -111,7 +117,7 @@ class _NeedsYouCardState extends ConsumerState<NeedsYouCard> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          _open ? s.hide : s.view,
+                          _open ? s.hide : s.review,
                           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14),
                         ),
                         const SizedBox(width: 2),
@@ -279,7 +285,12 @@ class _PunchApprovalCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(item.employeeName, style: Theme.of(context).textTheme.titleMedium),
+                      Text(
+                        p.insideGeofence == false && p.distanceM != null
+                            ? s.checkedInAway(item.employeeName, s.rowAway(p.distanceM!))
+                            : item.employeeName,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
                       Text(
                         '${outside
                             ? s.outsidePunchApproval
@@ -304,7 +315,7 @@ class _PunchApprovalCard extends StatelessWidget {
               ),
             ],
             const SizedBox(height: 10),
-            DecisionButtons(busy: busy, onDecide: onDecide),
+            DecisionButtons(busy: busy, onDecide: onDecide, rejectLabel: s.dontCount, approveLabel: s.countIt),
           ],
         ),
       ),
