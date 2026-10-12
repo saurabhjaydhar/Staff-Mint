@@ -8,6 +8,7 @@ import { useI18n, useToast } from "@/components/providers";
 import { Alert, Badge, Button, Card, EmptyState, Field, Input, Loading, Modal, PageHeader, Select, Table, Td, Th, cx } from "@/components/ui";
 import { useAction, useAsync, useDebounced } from "@/hooks/useAsync";
 import { api, errorMessage, isApiError } from "@/lib/api";
+import { fill } from "@/lib/i18n";
 import { formatPaise, paiseToRupeeInput, parseRupeesToPaise } from "@/lib/money";
 import type { Branch, Employee, EmployeeInput, Shift, WageType } from "@/lib/types";
 
@@ -88,6 +89,16 @@ export default function StaffPage() {
     if (res.ok) {
       employees.setData((prev) => (prev ?? []).map((e) => (e.id === emp.id ? { ...e, invitedAt: res.value.invitedAt } : e)));
       toast(t("acc_invite_sent"));
+    }
+  }
+
+  async function toggleManager(emp: Employee) {
+    const toManager = emp.appRole !== "manager";
+    if (!window.confirm(fill(t(toManager ? "make_manager_q" : "back_to_staff_q"), { name: emp.name }))) return;
+    const res = await action.run(`role:${emp.id}`, () => api.post<Employee>(`/employees/${emp.id}/role`, { role: toManager ? "manager" : "employee" }));
+    if (res.ok) {
+      employees.setData((prev) => (prev ?? []).map((e) => (e.id === emp.id ? res.value : e)));
+      toast(res.value.name);
     }
   }
 
@@ -234,6 +245,11 @@ export default function StaffPage() {
                     <Td>
                       {emp.hasDevice ? <Badge tone="mint">Registered</Badge> : emp.linked === false && !inactive ? <Badge tone="amber">{t("acc_not_joined")}</Badge> : <Badge>Not yet</Badge>}
                       {inactive && <Badge className="ml-1">Inactive</Badge>}
+                      {emp.appRole === "manager" && (
+                        <Badge tone="sky" className="ml-1">
+                          {t("manager")}
+                        </Badge>
+                      )}
                     </Td>
                     <Td className="text-right whitespace-nowrap">
                       {emp.hasDevice && !inactive && (
@@ -244,6 +260,11 @@ export default function StaffPage() {
                       {emp.linked === false && !inactive && (
                         <Button size="sm" variant="ghost" data-invite={emp.id} loading={action.busy === `invite:${emp.id}`} onClick={() => invite(emp)}>
                           {emp.invitedAt ? t("acc_resend") : t("acc_invite")}
+                        </Button>
+                      )}
+                      {role === "owner" && !inactive && (
+                        <Button size="sm" variant="ghost" data-role={emp.id} loading={action.busy === `role:${emp.id}`} onClick={() => toggleManager(emp)}>
+                          {emp.appRole === "manager" ? t("back_to_staff") : t("make_manager")}
                         </Button>
                       )}
                       {role === "owner" && (

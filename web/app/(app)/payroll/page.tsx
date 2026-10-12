@@ -69,7 +69,7 @@ export default function PayrollPage() {
     <div className="space-y-5">
       <PageHeader
         title={t("nav_payroll")}
-        subtitle={readOnly ? t("readOnly") : "Draft → check anomalies → approve → send salary slips → mark paid."}
+        subtitle={readOnly ? t("readOnly") : `${t("step1")} → ${t("step2")} → ${t("step3")}`}
         actions={
           <div className="flex items-end gap-2">
             <Field label={t("month")} className="w-44">
@@ -143,6 +143,15 @@ export default function PayrollPage() {
               )
             }
           >
+            <div className="mb-3 flex flex-wrap items-end gap-x-4 gap-y-1">
+              <div>
+                <div className="text-xs font-medium text-slate-500">{t("total_to_pay")}</div>
+                <div className="text-3xl font-bold" data-testid="total-to-pay">
+                  {formatPaise(current.totals.netPaise)}
+                </div>
+              </div>
+            </div>
+            <SalarySteps status={current.status} />
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
               <Stat label="Staff" value={current.totals.employees} />
               <Stat label={t("payroll_gross")} value={formatPaise(current.totals.grossPaise)} />
@@ -244,6 +253,38 @@ function RunActions({
         </Button>
       )}
     </>
+  );
+}
+
+/** Salary in 3 numbered steps that say what each one does. */
+function SalarySteps({ status }: { status: PayrollRun["status"] }) {
+  const { t } = useI18n();
+  const done = status === "paid" ? 3 : status === "approved" ? 2 : 0;
+  const steps = [t("step1"), t("step2"), t("step3")];
+  return (
+    <ol className="mb-4 space-y-1.5 rounded-lg bg-slate-50 p-3 text-sm" data-testid="salary-steps">
+      {steps.map((label, i) => {
+        const isDone = i < done || (i === 0 && done > 0);
+        const current = !isDone && i === done;
+        return (
+          <li key={label} className="flex items-start gap-2">
+            <span
+              className={cx(
+                "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs",
+                isDone ? "bg-mint-600 text-white" : current ? "bg-slate-900 text-white" : "bg-slate-200 text-slate-600",
+              )}
+            >
+              {isDone ? "✓" : i + 1}
+            </span>
+            <span className={cx(isDone && "text-slate-400", current && "font-semibold")}>
+              {label}
+              {i === 2 && current && <span className="block text-xs font-normal text-slate-500">{t("step3_hint")}</span>}
+            </span>
+          </li>
+        );
+      })}
+      {status !== "draft" && status !== "superseded" && <li className="pt-1 text-xs text-slate-500">{t("edit_salary_hint")}</li>}
+    </ol>
   );
 }
 
