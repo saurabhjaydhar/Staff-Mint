@@ -105,8 +105,11 @@ class SessionState {
   bool get isEmployee => user?.isEmployee ?? false;
   bool get isOwner => user?.isOwner ?? false;
 
+  /// The owner or a manager marks this person's attendance: no check-in, so no location notice.
+  bool get ownerMarksAttendance => isEmployee && (employee?.ownerMarks(company?.settings) ?? false);
+
   /// Employees must accept the location notice before first check-in.
-  bool get needsConsent => isEmployee && employee != null && !employee!.locationConsent;
+  bool get needsConsent => isEmployee && employee != null && !employee!.locationConsent && !ownerMarksAttendance;
 
   SessionState copyWith({
     User? user,

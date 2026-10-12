@@ -84,6 +84,8 @@ const SETTING: Record<string, [string, string]> = {
   phoneLockPolicy: ['Phone lock at check-in', 'चेक-इन पर फ़ोन लॉक'],
   faceMatchPolicy: ['Face check', 'चेहरा पहचान'],
   selfieRequired: ['Selfie at check-in', 'चेक-इन पर सेल्फ़ी'],
+  attendanceMarking: ['Who marks attendance', 'हाज़िरी कौन लगाएगा'],
+  presentByDefault: ['Present by default', 'अपने-आप हाज़िर'],
   roundToRupee: ['Round salary to rupee', 'सैलरी पूरे रुपये में'],
   whatsappAlerts: ['Alerts on WhatsApp', 'WhatsApp पर अलर्ट'],
   exStaffPayslips: ['Old staff can see old slips', 'पुराने स्टाफ़ पुरानी स्लिप देख सकें'],
@@ -101,6 +103,8 @@ const VALUE: Record<string, [string, string]> = {
   recommended: ['asked, not required', 'पूछा जाएगा, ज़रूरी नहीं'],
   required: ['required', 'ज़रूरी'],
   review: ['on', 'चालू'],
+  self: ['staff check in themselves', 'स्टाफ़ ख़ुद चेक-इन करेगा'],
+  owner: ['owner or manager marks', 'मालिक या मैनेजर लगाएगा'],
   days_in_month: ['days in that month', 'उस महीने के दिन'],
   en: ['English', 'English'],
   hi: ['Hindi', 'हिन्दी'],
@@ -114,6 +118,7 @@ const EMPLOYEE_FIELD: Record<string, [string, string]> = {
   joiningDate: ['Joining date', 'जुड़ने की तारीख़'],
   shiftId: ['Shift', 'शिफ़्ट'],
   branchId: ['Branch', 'ब्रांच'],
+  attendanceMarking: ['Who marks attendance', 'हाज़िरी कौन लगाएगा'],
 };
 
 function pick(pair: [string, string] | undefined, lang: Lang, fallback = ''): string {

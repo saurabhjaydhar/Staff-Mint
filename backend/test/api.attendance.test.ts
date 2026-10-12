@@ -270,3 +270,60 @@ describe('leave', () => {
     expect(r.body.data).toMatchObject({ status: 'approved', days: 2 });
   });
 });
+
+describe('attendance — owner marks attendance, present by default', () => {
+  it('owner-marked staff cannot check in (business setting or per staff); only the owner can change it', async () => {
+    const { owner, emp, e } = await setup({ attendanceMarking: 'owner' });
+    const blocked = await api().post(`${V}/attendance/check-in`).set(auth(e.token)).send(punchBody(e.deviceId));
+    expect(blocked.status).toBe(403);
+    expect(blocked.body.error.details.reason).toBe('owner_marks_attendance');
+    const sync = await api().post(`${V}/attendance/sync`).set(auth(e.token)).send({ punches: [{ ...punchBody(e.deviceId), type: 'in' }] }).expect(200);
+    expect(sync.body.data.results[0]).toMatchObject({ ok: false, error: { code: 'FORBIDDEN' } });
+    expect((await api().get(`${V}/attendance/today`).set(auth(e.token))).body.data.ownerMarks).toBe(true);
+    const day = await api().get(`${V}/attendance`).set(auth(owner.token));
+    expect(day.body.data.find((x: any) => x.employee.id === emp.id).ownerMarks).toBe(true);
+
+    // This one person checks in themselves even though the business default is "owner marks".
+    const r = await api().patch(`${V}/employees/${emp.id}`).set(auth(owner.token)).send({ attendanceMarking: 'self' }).expect(200);
+    expect(r.body.data.attendanceMarking).toBe('self');
+    await api().post(`${V}/attendance/check-in`).set(auth(e.token)).send(punchBody(e.deviceId)).expect(201);
+
+    // Back to following the business setting.
+    await api().patch(`${V}/employees/${emp.id}`).set(auth(owner.token)).send({ attendanceMarking: null }).expect(200);
+    expect((await api().get(`${V}/attendance/today`).set(auth(e.token))).body.data.ownerMarks).toBe(true);
+  });
+
+  it('a manager cannot change who marks attendance', async () => {
+    const owner = await createOwner();
+    const mPhone = nextPhone();
+    const m = await addEmployee(owner, { phone: mPhone, name: 'Manager Mohan' });
+    await api().post(`${V}/employees/${m.id}/role`).set(auth(owner.token)).send({ role: 'manager', allBranches: true }).expect(200);
+    const staff = await addEmployee(owner);
+    const ms = await employeeSession(mPhone);
+    const r = await api().patch(`${V}/employees/${staff.id}`).set(auth(ms.token)).send({ attendanceMarking: 'owner' });
+    expect(r.status).toBe(403);
+  });
+
+  it('nightly close: present by default only for owner-marked staff, and only when turned on', async () => {
+    const owner = await createOwner();
+    const cid = new Types.ObjectId(owner.companyId);
+    const marked = await addEmployee(owner, { name: 'Owner Marks' });
+    const self = await addEmployee(owner, { name: 'Checks In' });
+    const onLeave = await addEmployee(owner, { name: 'On Leave' });
+    await Employee.collection.updateMany({ companyId: cid }, { $set: { createdAt: new Date('2026-01-01') } });
+    await Employee.collection.updateMany({ _id: { $in: [new Types.ObjectId(marked.id), new Types.ObjectId(onLeave.id)] } }, { $set: { attendanceMarking: 'owner' } });
+    await api().post(`${V}/leaves`).set(auth(owner.token)).send({ employeeId: onLeave.id, type: 'paid', from: '2026-10-08', to: '2026-10-08' }).expect(201);
+
+    // Off (the default): unmarked is absent, same as today.
+    await closeDay(cid, '2026-10-06');
+    // On: owner-marked staff become present; self check-in staff stay absent; leave stays leave.
+    await api().patch(`${V}/company/settings`).set(auth(owner.token)).send({ presentByDefault: true }).expect(200);
+    await closeDay(cid, '2026-10-08');
+    const recs = await Attendance.find({ companyId: cid }).lean();
+    const rec = (emp: string, d: string) => recs.find((r) => String(r.employeeId) === emp && r.date === d);
+    expect(rec(marked.id, '2026-10-06')?.status).toBe('absent');
+    expect(rec(marked.id, '2026-10-08')).toMatchObject({ status: 'present', autoMarked: true });
+    expect(rec(self.id, '2026-10-08')?.status).toBe('absent');
+    expect(rec(onLeave.id, '2026-10-08')?.status).toBe('leave');
+  });
+});

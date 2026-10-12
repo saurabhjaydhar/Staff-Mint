@@ -1227,6 +1227,28 @@ class S {
     'Recommended for most shops: first three on, face check if staff often cover for each other.',
     'ज़्यादातर दुकानों के लिए: पहले तीन चालू रखें; अगर स्टाफ़ एक-दूसरे की हाज़िरी लगाते हैं तो चेहरे की जाँच भी।',
   );
+  String get whoMarksTitle => _t('Who marks attendance', 'हाज़िरी कौन लगाएगा');
+  String get marksSelf => _t('Staff check in on their phone', 'स्टाफ़ अपने फ़ोन से चेक-इन करें');
+  String get marksOwner => _t('I or my manager mark it', 'मैं या मेरा मैनेजर लगाएँ');
+  String get whoMarksHint =>
+      _t('You can change this for one person on their profile.', 'किसी एक के लिए उनकी प्रोफ़ाइल में बदल सकते हैं।');
+  String get presentByDefaultTitle => _t('Present by default', 'अपने-आप हाज़िर');
+  String get presentByDefaultHint => _t(
+    'Staff you mark count as present at night, unless you mark them absent, half day or on leave.',
+    'जिनकी हाज़िरी आप लगाते हैं, वे रात को हाज़िर गिने जाएँगे, जब तक आप ग़ैरहाज़िर, आधा दिन या छुट्टी न लगाएँ।',
+  );
+  String get marksSelfShort => _t('Checks in on phone', 'फ़ोन से चेक-इन');
+  String get marksOwnerShort => _t('You mark it', 'आप लगाते हैं');
+  String marksSameAsBusiness(String current) => _t('Same as business ($current)', 'बिज़नेस जैसा ($current)');
+  String get markedByOwnerBody => _t(
+    'Your attendance is marked by your owner or manager. No need to check in. You can see your attendance, leave and salary here.',
+    'आपकी हाज़िरी मालिक या मैनेजर लगाते हैं। चेक-इन की ज़रूरत नहीं। हाज़िरी, छुट्टी और सैलरी यहाँ देख सकते हैं।',
+  );
+  String todayIs(String status) => _t('Today: $status', 'आज: $status');
+  String get rowYouMark => _t('You mark · tap to mark', 'आप लगाते हैं · लगाने के लिए टैप करें');
+  String chipToMarkN(int n) => _t('$n to mark', '$n लगानी बाकी');
+  String get rowAutoPresent => _t('Counted present automatically', 'अपने-आप हाज़िर लगी');
+  String get rowPresentByDefault => _t('Present unless you change it', 'हाज़िर लगेगा, जब तक आप न बदलें');
   String get growthPlan => _t('Growth', 'Growth');
   String get rulesSaved => _t('Saved. Applies from today.', 'सेव हुआ। आज से लागू।');
   String get otherSettings => _t('Messages & former staff', 'मैसेज और पुराने स्टाफ़');

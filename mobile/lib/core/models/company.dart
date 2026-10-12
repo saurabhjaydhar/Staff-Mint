@@ -125,6 +125,8 @@ class CompanySettings {
     this.outsideGeofencePolicy = 'block',
     this.phoneLockPolicy = 'recommended',
     this.faceMatchPolicy = 'off',
+    this.attendanceMarking = 'self',
+    this.presentByDefault = false,
     this.language = 'en',
     this.digestTime = '09:30',
     this.roundToRupee = true,
@@ -149,6 +151,12 @@ class CompanySettings {
 
   /// off | review — compare check-in selfies with approved face photos.
   final String faceMatchPolicy;
+
+  /// self | owner — staff check in on their phone, or the owner/manager marks it. Each person can differ.
+  final String attendanceMarking;
+
+  /// Staff the owner marks are counted present at night unless marked otherwise.
+  final bool presentByDefault;
   final String language;
   final String digestTime;
   final bool roundToRupee;
@@ -171,6 +179,8 @@ class CompanySettings {
     outsideGeofencePolicy: asString(j['outsideGeofencePolicy'], 'block'),
     phoneLockPolicy: asString(j['phoneLockPolicy'], 'recommended'),
     faceMatchPolicy: asString(j['faceMatchPolicy'], 'off'),
+    attendanceMarking: asString(j['attendanceMarking'], 'self'),
+    presentByDefault: asBool(j['presentByDefault']),
     language: asString(j['language'], 'en'),
     digestTime: asString(j['digestTime'], '09:30'),
     roundToRupee: asBool(j['roundToRupee'], true),
@@ -192,6 +202,8 @@ class CompanySettings {
     'outsideGeofencePolicy': outsideGeofencePolicy,
     'phoneLockPolicy': phoneLockPolicy,
     'faceMatchPolicy': faceMatchPolicy,
+    'attendanceMarking': attendanceMarking,
+    'presentByDefault': presentByDefault,
     'language': language,
     'digestTime': digestTime,
     'roundToRupee': roundToRupee,

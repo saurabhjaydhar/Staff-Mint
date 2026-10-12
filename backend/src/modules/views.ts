@@ -26,6 +26,8 @@ export const employeeView = (e: any, extra: Record<string, unknown> = {}) => ({
   joiningDate: e.joiningDate ?? null,
   status: e.status,
   appRole: e.appRole ?? 'employee',
+  /** null = follows the business setting. */
+  attendanceMarking: e.attendanceMarking ?? null,
   consent: { location: !!e.consent?.location, at: e.consent?.at ?? null },
   face: { status: e.face?.status ?? 'none', enrolledAt: e.face?.enrolledAt ?? null, approvedAt: e.face?.approvedAt ?? null },
   hasDevice: !!extra.hasDevice,

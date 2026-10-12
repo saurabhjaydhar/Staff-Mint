@@ -53,7 +53,8 @@ class _EmployeeHomeScreenState extends ConsumerState<EmployeeHomeScreen> {
   }
 
   Future<void> _prefetch() async {
-    if (!mounted || _locating) return;
+    // Owner-marked staff never check in, so don't ask for their location.
+    if (!mounted || _locating || ref.read(authControllerProvider).ownerMarksAttendance) return;
     setState(() {
       _locating = true;
       _locFailed = false;
@@ -278,6 +279,8 @@ class _EmployeeHomeScreenState extends ConsumerState<EmployeeHomeScreen> {
     final firstName = (session.employee?.name ?? session.user?.name ?? '').split(' ').first;
     final away = _awayMeters(info);
     final selfie = session.company?.settings.selfieRequired ?? true;
+    // The owner or a manager marks attendance: show the day, no check-in button.
+    final ownerMarks = info?.ownerMarks ?? session.ownerMarksAttendance;
 
     return Scaffold(
       body: SafeArea(
@@ -293,7 +296,9 @@ class _EmployeeHomeScreenState extends ConsumerState<EmployeeHomeScreen> {
             ScreenHeader(subtitle: subtitle, title: s.namaste(firstName)),
             const BusinessSwitchChip(),
             const AccountAlerts(),
-            if (session.company?.settings.faceMatchPolicy == 'review' && session.employee?.faceStatus == 'none')
+            if (!ownerMarks &&
+                session.company?.settings.faceMatchPolicy == 'review' &&
+                session.employee?.faceStatus == 'none')
               Card(
                 key: const Key('faceSetupBanner'),
                 margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -325,33 +330,46 @@ class _EmployeeHomeScreenState extends ConsumerState<EmployeeHomeScreen> {
                   ],
                 ),
               ),
-            if (_shiftCard(s, record, shift) case final card?)
+            if (_shiftCard(s, record, shift, ownerMarks: ownerMarks) case final card?)
               Padding(padding: const EdgeInsets.fromLTRB(16, 12, 16, 0), child: card),
-            if (buttonState != PunchButtonState.completed)
+            if (!ownerMarks && buttonState != PunchButtonState.completed)
               Padding(padding: const EdgeInsets.fromLTRB(16, 8, 16, 0), child: _locationCard(s, info)),
-            const SizedBox(height: 36),
-            Center(
-              child: today.isLoading && !today.hasValue
-                  ? const SkeletonBox(width: 220, height: 220, radius: 110)
-                  : CheckInButton(
-                      state: buttonState,
-                      busy: _busy,
-                      busyLabel: _busyLabel,
-                      checkInHint: selfie ? s.checkInHintSelfie : s.checkInHint,
-                      onPressed: () => _punch(buttonState, info),
-                    ),
-            ),
-            const SizedBox(height: 34),
-            Text(
-              [
-                statusText,
-                if (firstIn != null) s.checkedInAt(Dates.time(firstIn.clientTime, s.languageCode)),
-                if (lastOut != null) s.checkedOutAt(Dates.time(lastOut.clientTime, s.languageCode)),
-              ].join(' · '),
-              key: const Key('todayStatusText'),
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15.5),
-            ),
+            if (ownerMarks)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: _InfoCard(
+                  key: const Key('markedByOwner'),
+                  icon: Icons.how_to_reg_rounded,
+                  color: AppColors.mintDark,
+                  title: s.todayIs(s.statusLabel(info?.displayStatus)),
+                  body: s.markedByOwnerBody,
+                ),
+              ),
+            if (!ownerMarks) const SizedBox(height: 36),
+            if (!ownerMarks)
+              Center(
+                child: today.isLoading && !today.hasValue
+                    ? const SkeletonBox(width: 220, height: 220, radius: 110)
+                    : CheckInButton(
+                        state: buttonState,
+                        busy: _busy,
+                        busyLabel: _busyLabel,
+                        checkInHint: selfie ? s.checkInHintSelfie : s.checkInHint,
+                        onPressed: () => _punch(buttonState, info),
+                      ),
+              ),
+            if (!ownerMarks) const SizedBox(height: 34),
+            if (!ownerMarks)
+              Text(
+                [
+                  statusText,
+                  if (firstIn != null) s.checkedInAt(Dates.time(firstIn.clientTime, s.languageCode)),
+                  if (lastOut != null) s.checkedOutAt(Dates.time(lastOut.clientTime, s.languageCode)),
+                ].join(' · '),
+                key: const Key('todayStatusText'),
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15.5),
+              ),
             if (today.value?.fromCache ?? false)
               Padding(
                 padding: const EdgeInsets.only(top: 6),
@@ -373,7 +391,7 @@ class _EmployeeHomeScreenState extends ConsumerState<EmployeeHomeScreen> {
                   style: const TextStyle(color: AppColors.red),
                 ),
               ),
-            if (away != null && buttonState == PunchButtonState.checkIn)
+            if (!ownerMarks && away != null && buttonState == PunchButtonState.checkIn)
               Card(
                 key: const Key('workingOutside'),
                 margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
@@ -476,14 +494,16 @@ class _EmployeeHomeScreenState extends ConsumerState<EmployeeHomeScreen> {
 
   /// "Your shift: 9:00 AM – 9:00 PM · Started 12 minutes ago" (only for the
   /// first 3 hours; after that just the shift), or "In at 9:02 · 7 min late".
-  Widget? _shiftCard(S s, Attendance? record, Shift? shift) {
+  Widget? _shiftCard(S s, Attendance? record, Shift? shift, {bool ownerMarks = false}) {
     if (shift == null) return null;
     final lang = s.languageCode;
     final title = s.yourShift(Dates.hhmmToDisplay(shift.start, lang), Dates.hhmmToDisplay(shift.end, lang));
     final firstIn = record?.firstIn;
     String? body;
     var color = AppColors.mintDark;
-    if (firstIn != null) {
+    if (ownerMarks) {
+      // No "Started 40 minutes ago" nudge: they don't check in.
+    } else if (firstIn != null) {
       final late = record!.lateMinutes;
       body = s.inAtLate(Dates.time(firstIn.clientTime, lang), late);
       if (late > 0) color = AppColors.amberDark;

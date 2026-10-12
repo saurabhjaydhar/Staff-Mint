@@ -96,7 +96,7 @@ export function computeDay(args: {
 
 /** Plain-language rules shown in Settings (PRD F4). */
 export function describeRules(
-  s: { graceMinutes: number; halfDayHours: number; missingCheckoutPolicy: string; weekOffsPaid: boolean; holidaysPaid: boolean; monthDivisor: string; outsideGeofencePolicy: string; phoneLockPolicy?: string; faceMatchPolicy?: string },
+  s: { graceMinutes: number; halfDayHours: number; missingCheckoutPolicy: string; weekOffsPaid: boolean; holidaysPaid: boolean; monthDivisor: string; outsideGeofencePolicy: string; phoneLockPolicy?: string; faceMatchPolicy?: string; presentByDefault?: boolean },
   lang: 'en' | 'hi',
   shift?: { start: string; end: string },
 ): { key: string; text: string }[] {
@@ -136,5 +136,14 @@ export function describeRules(
     rules.en.push(['face', 'Each check-in selfie is compared with the staff member\'s approved face photo. If it does not clearly match, the check-in waits for your approval.']);
     rules.hi.push(['face', 'हर चेक-इन की सेल्फ़ी स्टाफ़ की मंज़ूर चेहरे की फ़ोटो से मिलाई जाती है। साफ़ मेल न खाए तो हाज़िरी आपकी मंज़ूरी के बाद लगेगी।']);
   }
+  if (s.presentByDefault) {
+    rules.en.push(['present_by_default', 'Staff whose attendance you mark are counted Present at 11:59 PM if you have not marked them (unless on leave, holiday or week off).']);
+    rules.hi.push(['present_by_default', 'जिन स्टाफ़ की हाज़िरी आप लगाते हैं, अगर रात 11:59 तक आपने कुछ नहीं लगाया तो हाज़िर लगेगा (छुट्टी, त्योहार या साप्ताहिक छुट्टी को छोड़कर)।']);
+  }
   return rules[lang].map(([key, text]) => ({ key, text }));
+}
+
+/** Who marks this person's attendance: their own setting, else the business setting. */
+export function ownerMarksAttendance(settings: { attendanceMarking?: string | null } | null | undefined, employee: { attendanceMarking?: string | null }): boolean {
+  return (employee.attendanceMarking ?? settings?.attendanceMarking ?? 'self') === 'owner';
 }

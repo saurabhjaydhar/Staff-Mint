@@ -109,7 +109,7 @@ final employeeTodayProvider = FutureProvider.autoDispose<TodayState>((ref) async
       if (info.date == today) return TodayState(info: info, fromCache: true);
       // Keep shift/branch from the stale copy, drop the old record.
       return TodayState(
-        info: TodayInfo(date: today, shift: info.shift, branch: info.branch),
+        info: TodayInfo(date: today, shift: info.shift, branch: info.branch, ownerMarks: info.ownerMarks),
         fromCache: true,
       );
     }

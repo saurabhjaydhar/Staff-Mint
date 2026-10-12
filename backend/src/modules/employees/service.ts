@@ -190,8 +190,13 @@ export async function getEmployee(ctx: Ctx, id: string) {
   };
 }
 
-export async function updateEmployee(ctx: Ctx, id: string, patch: Partial<EmployeeInput> & { effectiveFrom?: string; language?: 'en' | 'hi' }) {
+export async function updateEmployee(
+  ctx: Ctx,
+  id: string,
+  patch: Partial<EmployeeInput> & { effectiveFrom?: string; language?: 'en' | 'hi'; attendanceMarking?: 'self' | 'owner' | null },
+) {
   const e = await assertEmployeeInScope(ctx, id);
+  if (patch.attendanceMarking !== undefined && ctx.role !== 'owner') throw new AppError('FORBIDDEN', 'Only the owner can change who marks attendance');
   let newLogin: any = null;
   const before = e.toObject();
   const company = await Company.findById(ctx.companyId).lean();
@@ -216,6 +221,7 @@ export async function updateEmployee(ctx: Ctx, id: string, patch: Partial<Employ
   if (patch.designation !== undefined) e.designation = patch.designation;
   if (patch.joiningDate !== undefined) e.joiningDate = patch.joiningDate;
   if (patch.language) e.language = patch.language;
+  if (patch.attendanceMarking !== undefined) e.attendanceMarking = patch.attendanceMarking;
   if (patch.branchId) {
     if (!(await Branch.exists({ _id: patch.branchId, companyId: ctx.companyId }))) throw notFound('Branch');
     e.branchId = new Types.ObjectId(patch.branchId);

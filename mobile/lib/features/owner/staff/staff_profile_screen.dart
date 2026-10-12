@@ -172,6 +172,7 @@ class StaffProfileScreen extends ConsumerWidget {
                       _InfoRow(label: s.weeklyOffLabel, value: Dates.weekdayNames(shift.weeklyOff, s.languageCode)),
                     if (e.joiningDate != null)
                       _InfoRow(label: s.joinedLabel, value: Dates.prettyApiDate(e.joiningDate!, s.languageCode)),
+                    _WhoMarksTile(employee: e, onChanged: invalidate),
                   ],
                 ),
               ),
@@ -295,13 +296,15 @@ class StaffProfileScreen extends ConsumerWidget {
                           child: Text(e.invitedAt == null ? s.sendInvite : s.resendInvite),
                         ),
                       ),
-                    ListTile(
-                      leading: Icon(
-                        e.locationConsent ? Icons.verified_user_rounded : Icons.privacy_tip_outlined,
-                        color: e.locationConsent ? AppColors.mint : AppColors.muted,
+                    // Staff the owner marks never check in, so location consent doesn't apply.
+                    if (!e.ownerMarks(ref.watch(authControllerProvider).company?.settings))
+                      ListTile(
+                        leading: Icon(
+                          e.locationConsent ? Icons.verified_user_rounded : Icons.privacy_tip_outlined,
+                          color: e.locationConsent ? AppColors.mint : AppColors.muted,
+                        ),
+                        title: Text(e.locationConsent ? s.consentGiven : s.consentPending),
                       ),
-                      title: Text(e.locationConsent ? s.consentGiven : s.consentPending),
-                    ),
                     if (e.faceStatus != 'none') _FaceTile(employee: e, onChanged: invalidate),
                   ],
                 ),
@@ -594,6 +597,70 @@ class _EditStaffSheetState extends ConsumerState<_EditStaffSheet> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Who marks this person's attendance. Only the owner can change it.
+class _WhoMarksTile extends ConsumerWidget {
+  const _WhoMarksTile({required this.employee, required this.onChanged});
+  final Employee employee;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = context.s;
+    final session = ref.watch(authControllerProvider);
+    final isOwner = session.user?.isOwner ?? false;
+    final business = session.company?.settings.attendanceMarking == 'owner' ? s.marksOwnerShort : s.marksSelfShort;
+    // '' = follow the business setting (null on the server).
+    String label(String v) => switch (v) {
+      'self' => s.marksSelfShort,
+      'owner' => s.marksOwnerShort,
+      _ => s.marksSameAsBusiness(business),
+    };
+    final current = employee.attendanceMarking ?? '';
+    return ListTile(
+      key: const Key('staffWhoMarks'),
+      leading: const Icon(Icons.how_to_reg_rounded),
+      title: Text(s.whoMarksTitle),
+      subtitle: Text(label(current)),
+      trailing: isOwner ? const Icon(Icons.chevron_right_rounded) : null,
+      onTap: !isOwner
+          ? null
+          : () async {
+              final picked = await showDialog<String>(
+                context: context,
+                builder: (ctx) => SimpleDialog(
+                  title: Text(s.whoMarksTitle),
+                  children: [
+                    for (final v in const ['', 'self', 'owner'])
+                      SimpleDialogOption(
+                        onPressed: () => Navigator.pop(ctx, v),
+                        child: Row(
+                          children: [
+                            Icon(
+                              v == current ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
+                              color: AppColors.mintDark,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(child: Text(label(v))),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              );
+              if (picked == null || picked == current || !context.mounted) return;
+              final ok = await runGuarded(
+                context,
+                () => ref.read(employeesApiProvider).update(employee.id, {
+                  'attendanceMarking': picked.isEmpty ? null : picked,
+                }),
+                success: s.saved,
+              );
+              if (ok) onChanged();
+            },
     );
   }
 }
