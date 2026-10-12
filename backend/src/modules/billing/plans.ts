@@ -48,16 +48,21 @@ export async function getPlan(code: string): Promise<PlanView> {
 export async function companyPlan(company: { _id: Types.ObjectId }, now = new Date()) {
   const own = await Company.findById(company._id).select('billedTo').lean();
   const payerId = own?.billedTo ?? company._id;
-  const sub = await Subscription.findOne({ companyId: payerId, status: { $in: ['trialing', 'active', 'past_due', 'pending', 'cancelled'] } })
+  // Newest first; the first one that still gives a plan wins. A checkout started but never paid
+  // (pending) must not take away a running trial or a paid month.
+  const subs = await Subscription.find({ companyId: payerId, status: { $in: ['trialing', 'active', 'past_due', 'pending', 'cancelled'] } })
     .sort({ createdAt: -1 })
+    .limit(5)
     .lean();
-  let effective = 'free';
-  if (sub) {
+  const grants = (sub: (typeof subs)[number]) => {
     const inTrial = sub.status === 'trialing' && sub.trialEndsAt && sub.trialEndsAt > now;
     const paidUp = (sub.status === 'active' || sub.status === 'past_due') && (!sub.currentPeriodEnd || sub.currentPeriodEnd > now);
     const cancelledButPaid = sub.status === 'cancelled' && sub.currentPeriodEnd && sub.currentPeriodEnd > now;
-    if (inTrial || paidUp || cancelledButPaid) effective = sub.planCode;
-  }
+    return !!(inTrial || paidUp || cancelledButPaid);
+  };
+  const granting = subs.find(grants);
+  const sub = granting ?? subs[0] ?? null;
+  const effective = granting ? granting.planCode : 'free';
   return { plan: await getPlan(effective), subscription: sub };
 }
 

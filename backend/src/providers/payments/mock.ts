@@ -13,12 +13,13 @@ export class MockPaymentProvider implements PaymentProvider {
   verifyWebhook(): boolean {
     return true;
   }
-  /** body: { id, event: 'subscription.activated'|..., subscriptionId, currentPeriodEnd? } */
+  /** body: { id, event: 'subscription.activated'|..., subscriptionId, currentPeriodEnd?, paymentId?, amountPaise? } */
   parseWebhook(body: any): PaymentEvent[] {
     if (!body?.event) return [];
     if (body.event.startsWith('payment.')) {
       return [{ type: body.event, eventId: body.id, providerSubId: body.subscriptionId, providerPaymentId: body.paymentId ?? 'mockpay', amountPaise: body.amountPaise ?? 0, raw: body }];
     }
-    return [{ type: body.event, eventId: body.id, providerSubId: body.subscriptionId, currentPeriodEnd: body.currentPeriodEnd ? new Date(body.currentPeriodEnd) : undefined, raw: body }];
+    const payment = body.paymentId ? { id: String(body.paymentId), amountPaise: Number(body.amountPaise ?? 0) } : undefined;
+    return [{ type: body.event, eventId: body.id, providerSubId: body.subscriptionId, currentPeriodEnd: body.currentPeriodEnd ? new Date(body.currentPeriodEnd) : undefined, payment, raw: body }];
   }
 }

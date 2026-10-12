@@ -58,7 +58,23 @@ void main() {
     );
     // Brand and official names stay in English letters.
     const allowed = {
-      ...['WhatsApp', 'UPI', 'PF', 'ESI', 'ESIC', 'OTP', 'PAN', 'IFSC', 'UAN', 'PIN', 'HRA', 'GSTIN', 'CA', 'GPS'],
+      ...[
+        'WhatsApp',
+        'UPI',
+        'PF',
+        'ESI',
+        'ESIC',
+        'OTP',
+        'PAN',
+        'IFSC',
+        'UAN',
+        'PIN',
+        'HRA',
+        'GST',
+        'GSTIN',
+        'CA',
+        'GPS',
+      ],
       ...['PDF', 'ITR', 'Excel', 'SalaryBox', 'StaffMint', 'Mint', 'English', 'Hinglish', 'Growth', 'En', 'ID', 'SMS'],
       // Examples of input (UPI id, IFSC, a link).
       ...['SBIN', 'name', 'okaxis', 'https', 'app', 'staffmint', 'import', 'Import'],
