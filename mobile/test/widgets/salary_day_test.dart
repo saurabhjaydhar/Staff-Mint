@@ -86,7 +86,9 @@ void main() {
   testWidgets('salary day shows the cash needed, flagged staff first, then "others look fine"', (tester) async {
     await pump(tester);
 
-    expect(find.text('Cash needed'), findsOneWidget);
+    expect(find.text('Total to pay this month'), findsOneWidget);
+    expect(find.text('Step 1 · Check attendance'), findsOneWidget);
+    expect(find.text('1 to check below'), findsOneWidget);
     expect(find.text('₹70,500'), findsOneWidget);
     expect(find.text('−₹2,500 advance'), findsOneWidget);
 

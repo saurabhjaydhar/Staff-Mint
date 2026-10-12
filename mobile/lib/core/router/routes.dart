@@ -24,6 +24,7 @@ class Routes {
   static const ownerHome = '/owner/home';
   static const ownerStaff = '/owner/staff';
   static const ownerStaffAdd = '/owner/staff/add';
+  static const ownerTeam = '/owner/staff/team';
   static String ownerStaffProfile(String id) => '/owner/staff/$id';
   static const ownerSalary = '/owner/salary';
   static const ownerMore = '/owner/more';
@@ -37,6 +38,10 @@ class Routes {
   static const ownerOwners = '/owner/more/settings/owners';
   static const ownerStatutory = '/owner/more/settings/statutory';
   static const ownerBilling = '/owner/more/billing';
+  static const ownerTimings = '/owner/more/timings';
+  static const ownerAttendanceRules = '/owner/more/rules/attendance';
+  static const ownerSalaryRules = '/owner/more/rules/salary';
+  static const ownerSafety = '/owner/more/rules/safety';
   static const ownerAudit = '/owner/more/audit';
   static const ownerHelp = '/owner/more/help';
   static const ownerProfile = '/owner/more/profile';

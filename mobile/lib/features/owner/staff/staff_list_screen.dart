@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/api/providers.dart';
 import '../../../core/i18n/strings.dart';
 import '../../../core/models/models.dart';
 import '../../../core/router/routes.dart';
@@ -43,13 +44,19 @@ class _StaffListScreenState extends ConsumerState<StaffListScreen> {
     final list = ref.watch(employeesProvider(_query));
     final today = ref.watch(dayAttendanceProvider(Dates.toApiDate(DateTime.now()))).value ?? const <DayRow>[];
     final todayStatus = {for (final r in today) r.employee.id: r.displayStatus};
+    final isOwner = ref.watch(authControllerProvider.select((v) => v.isOwner));
     return Scaffold(
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
             ScreenHeader(
-              subtitle: ref.watch(authControllerProvider.select((v) => v.company?.name)) ?? s.appName,
+              subtitle: list.hasValue
+                  ? s.staffCountLine(
+                      list.requireValue.where((e) => e.isActive).length,
+                      list.requireValue.where((e) => e.isActive && e.isManager).length,
+                    )
+                  : (ref.watch(authControllerProvider.select((v) => v.company?.name)) ?? s.appName),
               title: s.staffTitle,
               actions: [
                 IconButton.filled(
@@ -60,6 +67,18 @@ class _StaffListScreenState extends ConsumerState<StaffListScreen> {
                 ),
               ],
             ),
+            if (isOwner)
+              Card(
+                margin: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                child: ListTile(
+                  key: const Key('teamAccessTile'),
+                  leading: const Icon(Icons.key_rounded, color: AppColors.mintDark),
+                  title: Text(s.teamAccess, style: const TextStyle(fontWeight: FontWeight.w800)),
+                  subtitle: Text(s.teamAccessHint),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => context.push(Routes.ownerTeam),
+                ),
+              ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
               child: TextField(
@@ -115,26 +134,62 @@ class _StaffListScreenState extends ConsumerState<StaffListScreen> {
   }
 }
 
-class _StaffTile extends StatelessWidget {
+class _StaffTile extends ConsumerWidget {
   const _StaffTile({required this.employee, required this.status});
   final Employee employee;
   final String? status;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final s = context.s;
     final e = employee;
+    final notJoined = e.isActive && !e.linked;
     return ListTile(
+      key: Key('staffTile_${e.id}'),
       leading: InitialsAvatar(e.name),
-      title: Text(e.name, style: TextStyle(color: e.isActive ? null : AppColors.muted)),
-      subtitle: Text(
-        [
-          if (e.designation != null && e.designation!.isNotEmpty) e.designation!,
-          if (e.ratePaise > 0) e.isDaily ? s.perDay(Money.format(e.ratePaise)) : s.perMonth(Money.format(e.ratePaise)),
-          if (!e.isActive) s.inactive,
-        ].join(' · ').ifEmpty(Phones.display(e.phone)),
+      title: Row(
+        children: [
+          Flexible(
+            child: Text(
+              e.name,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: e.isActive ? null : AppColors.muted),
+            ),
+          ),
+          if (e.isManager) ...[
+            const SizedBox(width: 6),
+            Container(
+              key: Key('managerBadge_${e.id}'),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+              decoration: BoxDecoration(color: AppColors.indigoLight, borderRadius: BorderRadius.circular(6)),
+              child: Text(
+                s.managerBadge,
+                style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: AppColors.indigo),
+              ),
+            ),
+          ],
+        ],
       ),
-      trailing: e.isActive && status != null ? StatusPill(status: status) : const Icon(Icons.chevron_right_rounded),
+      subtitle: Text(
+        notJoined
+            ? s.invitedNotJoined
+            : [
+                if (e.designation != null && e.designation!.isNotEmpty) e.designation!,
+                if (e.ratePaise > 0)
+                  e.isDaily ? s.perDay(Money.format(e.ratePaise)) : s.perMonth(Money.format(e.ratePaise)),
+                if (!e.isActive) s.inactive,
+              ].join(' · ').ifEmpty(Phones.display(e.phone)),
+      ),
+      trailing: notJoined
+          ? TextButton(
+              key: Key('remind_${e.id}'),
+              onPressed: () =>
+                  runGuarded(context, () => ref.read(accountsApiProvider).invite(e.id), success: s.inviteSent),
+              child: Text(s.remind),
+            )
+          : e.isActive && status != null
+          ? StatusPill(status: status)
+          : const Icon(Icons.chevron_right_rounded),
       onTap: () => context.push(Routes.ownerStaffProfile(e.id)),
     );
   }

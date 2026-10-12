@@ -282,17 +282,45 @@ export async function resetDevice(ctx: Ctx, id: string) {
   return e;
 }
 
-export async function setAppRole(ctx: Ctx, id: string, appRole: 'employee' | 'manager') {
+/**
+ * Make someone a manager (or back to staff). A manager sees their own branch,
+ * or every branch with [opts.allBranches]. They get a message and their app
+ * switches to the manager view by itself.
+ */
+export async function setAppRole(ctx: Ctx, id: string, appRole: 'employee' | 'manager', opts: { allBranches?: boolean } = {}) {
   const e = await assertEmployeeInScope(ctx, id);
   const before = { appRole: e.appRole };
+  const changed = e.appRole !== appRole;
   e.appRole = appRole;
   await e.save();
-  const branchIds = appRole === 'manager' && e.branchId ? [e.branchId] : [];
+  const branchIds = appRole === 'manager' && e.branchId && !opts.allBranches ? [e.branchId] : [];
   const ms = await Membership.find({ companyId: ctx.companyId, employeeId: e._id, role: { $in: ['employee', 'manager'] } }).select('_id').lean();
   // Applies at once: open sessions are told their access changed and refresh into the new role.
   if (ms.length) await Membership.updateMany({ _id: { $in: ms.map((m) => m._id) } }, { role: appRole, branchIds });
   if (e.userId) await User.updateOne({ _id: e.userId, companyId: ctx.companyId, employeeId: e._id }, { role: appRole, branchIds });
-  await audit(ctx, { action: 'employee.role', entity: 'employee', entityId: e._id, before, after: { appRole } });
+  await audit(ctx, { action: 'employee.role', entity: 'employee', entityId: e._id, before, after: { appRole, allBranches: !!opts.allBranches } });
+  if (changed) {
+    const { notifyEmployee } = await import('../notifications/service.js');
+    const company = await Company.findById(ctx.companyId).select('name').lean();
+    const name = company?.name ?? '';
+    await notifyEmployee(ctx.companyId, e._id, appRole === 'manager'
+      ? {
+          template: 'role_manager',
+          title: `You are now a manager at ${name}`,
+          titleHi: `अब आप ${name} में मैनेजर हैं`,
+          body: 'You can see everyone’s attendance, fix it, and approve leave. Open StaffMint to start.',
+          bodyHi: 'आप सबकी हाज़िरी देख और ठीक कर सकते हैं, और छुट्टी मंज़ूर कर सकते हैं। शुरू करने के लिए StaffMint खोलें।',
+          data: { type: 'role', role: appRole },
+        }
+      : {
+          template: 'role_employee',
+          title: `Your manager access at ${name} has ended`,
+          titleHi: `${name} में आपका मैनेजर का काम ख़त्म हुआ`,
+          body: 'You can still check in and see your own attendance and salary.',
+          bodyHi: 'आप अब भी चेक-इन कर सकते हैं और अपनी हाज़िरी और सैलरी देख सकते हैं।',
+          data: { type: 'role', role: appRole },
+        });
+  }
   return e;
 }
 

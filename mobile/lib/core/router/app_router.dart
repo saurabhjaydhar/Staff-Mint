@@ -27,6 +27,7 @@ import '../../features/owner/more/holidays_screen.dart';
 import '../../features/owner/more/leaves_screen.dart';
 import '../../features/owner/more/more_screen.dart';
 import '../../features/owner/more/reports_screen.dart';
+import '../../features/owner/more/rules_screens.dart';
 import '../../features/owner/more/settings_screen.dart';
 import '../../features/owner/more/shifts_screen.dart';
 import '../../features/owner/more/statutory_screen.dart';
@@ -35,6 +36,7 @@ import '../../features/owner/shell/owner_shell.dart';
 import '../../features/owner/staff/add_staff_screen.dart';
 import '../../features/owner/staff/staff_list_screen.dart';
 import '../../features/owner/staff/staff_profile_screen.dart';
+import '../../features/owner/staff/team_screen.dart';
 import '../../features/owner/today/today_screen.dart';
 import '../../features/setup/setup_screen.dart';
 import '../../features/setup/setup_staff_screen.dart';
@@ -106,6 +108,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                 (_) => const StaffListScreen(),
                 routes: [
                   GoRoute(path: 'add', builder: (_, _) => const AddStaffScreen()),
+                  GoRoute(path: 'team', builder: (_, _) => const TeamScreen()),
                   GoRoute(
                     path: ':id',
                     builder: (_, s) => StaffProfileScreen(employeeId: s.pathParameters['id']!),
@@ -136,6 +139,10 @@ final routerProvider = Provider<GoRouter>((ref) {
                     ],
                   ),
                   GoRoute(path: 'billing', builder: (_, _) => const BillingScreen()),
+                  GoRoute(path: 'timings', builder: (_, _) => const TimingsScreen()),
+                  GoRoute(path: 'rules/attendance', builder: (_, _) => const AttendanceRulesScreen()),
+                  GoRoute(path: 'rules/salary', builder: (_, _) => const SalaryRulesScreen()),
+                  GoRoute(path: 'rules/safety', builder: (_, _) => const CheckInSafetyScreen()),
                   GoRoute(path: 'audit', builder: (_, _) => const AuditScreen()),
                   GoRoute(path: 'help', builder: (_, _) => const HelpScreen()),
                   GoRoute(path: 'profile', builder: (_, _) => const ProfileScreen(showBack: true)),

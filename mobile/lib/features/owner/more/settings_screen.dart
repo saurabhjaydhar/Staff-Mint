@@ -9,12 +9,13 @@ import '../../../core/router/routes.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/json.dart';
 import '../../../core/widgets/common.dart';
-import '../../../core/widgets/pickers.dart';
 import '../../auth/auth_controller.dart';
 import '../../setup/setup_screen.dart' show businessTypes;
 import '../providers/owner_providers.dart';
 
-/// Company settings: every default from setup can be changed here (PRD F1).
+/// Business details & branches: name and type, branches, PF/ESI/PT, who can
+/// open the business, messages, and closing the business. Shop rules live on
+/// their own small pages (timings, attendance, salary, check-in safety).
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -23,7 +24,7 @@ class SettingsScreen extends ConsumerWidget {
     final s = context.s;
     final company = ref.watch(companyProvider);
     return Scaffold(
-      appBar: AppBar(title: Text(s.settings)),
+      appBar: AppBar(title: Text(s.businessDetailsTitle)),
       body: AsyncBody<Company>(
         value: company,
         onRetry: () => ref.invalidate(companyProvider),
@@ -45,31 +46,28 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
   late final Json _settings = widget.company.settings.toJson();
   late final _name = TextEditingController(text: widget.company.name);
   late String _type = businessTypes.contains(widget.company.businessType) ? widget.company.businessType : 'other';
-  late final _grace = TextEditingController(text: '${widget.company.settings.graceMinutes}');
-  late final _halfDay = TextEditingController(text: '${widget.company.settings.halfDayHours}');
   bool _busy = false;
 
   @override
   void dispose() {
     _name.dispose();
-    _grace.dispose();
-    _halfDay.dispose();
     super.dispose();
   }
+
+  /// The only settings edited here; shop rules have their own pages.
+  static const _keys = ['whatsappAlerts', 'exStaffPayslips'];
 
   void _set(String key, Object value) => setState(() => _settings[key] = value);
 
   Future<void> _save() async {
     final s = context.s;
-    _settings['graceMinutes'] = int.tryParse(_grace.text) ?? widget.company.settings.graceMinutes;
-    _settings['halfDayHours'] = num.tryParse(_halfDay.text) ?? widget.company.settings.halfDayHours;
     setState(() => _busy = true);
     final ok = await runGuarded(context, () async {
       final api = ref.read(companyApiProvider);
       if (_name.text.trim() != widget.company.name || _type != widget.company.businessType) {
         await api.update(name: _name.text.trim(), businessType: _type);
       }
-      await api.updateSettings(_settings);
+      await api.updateSettings({for (final k in _keys) k: _settings[k]});
     }, success: s.settingsSaved);
     if (!mounted) return;
     setState(() => _busy = false);
@@ -78,35 +76,6 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
       ref.invalidate(rulesProvider);
       ref.read(authControllerProvider.notifier).refreshMe().ignore();
     }
-  }
-
-  Widget _radioGroup(String title, String key, List<(String, String)> options, {String? help}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-          child: Text(title, style: Theme.of(context).textTheme.titleSmall),
-        ),
-        if (help != null)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(help, style: const TextStyle(color: AppColors.muted, fontSize: 13)),
-          ),
-        RadioGroup<String>(
-          groupValue: _settings[key]?.toString(),
-          onChanged: (v) {
-            if (v != null) _set(key, v);
-          },
-          child: Column(
-            children: [
-              for (final (value, label) in options)
-                RadioListTile<String>(dense: true, value: value, title: Text(label)),
-            ],
-          ),
-        ),
-      ],
-    );
   }
 
   @override
@@ -135,24 +104,6 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
                   ],
                   onChanged: (v) => setState(() => _type = v ?? _type),
                 ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _grace,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(labelText: s.graceMinutes),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _halfDay,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: InputDecoration(labelText: s.halfDayHours),
-                ),
-                const SizedBox(height: 12),
-                TimeField(
-                  label: s.digestTime,
-                  value: _settings['digestTime']?.toString() ?? '09:30',
-                  onChanged: (v) => _set('digestTime', v),
-                ),
               ],
             ),
           ),
@@ -160,44 +111,7 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
         Card(
           child: Column(
             children: [
-              _radioGroup(s.monthDivisor, 'monthDivisor', [
-                ('days_in_month', s.divisorDaysInMonth),
-                ('30', s.divisor30),
-                ('26', s.divisor26),
-              ]),
-              _radioGroup(s.missingCheckoutPolicy, 'missingCheckoutPolicy', [
-                ('half_day', s.policyHalfDay),
-                ('present', s.policyPresent),
-                ('flag', s.policyFlag),
-              ]),
-              _radioGroup(s.outsideGeofencePolicy, 'outsideGeofencePolicy', [
-                ('block', s.policyBlock),
-                ('request_approval', s.policyRequestApproval),
-              ]),
-              _radioGroup(s.phoneLockPolicy, 'phoneLockPolicy', [
-                ('off', s.lockPolicyOff),
-                ('recommended', s.lockPolicyRecommended),
-                ('required', s.lockPolicyRequired),
-              ], help: s.phoneLockPolicyHelp),
-              _radioGroup(s.faceMatchPolicy, 'faceMatchPolicy', [
-                ('off', s.faceMatchOff),
-                ('review', s.faceMatchReview),
-              ], help: s.faceMatchPolicyHelp),
-            ],
-          ),
-        ),
-        Card(
-          child: Column(
-            children: [
-              for (final (key, label) in [
-                ('weekOffsPaid', s.weekOffsPaid),
-                ('holidaysPaid', s.holidaysPaid),
-                ('sickLeavePaid', s.sickLeavePaid),
-                ('selfieRequired', s.selfieRequired),
-                ('roundToRupee', s.roundToRupee),
-                ('whatsappAlerts', s.whatsappAlerts),
-                ('exStaffPayslips', s.exStaffPayslips),
-              ])
+              for (final (key, label) in [('whatsappAlerts', s.whatsappAlerts), ('exStaffPayslips', s.exStaffPayslips)])
                 SwitchListTile(value: _settings[key] == true, title: Text(label), onChanged: (v) => _set(key, v)),
             ],
           ),
@@ -210,12 +124,6 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
           child: Column(
             children: [
               ListTile(
-                leading: const Icon(Icons.schedule_rounded),
-                title: Text(s.shifts),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => context.push(Routes.ownerShifts),
-              ),
-              ListTile(
                 leading: const Icon(Icons.location_on_rounded),
                 title: Text(s.geofence),
                 subtitle: Text(s.branches),
@@ -223,26 +131,12 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
                 onTap: () => context.push(Routes.ownerBranches),
               ),
               ListTile(
-                leading: const Icon(Icons.celebration_rounded),
-                title: Text(s.holidays),
+                key: const Key('settingsTeam'),
+                leading: const Icon(Icons.key_rounded),
+                title: Text(s.teamAccess),
+                subtitle: Text(s.teamAccessHint),
                 trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => context.push(Routes.ownerHolidays),
-              ),
-              ListTile(
-                key: const Key('settingsOwners'),
-                leading: const Icon(Icons.groups_rounded),
-                title: Text(s.ownersBi.text),
-                subtitle: Text(s.ownersHint),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => context.push(Routes.ownerOwners),
-              ),
-              ListTile(
-                key: const Key('settingsAccountants'),
-                leading: const Icon(Icons.calculate_rounded),
-                title: Text(s.accountantsBi.text),
-                subtitle: Text(s.accountantsHint),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => context.push(Routes.ownerAccountants),
+                onTap: () => context.push(Routes.ownerTeam),
               ),
               ListTile(
                 key: const Key('settingsStatutory'),

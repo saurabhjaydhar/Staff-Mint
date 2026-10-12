@@ -22,6 +22,7 @@ class Employee {
     this.linked = false,
     this.invitedAt,
     this.language = 'en',
+    this.appRole = 'employee',
     this.leaveBalance,
     this.advanceBalancePaise,
     this.bank,
@@ -50,6 +51,10 @@ class Employee {
   final bool linked;
   final DateTime? invitedAt;
   final String language;
+
+  /// 'manager' can mark attendance and approve leave; can't see salary or billing.
+  final String appRole;
+  bool get isManager => appRole == 'manager';
 
   /// Present only on `GET /employees/:id`.
   final LeaveBalance? leaveBalance;
@@ -81,6 +86,7 @@ class Employee {
       faceStatus: asString(asMap(j['face'])['status'], 'none'),
       hasDevice: asBool(j['hasDevice']),
       linked: asBool(j['linked']),
+      appRole: asString(j['appRole'], 'employee'),
       invitedAt: asDateTimeOrNull(j['invitedAt']),
       language: asString(j['language'], 'en'),
       leaveBalance: j['leaveBalance'] is Map ? LeaveBalance.fromJson(asMap(j['leaveBalance'])) : null,

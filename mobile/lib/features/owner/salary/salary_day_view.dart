@@ -9,7 +9,6 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/slide_to_confirm.dart';
-import '../../../core/widgets/step_bar.dart';
 import '../../../core/widgets/success_screen.dart';
 import '../providers/owner_providers.dart';
 import 'money_dialogs.dart';
@@ -227,11 +226,8 @@ class _SalaryDayViewState extends ConsumerState<SalaryDayView> {
         .where((l) => l.code == 'advance')
         .fold<int>(0, (sum, l) => sum + l.amountPaise.abs());
     return [
-      Padding(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-        child: StepBar(steps: [s.stepReview, s.stepSend, s.stepPaid], current: step),
-      ),
       _CashHero(run: r, advancePaise: advance),
+      _SalarySteps(step: step, toCheck: flagged.length),
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8),
         child: Row(
@@ -263,6 +259,11 @@ class _SalaryDayViewState extends ConsumerState<SalaryDayView> {
           ],
         ),
       ),
+      if (!r.isDraft)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
+          child: Text(s.editSalaryHint, style: const TextStyle(color: AppColors.muted, fontSize: 12.5)),
+        ),
       if (_busy) const LinearProgressIndicator(minHeight: 2),
       if (r.isPaid)
         Container(
@@ -323,6 +324,83 @@ class _SalaryDayViewState extends ConsumerState<SalaryDayView> {
         ],
       ],
     ];
+  }
+}
+
+/// Salary in 3 numbered steps that say what each one does.
+class _SalarySteps extends StatelessWidget {
+  const _SalarySteps({required this.step, required this.toCheck});
+
+  /// 0 = still checking, 1 = checked, 2 = approved & sent, 3 = paid.
+  final int step;
+  final int toCheck;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.s;
+    final rows = [
+      (s.step1Check, step >= 1, step >= 1 ? s.step1Done : s.step1Todo(toCheck)),
+      (s.step2Approve, step >= 2, s.step2Hint),
+      (s.step3Pay, step >= 3, s.step3Hint),
+    ];
+    final current = rows.indexWhere((r) => !r.$2);
+    return Container(
+      key: const Key('salarySteps'),
+      margin: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: AppTheme.radius,
+        border: Border.all(color: AppColors.line, width: 1.5),
+      ),
+      child: Column(
+        children: [
+          for (var i = 0; i < rows.length; i++)
+            Padding(
+              key: Key('salaryStep_${i + 1}'),
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CircleAvatar(
+                    radius: 13,
+                    backgroundColor: rows[i].$2
+                        ? AppColors.mint
+                        : (i == current ? AppColors.ink : AppColors.mutedLight),
+                    child: rows[i].$2
+                        ? const Icon(Icons.check_rounded, size: 16, color: Colors.white)
+                        : Text(
+                            '${i + 1}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 13,
+                              color: i == current ? Colors.white : AppColors.muted,
+                            ),
+                          ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          rows[i].$1,
+                          style: TextStyle(
+                            fontWeight: i == current ? FontWeight.w800 : FontWeight.w600,
+                            color: rows[i].$2 ? AppColors.muted : AppColors.ink,
+                          ),
+                        ),
+                        if (i == current || (i == 0 && rows[0].$2))
+                          Text(rows[i].$3, style: const TextStyle(fontSize: 13, color: AppColors.muted)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }
 
