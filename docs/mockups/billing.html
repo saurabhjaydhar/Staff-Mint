@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StaffMint · Plan &amp; payment: before vs after</title>
+<style>
+  body { margin: 0; background: #FFFDF7; color: #1C1A17; font-family: Mukta, "Noto Sans", system-ui, sans-serif; }
+  main { max-width: 1400px; margin: 0 auto; padding: 32px 20px 60px; }
+  h1 { font-size: 34px; margin: 0 0 6px; }
+  h3 { margin: 28px 0 10px; }
+  .sub { color: #7B7262; margin: 0 0 28px; font-size: 18px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 22px; }
+  .col h2 { display: inline-block; font-size: 15px; color: #fff; padding: 3px 12px; border-radius: 999px; margin: 0 0 10px; }
+  .before h2 { background: #D64545; } .after h2 { background: #1E9E64; }
+  .col img { width: 100%; border-radius: 26px; border: 7px solid #1C1A17; box-sizing: border-box; }
+  .col p { font-size: 15.5px; line-height: 1.45; margin: 8px 2px 0; }
+  ul, ol { padding-left: 22px; line-height: 1.55; font-size: 17px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Plan &amp; payment: before vs after</h1>
+  <p class="sub">Before = real screenshots of the app today (More → Plan &amp; payment). After = proposed design, not built yet. Same shop in both: Growth free trial, 9 staff.</p>
+
+  <h3>English</h3>
+  <div class="grid">
+    <section class="col before"><h2>Before</h2><img src="images/billing/before-en-1.png" alt="Current plan card and the first plan cards"><p>Says the trial ends on 23 Oct, but not how many days are left or what you pay afterwards. Free has a big green "Choose plan" button even though the shop has 9 staff.</p></section>
+    <section class="col before"><h2>Before</h2><img src="images/billing/before-en-2.png" alt="Long plan cards with all features repeated"><p>Every card lists every feature again, so the page is about 5 screens long. "Your plan" is a grey button at the bottom of a card.</p></section>
+    <section class="col after"><h2>After</h2><img src="images/billing/after-en-1.png" alt="Status card with days left, staff bar and Keep Growth button"><p>"11 days left", the price after the trial, a staff bar, and one clear button: <b>Keep Growth after trial</b>. Free is greyed out: "You have 9 staff. Free allows 5."</p></section>
+    <section class="col after"><h2>After</h2><img src="images/billing/after-en-2.png" alt="Yearly prices with savings, short plan rows"><p>Yearly shows "2 months free", the monthly equivalent and the saving. Each plan is a short row: "Everything in Starter + …". Pro explains ₹30 per extra person.</p></section>
+    <section class="col after"><h2>After</h2><img src="images/billing/after-en-3.png" alt="Compare table, payments, receipts, one bill, stop plan"><p>One compare table instead of repeated chips. Next payment, GST receipts, one bill for all businesses, help on WhatsApp, and a clear "Stop plan".</p></section>
+    <section class="col after"><h2>After</h2><img src="images/billing/after-en-4.png" alt="Downgrade sheet listing what you lose"><p>Moving to a smaller plan first shows exactly what stops working and whether your staff still fit.</p></section>
+  </div>
+
+  <h3>हिन्दी</h3>
+  <div class="grid">
+    <section class="col before"><h2>Before</h2><img src="images/billing/before-hi-1.png" alt="Hindi, current"></section>
+    <section class="col before"><h2>Before</h2><img src="images/billing/before-hi-2.png" alt="Hindi, current, long cards"></section>
+    <section class="col after"><h2>After</h2><img src="images/billing/after-hi-1.png" alt="Hindi, status card"></section>
+    <section class="col after"><h2>After</h2><img src="images/billing/after-hi-2.png" alt="Hindi, yearly plans"></section>
+    <section class="col after"><h2>After</h2><img src="images/billing/after-hi-3.png" alt="Hindi, compare and payments"></section>
+    <section class="col after"><h2>After</h2><img src="images/billing/after-hi-4.png" alt="Hindi, downgrade sheet"></section>
+  </div>
+
+  <h3>What changes</h3>
+  <ol>
+    <li>Title matches the More menu: "Plan &amp; payment" / "प्लान और पेमेंट".</li>
+    <li>Status card: days left in the trial, the price after it, staff used out of the limit, and one main button.</li>
+    <li>Monthly / Yearly toggle shows "2 months free"; yearly prices show the per-month price and the saving.</li>
+    <li>Short plan rows that only list what each plan adds; a single compare table replaces repeated feature chips.</li>
+    <li>Plans that can't hold your staff are greyed out with the reason.</li>
+    <li>Downgrade confirmation lists what you lose. Upgrades go straight to payment as today.</li>
+    <li>New Payments section: next payment, GST receipts, one bill for all businesses (moved here), help on WhatsApp.</li>
+    <li>"Stop plan" button (the server already supports cancelling), with a note that data stays downloadable for 30 days.</li>
+    <li>Clearer names: "Ask Mint" instead of "Mint AI assistant", "More branches", "Face check at punch-in".</li>
+  </ol>
+  <p>Needs a small server addition for the receipts list (from Razorpay invoices). Everything else uses data the app already has.</p>
+</main>
+</body>
+</html>
