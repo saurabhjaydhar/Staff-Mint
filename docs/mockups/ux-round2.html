@@ -1,0 +1,834 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>StaffMint · UI round 2 — before vs after</title><style>
+  :root {
+    --ink: #1c1a17; --paper: #fffdf7; --line: #ede5d3; --soft: #f3eddf; --muted: #7b7262;
+    --mint: #1e9e64; --mintDark: #157a4c; --mintLight: #e3f5ec; --mintFaint: #f0faf4;
+    --red: #d64545; --redLight: #fce9e7; --amber: #e39a0b; --amberDark: #a86e00; --amberLight: #fff2d6;
+    --indigo: #5146e0; --indigoLight: #ecebff; --grey: #f1eee6; --note: #ffd84d;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Mukta", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif; background: #f4f1ea; color: var(--ink); }
+  a { color: inherit; }
+  .page { max-width: 1280px; margin: 0 auto; padding: 24px 16px 80px; }
+  header.top { background: var(--ink); color: #fff; border-radius: 24px; padding: 28px; margin-bottom: 20px; }
+  header.top h1 { margin: 0 0 6px; font-size: 28px; }
+  header.top p { margin: 4px 0; color: #d9d4c7; max-width: 900px; line-height: 1.5; }
+  .toc { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .toc a { text-decoration: none; background: #ffffff1a; color: #fff; padding: 6px 12px; border-radius: 999px; font-size: 14px; }
+  .principles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0 0 24px; }
+  .principles div { background: #fff; border-radius: 16px; padding: 14px 16px; border: 1px solid var(--line); font-size: 14px; line-height: 1.45; }
+  .principles b { display: block; font-size: 15px; margin-bottom: 2px; }
+  section.flow { background: #fff; border-radius: 24px; padding: 22px; margin: 22px 0; border: 1px solid var(--line); }
+  section.flow h2 { margin: 0 0 4px; font-size: 22px; }
+  section.flow > p.why { margin: 0 0 16px; color: var(--muted); max-width: 900px; line-height: 1.5; }
+  .steps { display: flex; gap: 14px; overflow-x: auto; padding: 6px 4px 14px; align-items: flex-start; scroll-snap-type: x mandatory; }
+  .step { flex: 0 0 auto; width: 300px; scroll-snap-align: start; }
+  .arrow { flex: 0 0 auto; align-self: center; font-size: 28px; color: var(--mint); margin-top: -120px; }
+  .step h3 { font-size: 15px; margin: 0 0 8px; }
+  .step h3 .tag { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; margin-right: 6px; vertical-align: 2px; }
+  .tag.before { background: var(--redLight); color: var(--red); }
+  .tag.after { background: var(--mintLight); color: var(--mintDark); }
+  ol.notes { margin: 10px 0 0; padding: 0; list-style: none; font-size: 13.5px; line-height: 1.45; }
+  ol.notes li { position: relative; padding-left: 26px; margin: 7px 0; }
+  ol.notes li > .n:first-child { position: absolute; left: 0; top: 1px; }
+  ol.notes li:not(:has(> .n:first-child)) { padding-left: 0; }
+
+  /* Phone */
+  .phone { width: 300px; height: 660px; border-radius: 34px; border: 9px solid var(--ink); background: var(--paper); position: relative; overflow: hidden; box-shadow: 0 10px 30px #0000001a; font-size: 13px; }
+  .phone.before { filter: saturate(.85); }
+  .sb { height: 22px; display: flex; justify-content: space-between; padding: 4px 16px 0; font-size: 10.5px; font-weight: 700; }
+  .scr { position: absolute; top: 22px; left: 0; right: 0; bottom: 58px; overflow: hidden; padding: 6px 12px; }
+  .scr.full { bottom: 0; }
+  .tabs { position: absolute; left: 0; right: 0; bottom: 0; height: 58px; border-top: 1px solid var(--line); background: #fff; display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; text-align: center; font-size: 10.5px; color: var(--muted); }
+  .tabs.four { grid-template-columns: repeat(4, 1fr); }
+  .tabs .on { color: var(--ink); font-weight: 800; }
+  .tabs i { display: block; font-style: normal; font-size: 17px; line-height: 1.1; }
+  .mic { width: 50px; height: 50px; margin: -22px auto 0; border-radius: 50%; background: var(--mint); color: #fff; display: grid; place-items: center; font-size: 20px; border: 4px solid #fff; box-shadow: 0 2px 8px #0002; }
+  .mic-label { font-size: 10px; color: var(--mintDark); font-weight: 800; margin-top: 1px; }
+  .hdr { display: flex; align-items: flex-start; gap: 8px; margin: 2px 0 8px; }
+  .hdr .t { flex: 1; min-width: 0; }
+  .hdr small { color: var(--muted); font-size: 11px; display: block; }
+  .hdr b { font-size: 19px; line-height: 1.15; display: block; }
+  .lang { border: 1.5px solid var(--ink); border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+  .icon-btn { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; background: var(--grey); font-size: 15px; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 10px 11px; margin: 7px 0; }
+  .card.mint { background: var(--mintFaint); border-color: #bfe6d1; }
+  .card.amber { background: var(--amberLight); border-color: #f6d58a; }
+  .card.dark { background: var(--ink); color: #fff; border: 0; }
+  .card.red { background: var(--redLight); border-color: #f4c3be; }
+  .card h4 { margin: 0 0 3px; font-size: 13.5px; }
+  .card p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.35; }
+  .card.dark p { color: #cfc9bb; }
+  .row { display: flex; align-items: center; gap: 8px; }
+  .row .grow { flex: 1; min-width: 0; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 4px; border-radius: 10px; padding: 7px 11px; font-weight: 700; font-size: 12px; background: var(--mint); color: #fff; white-space: nowrap; }
+  .btn.ghost { background: transparent; color: var(--mintDark); padding: 7px 4px; }
+  .btn.line { background: #fff; color: var(--ink); border: 1.5px solid var(--line); }
+  .btn.dark { background: var(--ink); }
+  .btn.red { background: var(--red); }
+  .btn.block { display: flex; width: 100%; padding: 10px; font-size: 13px; }
+  .seg { display: flex; background: var(--grey); border-radius: 10px; padding: 3px; gap: 3px; font-size: 12px; font-weight: 700; }
+  .seg span { flex: 1; text-align: center; padding: 5px 4px; border-radius: 8px; color: var(--muted); }
+  .seg span.on { background: #fff; color: var(--ink); box-shadow: 0 1px 2px #0001; }
+  .datebar { display: flex; align-items: center; justify-content: space-between; margin: 6px 0; font-size: 12px; }
+  .datebar .mid { border: 1.5px solid var(--line); border-radius: 999px; padding: 4px 10px; font-weight: 700; background: #fff; }
+  .datebar .nav { color: var(--muted); font-weight: 700; font-size: 11.5px; }
+  .summary { display: flex; flex-wrap: wrap; gap: 5px; margin: 6px 0; }
+  .chip { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: var(--grey); color: var(--ink); white-space: nowrap; }
+  .chip.p { background: var(--mintLight); color: var(--mintDark); }
+  .chip.l { background: var(--amberLight); color: var(--amberDark); }
+  .chip.a { background: var(--redLight); color: var(--red); }
+  .chip.lv { background: var(--indigoLight); color: var(--indigo); }
+  .chip.sel { background: var(--ink); color: #fff; }
+  .list { background: #fff; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; margin: 6px 0; }
+  .list .head { display: flex; font-size: 10.5px; color: var(--muted); font-weight: 700; padding: 6px 10px; background: var(--soft); text-transform: uppercase; letter-spacing: .03em; }
+  .list .item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-top: 1px solid var(--soft); }
+  .list .item:first-child { border-top: 0; }
+  .time { width: 52px; font-size: 11.5px; color: var(--muted); }
+  .time b { color: var(--ink); font-size: 12px; display: block; }
+  .name { flex: 1; min-width: 0; font-weight: 700; font-size: 12.5px; }
+  .name small { display: block; font-weight: 500; color: var(--muted); font-size: 11px; }
+  .status { font-size: 11px; font-weight: 800; padding: 4px 8px; border-radius: 999px; white-space: nowrap; flex-shrink: 0; }
+  .status::after { content: " ▾"; font-size: 9px; opacity: .7; }
+  .status.p { background: var(--mintLight); color: var(--mintDark); }
+  .status.l { background: var(--amberLight); color: var(--amberDark); }
+  .status.a { background: var(--redLight); color: var(--red); }
+  .status.n { background: var(--grey); color: var(--muted); }
+  .status.lv { background: var(--indigoLight); color: var(--indigo); }
+  .status.wo { background: var(--grey); color: var(--muted); }
+  .status.plain::after { content: ""; }
+  .avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--mintLight); color: var(--mintDark); display: grid; place-items: center; font-weight: 800; font-size: 11px; flex: 0 0 auto; }
+  .tip { position: absolute; z-index: 5; background: var(--ink); color: #fff; font-size: 11.5px; line-height: 1.35; padding: 8px 10px; border-radius: 10px; width: 190px; box-shadow: 0 6px 18px #0004; }
+  .tip b { color: var(--note); }
+  .tip .x { display: block; margin-top: 5px; color: var(--note); font-weight: 800; text-align: right; }
+  .tip::after { content: ""; position: absolute; width: 10px; height: 10px; background: var(--ink); transform: rotate(45deg); }
+  .tip.up::after { top: -5px; right: 26px; }
+  .tip.down::after { bottom: -5px; left: 50%; margin-left: -5px; }
+  .tip.upl::after { top: -5px; left: 22px; }
+  .dim { position: absolute; inset: 0; background: #1c1a1766; z-index: 4; }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--paper); border-radius: 22px 22px 0 0; z-index: 6; padding: 8px 14px 14px; box-shadow: 0 -6px 20px #0003; }
+  .sheet .grab { width: 36px; height: 4px; border-radius: 4px; background: var(--line); margin: 0 auto 8px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 6px 0; }
+  .opt { border-radius: 12px; padding: 9px 4px; text-align: center; font-weight: 800; font-size: 11.5px; border: 2px solid transparent; }
+  .opt i { display: block; font-style: normal; font-size: 16px; }
+  .opt small { display: block; font-weight: 500; font-size: 9.5px; opacity: .8; }
+  .opt.p { background: var(--mintLight); color: var(--mintDark); }
+  .opt.h { background: #ffe9d6; color: #c2570c; }
+  .opt.a { background: var(--redLight); color: var(--red); }
+  .opt.lv { background: var(--indigoLight); color: var(--indigo); }
+  .opt.g { background: var(--grey); color: var(--muted); }
+  .opt.sel { border-color: var(--ink); }
+  .label { font-size: 11.5px; font-weight: 800; margin: 8px 0 4px; }
+  .muted { color: var(--muted); }
+  .small { font-size: 11px; }
+  .toast { position: absolute; left: 12px; right: 12px; bottom: 66px; z-index: 7; background: var(--ink); color: #fff; border-radius: 12px; padding: 9px 12px; font-size: 12px; display: flex; justify-content: space-between; }
+  .toast b { color: var(--note); }
+  .n { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--note); color: var(--ink); font-size: 11px; font-weight: 900; flex: 0 0 auto; box-shadow: 0 0 0 2px #fff; vertical-align: middle; }
+  .phone .n { position: relative; z-index: 3; }
+  .progress { height: 7px; border-radius: 7px; background: var(--soft); overflow: hidden; margin: 6px 0; }
+  .progress span { display: block; height: 100%; background: var(--mint); border-radius: 7px; }
+  .check { display: flex; gap: 8px; align-items: center; padding: 6px 0; border-top: 1px dashed var(--line); font-size: 12px; }
+  .check:first-of-type { border-top: 0; }
+  .check .box { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; font-size: 11px; flex: 0 0 auto; }
+  .check.done .box { background: var(--mint); border-color: var(--mint); color: #fff; }
+  .check.done span.txt { color: var(--muted); text-decoration: line-through; }
+  .check.next { font-weight: 800; }
+  .menu .mi { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-top: 1px solid var(--soft); font-size: 12.5px; }
+  .menu .mi:first-child { border-top: 0; }
+  .menu .mi .ic { width: 26px; height: 26px; border-radius: 8px; background: var(--mintLight); display: grid; place-items: center; font-size: 13px; }
+  .menu .mi small { display: block; color: var(--muted); font-size: 10.5px; }
+  .menu .mi::after { content: "›"; color: var(--muted); margin-left: auto; font-size: 16px; }
+  .grouptitle { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 8px 2px 3px; }
+  .search { border: 1.5px solid var(--line); background: #fff; border-radius: 12px; padding: 8px 10px; color: var(--muted); font-size: 12px; }
+  .cal { width: 100%; border-collapse: separate; border-spacing: 2px; font-size: 10px; }
+  .cal th { color: var(--muted); font-weight: 700; padding: 2px 0; }
+  .cal td { text-align: center; border-radius: 5px; padding: 3px 0; font-weight: 800; }
+  .cal td.nm { text-align: left; font-weight: 700; font-size: 10.5px; padding-right: 2px; white-space: nowrap; }
+  .c-p { background: var(--mintLight); color: var(--mintDark); }
+  .c-l { background: var(--amberLight); color: var(--amberDark); }
+  .c-a { background: var(--redLight); color: var(--red); }
+  .c-h { background: #ffe9d6; color: #c2570c; }
+  .c-lv { background: var(--indigoLight); color: var(--indigo); }
+  .c-wo { background: var(--grey); color: var(--muted); }
+  .c-today { outline: 2px solid var(--ink); }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 8px; font-size: 10px; margin: 4px 0; }
+  .legend span { display: inline-flex; align-items: center; gap: 3px; }
+  .legend i { font-style: normal; font-weight: 800; padding: 1px 4px; border-radius: 4px; }
+  .field { border: 1.5px solid var(--line); background: #fff; border-radius: 10px; padding: 7px 9px; margin: 4px 0; font-size: 12px; }
+  .field small { display: block; color: var(--muted); font-size: 10px; }
+  .toggle { width: 34px; height: 20px; border-radius: 999px; background: var(--mint); position: relative; flex: 0 0 auto; }
+  .toggle::after { content: ""; position: absolute; right: 2px; top: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; }
+  .toggle.off { background: #cfc8b8; }
+  .toggle.off::after { left: 2px; right: auto; }
+  .example { background: var(--soft); border-radius: 8px; padding: 5px 7px; font-size: 10.5px; color: var(--ink); margin-top: 4px; }
+  .big { font-size: 26px; font-weight: 900; line-height: 1; }
+  .stepper { display: flex; gap: 4px; margin: 6px 0; }
+  .stepper div { flex: 1; text-align: center; font-size: 10px; font-weight: 700; color: var(--muted); }
+  .stepper div::before { content: ""; display: block; height: 5px; border-radius: 5px; background: var(--soft); margin-bottom: 3px; }
+  .stepper div.done::before { background: var(--mint); }
+  .stepper div.cur { color: var(--ink); }
+  .stepper div.cur::before { background: var(--amber); }
+  .bigbtn { width: 150px; height: 150px; border-radius: 50%; margin: 10px auto 6px; background: var(--mint); color: #fff; display: grid; place-items: center; text-align: center; font-weight: 900; font-size: 20px; box-shadow: 0 0 0 10px var(--mintLight), 0 0 0 20px var(--mintFaint); }
+  .bigbtn small { display: block; font-size: 11px; font-weight: 600; opacity: .9; }
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; margin-top: 12px; }
+  .compare div { border-radius: 12px; padding: 10px 12px; line-height: 1.45; }
+  .compare .b { background: var(--redLight); }
+  .compare .a { background: var(--mintLight); }
+  .compare b { display: block; margin-bottom: 4px; }
+
+  /* User-journey section */
+  .ux { background: #fff; border-radius: 24px; padding: 22px; margin: 0 0 22px; border: 1px solid var(--line); }
+  .ux h2 { margin: 0 0 4px; font-size: 22px; }
+  .ux > p.why { margin: 0 0 14px; color: var(--muted); max-width: 900px; line-height: 1.5; }
+  .personas { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 18px; }
+  .persona { border: 1px solid var(--line); border-radius: 18px; padding: 14px 16px; background: var(--paper); font-size: 14px; line-height: 1.5; }
+  .persona .who { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .persona .face { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-size: 22px; background: var(--mintLight); }
+  .persona b.nm { font-size: 16px; display: block; }
+  .persona ul { margin: 6px 0 0; padding-left: 18px; }
+  table.tasks { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table.tasks th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); padding: 8px; border-bottom: 2px solid var(--line); }
+  table.tasks td { padding: 9px 8px; border-bottom: 1px solid var(--soft); vertical-align: top; line-height: 1.4; }
+  table.tasks td.path { color: var(--muted); font-size: 13px; }
+  .taps { display: inline-block; min-width: 26px; text-align: center; font-weight: 900; border-radius: 8px; padding: 1px 6px; }
+  .taps.b { background: var(--redLight); color: var(--red); }
+  .taps.a { background: var(--mintLight); color: var(--mintDark); }
+  .journey { display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px; margin: 10px 0 18px; }
+  .journey .j { flex: 1 1 150px; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; font-size: 13.5px; line-height: 1.4; position: relative; }
+  .journey .j small { display: block; color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; font-weight: 800; margin-bottom: 3px; }
+  .journey .j.goal { background: var(--mintLight); border-color: #bfe6d1; }
+  .journey .to { align-self: center; color: var(--mint); font-size: 20px; font-weight: 900; }
+  .jtitle { font-weight: 800; font-size: 16px; margin: 14px 0 0; }
+  .jtitle span { font-weight: 500; color: var(--muted); font-size: 14px; }
+  .checklist { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px; }
+  .checklist div { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 13.5px; line-height: 1.45; }
+  .checklist div::before { content: "✓ "; color: var(--mint); font-weight: 900; }
+  footer { text-align: center; color: var(--muted); font-size: 13px; margin-top: 30px; }
+  @media (max-width: 700px) { header.top h1 { font-size: 22px; } .arrow { display: none; } }
+  .phone.shot { background: #fff; }
+  .status.nn { background: var(--grey); color: var(--muted); }
+  .list .item .time { width: 36px; }
+  .list .item .status { font-size: 10px; padding: 3px 6px; }
+  .list .head span:first-child { width: 36px !important; }
+  .phone.shot img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; object-position: top; }
+  .badge-now { position: absolute; z-index: 9; top: 8px; right: 8px; background: var(--red); color: #fff; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 999px; }
+  .pin { position: absolute; z-index: 9; }
+  .bubble { border-radius: 14px; padding: 8px 10px; margin: 6px 0; font-size: 12px; line-height: 1.4; max-width: 88%; }
+  .bubble.me { background: var(--mintLight); margin-left: auto; }
+  .bubble.bot { background: #fff; border: 1px solid var(--line); }
+  .ex { display: block; border: 1.5px dashed #bfe6d1; background: var(--mintFaint); border-radius: 10px; padding: 6px 9px; margin: 4px 0; font-size: 12px; font-weight: 700; color: var(--mintDark); }
+  .way { display: flex; gap: 9px; align-items: center; border: 1.5px solid var(--line); background: #fff; border-radius: 14px; padding: 10px; margin: 6px 0; }
+  .way .ic { font-size: 20px; }
+  .way b { display: block; font-size: 13px; }
+  .way small { color: var(--muted); font-size: 11px; }
+  .line2 { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-top: 1px dashed var(--line); font-size: 12px; }
+  .line2:first-child { border-top: 0; }
+  .line2 small { display: block; color: var(--muted); font-size: 10.5px; }
+  .kv { display: flex; justify-content: space-between; font-size: 12px; padding: 3px 0; }
+  .kv span:first-child { color: var(--muted); }
+  .fixlist { columns: 2; column-gap: 24px; margin: 8px 0 0; padding-left: 18px; font-size: 14px; line-height: 1.6; }
+  @media (max-width: 800px) { .fixlist { columns: 1; } }
+</style>
+</head>
+<body>
+<div class="page">
+<header class="top">
+  <h1>StaffMint · UI round 2 — before vs after</h1>
+  <p>Design only, nothing in the app has changed yet. <b style="color:#ffd84d">BEFORE</b> phones are real screenshots of today's app (12 Oct 2026, demo shop "Sharma Medical Store"). <b style="color:#ffd84d">AFTER</b> phones show the proposed change. Yellow numbers point at what changed; the notes under each phone explain why.</p>
+  <p>Changes are grouped in 3 parts: <b>A · Fix mistakes</b> (things that are wrong or confusing today), <b>B · Make it simpler</b>, <b>C · Hindi polish</b>.</p>
+  <nav class="toc">
+    <a href="#summary">All changes in one list</a>
+    <a href="#a1">A1 · Home before the shift</a>
+    <a href="#a2">A2 · Approvals</a>
+    <a href="#a3">A3 · Ask Mint</a>
+    <a href="#a4">A4 · Salary day</a>
+    <a href="#a5">A5 · Staff profile</a>
+    <a href="#a6">A6 · Buttons hidden behind the mic</a>
+    <a href="#b1">B1 · Add staff</a>
+    <a href="#b2">B2 · Staff tab</a>
+    <a href="#b3">B3 · Settings pages</a>
+    <a href="#b4">B4 · Staff app: my salary</a>
+    <a href="#b5">B5 · Staff app: profile</a>
+    <a href="#c1">C1 · Hindi</a>
+  </nav>
+</header>
+
+<section class="flow" id="summary">
+  <h2>All changes in one list</h2>
+  <p class="why">18 points found by opening every screen of the current app in English and Hindi.</p>
+  <ol class="fixlist">
+    <li><b>A1</b> Before the shift, Home says "Shift starts at 9:00 AM" instead of "0 of 9 at work".</li>
+    <li><b>A1</b> The date is shown once (not in the header and again in the date bar).</li>
+    <li><b>A1</b> Tips, invites and approvals become one small "To do" card, so the staff list starts higher.</li>
+    <li><b>A1</b> One word for "not here yet" everywhere: "Not in yet" / "अभी नहीं आए".</li>
+    <li><b>A2</b> Leave text fixed: no "paid leave leaves", no "-2"; says plainly the days become unpaid.</li>
+    <li><b>A2</b> No more "punch"; distance shown once; buttons are the main way (swipe is optional).</li>
+    <li><b>A3</b> Ask Mint opens with example sentences and tappable answers; chips wrap instead of being cut.</li>
+    <li><b>A4</b> After salary is approved, old "Is that right?" warnings disappear; month shown once.</li>
+    <li><b>A4</b> "Edited · version 2" becomes "Changed after approval · old slip kept".</li>
+    <li><b>A5</b> Staff profile uses the same symbols and words as the calendar (no P/L/WO/HD codes).</li>
+    <li><b>A5</b> Salary, shift and joining date are no longer mixed under "Salary".</li>
+    <li><b>A6</b> Ask Mint never covers a Save button: pages get space at the bottom.</li>
+    <li><b>B1</b> Add staff offers 3 clear ways and says what happens next; "Default shift" gets a plain name.</li>
+    <li><b>B2</b> Staff tab: a labelled "+ Add" button; "Show inactive" becomes a small filter.</li>
+    <li><b>B3</b> Timings page shows shifts and next holidays directly; Business details explains each switch and what Save covers.</li>
+    <li><b>B4</b> Staff "My salary": amount shown once, one line per reason, no "−₹0".</li>
+    <li><b>B5</b> Staff profile: no "25% complete" nag, language switch only once.</li>
+    <li><b>C1</b> Hindi mode shows Hindi only (English hint only on main buttons), full month names, no "पंच".</li>
+  </ol>
+</section>
+
+<!-- ============ A1 ============ -->
+<section class="flow" id="a1">
+  <h2>A1 · Owner Home, before the shift starts</h2>
+  <p class="why">At 6 AM the owner sees "0 of 9 at work · 9 not in yet", which looks like everyone is absent. Four cards sit above the staff list, the date appears twice, and "not here yet" is written three different ways.</p>
+  <div class="steps">
+    <div class="step">
+      <h3><span class="tag before">BEFORE</span>Today, 6:30 AM</h3>
+      <div class="phone shot"><img src="images/r2/before-o01-home.png" alt="Current home screen" /></div>
+      <ol class="notes">
+        <li><span class="n">!</span>"0 of 9 at work" before the shop even opens.</li>
+        <li><span class="n">!</span>Date twice: header and date bar.</li>
+        <li><span class="n">!</span>Tip + invites + approvals push the list to the middle.</li>
+        <li><span class="n">!</span>"Not yet", "not in yet", "Not checked in yet".</li>
+      </ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>Today, 6:30 AM</h3>
+      <div class="phone">
+        <div class="sb"><span>6:30</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><small>Mon, 12 Oct</small><b>Sharma Medical Store <span style="font-size:12px;color:var(--mintDark)">· Switch ▾</span></b></div><span class="lang">हि / En</span></div>
+          <div class="seg"><span class="on">📋 Day</span><span>📅 Month</span></div>
+          <div class="datebar"><span class="nav">‹ Sun</span><span class="mid">📅 Today · change</span><span class="nav" style="opacity:.3">Mon ›</span></div>
+          <div class="card mint"><div class="row"><span style="font-size:18px">🕘</span><div class="grow"><h4>Shift starts at 9:00 AM <span class="n">1</span></h4><p>9 staff · we'll show who came in after 9:00.</p></div></div></div>
+          <div class="card amber"><div class="row"><div class="grow"><h4>To do · 4 <span class="n">2</span></h4><p>3 need your OK · 4 staff haven't joined</p></div><span class="btn">Open</span></div></div>
+          <div class="list">
+            <div class="head"><span style="width:52px">In at</span><span style="flex:1">Name</span><span>Status</span></div>
+            <div class="item"><div class="time">—</div><div class="name">Amit Verma<small>Hasn't installed the app · Remind</small></div><span class="status nn">Not in yet</span></div>
+            <div class="item"><div class="time">—</div><div class="name">Kavita Sharma<small>Shift 9:00 AM</small></div><span class="status nn">Not in yet <span class="n">3</span></span></div>
+            <div class="item"><div class="time">—</div><div class="name">Pooja Singh<small>Shift 9:00 AM</small></div><span class="status nn">Not in yet</span></div>
+            <div class="item"><div class="time">—</div><div class="name">Raju<small>Hasn't installed the app · Remind</small></div><span class="status nn">Not in yet</span></div>
+          </div>
+        </div>
+        <div class="tabs"><div><i>📖</i>Today</div><div><i>👥</i>Staff</div><div><div class="mic">🎤</div><div class="mic-label">Ask Mint</div></div><div><i>₹</i>Salary</div><div><i>☰</i>More</div></div>
+      </div>
+      <ol class="notes">
+        <li><span class="n">1</span>Before shift time: a calm line instead of "0 of 9". After 9:00 the usual "6 of 9 at work" appears.</li>
+        <li><span class="n">2</span>One "To do" card replaces three stacked cards; tips show once as a small hint, not a big black card.</li>
+        <li><span class="n">3</span>One wording, "Not in yet", in the count, the row and the status button. Date shown once at the top.</li>
+      </ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>Tap "Open" on To do</h3>
+      <div class="phone">
+        <div class="sb"><span>6:31</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="dim"></div>
+          <div class="sheet" style="height:440px">
+            <div class="grab"></div>
+            <b style="font-size:15px">To do</b>
+            <div class="check next"><span class="box">1</span><span class="grow">Amit wants leave · 2 days</span><span class="btn ghost">Review</span></div>
+            <div class="check next"><span class="box">2</span><span class="grow">Raju checked in 560 m from shop</span><span class="btn ghost">Review</span></div>
+            <div class="check next"><span class="box">3</span><span class="grow">Kavita's selfie looks different</span><span class="btn ghost">Review</span></div>
+            <div class="check"><span class="box">4</span><span class="grow">4 staff haven't installed the app</span><span class="btn ghost">Remind all</span></div>
+            <p class="small muted" style="margin-top:8px">Everything that needs you, in one list. It's empty on a quiet day.</p>
+          </div>
+        </div>
+        <div class="tabs"><div><i>📖</i>Today</div><div><i>👥</i>Staff</div><div><div class="mic">🎤</div><div class="mic-label">Ask Mint</div></div><div><i>₹</i>Salary</div><div><i>☰</i>More</div></div>
+      </div>
+      <ol class="notes"><li>One place for every pending item, each with one clear button.</li></ol>
+    </div>
+  </div>
+</section>
+
+<!-- ============ A2 ============ -->
+<section class="flow" id="a2">
+  <h2>A2 · Approvals ("Needs your OK")</h2>
+  <p class="why">The leave card shows "Has 0 paid leave leaves left. After this: -2." Owners don't know what −2 means. Check-in cards say "Punch outside shop area" and show the distance twice.</p>
+  <div class="steps">
+    <div class="step">
+      <h3><span class="tag before">BEFORE</span>Review</h3>
+      <div class="phone shot"><img src="images/r2/before-o03-approvals.png" alt="Current approvals" /></div>
+      <ol class="notes">
+        <li><span class="n">!</span>"paid leave leaves" (word twice) and "-2".</li>
+        <li><span class="n">!</span>"Punch" is app language; "560 m" shown twice.</li>
+        <li><span class="n">!</span>"Swipe right to approve" is a hidden gesture.</li>
+      </ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>Review</h3>
+      <div class="phone">
+        <div class="sb"><span>11:40</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><small>3 waiting</small><b>Needs your OK</b></div></div>
+          <div class="card">
+            <div class="row"><span class="avatar">AV</span><div class="grow"><h4>Amit wants leave</h4><p>Sat 10 – Mon 12 Oct · 2 days · "Sister ki shaadi"</p></div></div>
+            <div class="card red" style="margin:6px 0 4px"><p style="color:var(--red)"><b>No paid leaves left.</b> If you approve, these 2 days are unpaid leave (salary is cut for 2 days). <span class="n">1</span></p></div>
+            <div class="row" style="gap:6px"><span class="btn line" style="flex:1">Say no</span><span class="btn" style="flex:1">Approve as unpaid</span></div>
+          </div>
+          <div class="card">
+            <div class="row"><span class="avatar">R</span><div class="grow"><h4>Raju checked in 560 m from shop <span class="n">2</span></h4><p>Today 9:10 AM · selfie matches · <u>see map</u></p></div></div>
+            <div class="row" style="gap:6px;margin-top:6px"><span class="btn line" style="flex:1">Don't count</span><span class="btn" style="flex:1">Count as present</span></div>
+          </div>
+          <div class="card">
+            <div class="row"><span class="avatar">KS</span><div class="grow"><h4>Kavita's selfie looks different</h4><p>Today 10:04 AM · compare photos</p></div></div>
+            <div class="row" style="gap:6px;margin-top:6px"><span class="btn line" style="flex:1">Mark absent</span><span class="btn" style="flex:1">It's her</span></div>
+          </div>
+          <p class="small muted">Tip: you can also swipe a card. <span class="n">3</span></p>
+        </div>
+        <div class="tabs"><div><i>📖</i>Today</div><div><i>👥</i>Staff</div><div><div class="mic">🎤</div><div class="mic-label">Ask Mint</div></div><div><i>₹</i>Salary</div><div><i>☰</i>More</div></div>
+      </div>
+      <ol class="notes">
+        <li><span class="n">1</span>Says exactly what approving does to salary, in words. When leaves are left: "Has 4 paid leaves. After this: 2 left."</li>
+        <li><span class="n">2</span>"Checked in", not "punch"; distance once; "see map" is one tap.</li>
+        <li><span class="n">3</span>Buttons are the main way; swipe is just a shortcut.</li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- ============ A3 ============ -->
+<section class="flow" id="a3">
+  <h2>A3 · Ask Mint</h2>
+  <p class="why">Today Mint opens almost empty: one greeting and suggestion chips cut off at the edge. People don't know what they can ask.</p>
+  <div class="steps">
+    <div class="step">
+      <h3><span class="tag before">BEFORE</span>Tap Ask Mint</h3>
+      <div class="phone shot"><img src="images/r2/before-o04-ask-mint.png" alt="Current Ask Mint" /></div>
+      <ol class="notes"><li><span class="n">!</span>Empty screen; "Who is lat…" chip cut off; no examples.</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>Tap Ask Mint</h3>
+      <div class="phone">
+        <div class="sb"><span>11:22</span><span>●●● 4G</span></div>
+        <div class="scr full" style="background:#f3ede2">
+          <div class="card dark" style="border-radius:0 0 14px 14px;margin:-6px -12px 6px"><div class="row"><span class="avatar" style="background:var(--mint);color:#fff">✦</span><div class="grow"><h4>Ask Mint</h4><p>Speak or type, Hindi or English</p></div><span>⌄</span></div></div>
+          <div class="bubble bot">Namaste! I can do things for you, or show you where to find them. Try: <span class="n">1</span></div>
+          <span class="ex">"Raju aaj absent hai"</span>
+          <span class="ex">"Pooja ko ₹500 advance do"</span>
+          <span class="ex">"Aaj kaun late aaya?"</span>
+          <span class="ex">"Mera CA kaise add karein?"</span>
+          <div class="bubble me">Mera CA kaise add karein?</div>
+          <div class="bubble bot">Staff tab → Team & access → <b>Add your CA</b>. Your CA can see salary and reports, but can't change attendance. <br/><span class="btn" style="margin-top:6px">Open Team & access <span class="n">2</span></span></div>
+          <div class="summary" style="margin-top:8px"><span class="chip">⏰ Who is late?</span><span class="chip">₹ Salary total?</span><span class="chip">☂ Leave</span><span class="chip">💸 Advance <span class="n">3</span></span></div>
+          <div class="row" style="position:absolute;left:10px;right:10px;bottom:10px"><div class="search grow">Type, or hold 🎤 to speak…</div><div class="mic" style="margin:0;width:40px;height:40px;font-size:16px">🎤</div></div>
+        </div>
+      </div>
+      <ol class="notes">
+        <li><span class="n">1</span>Example sentences teach what Mint can do; tap one to send it.</li>
+        <li><span class="n">2</span>"How do I…" answers come with a button that opens the right screen.</li>
+        <li><span class="n">3</span>Quick chips wrap onto two lines instead of being cut off.</li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- ============ A4 ============ -->
+<section class="flow" id="a4">
+  <h2>A4 · Salary day</h2>
+  <p class="why">After salary is approved and paid, the screen still asks "Suresh Yadav: 3 day(s) have no attendance. Is that right?", while Step 1 says "Attendance looks right". The month is shown twice, and "Edited · version 2" is accountant language.</p>
+  <div class="steps">
+    <div class="step">
+      <h3><span class="tag before">BEFORE</span>September, already paid</h3>
+      <div class="phone shot"><img src="images/r2/before-o09-salary-bottom.png" alt="Current salary" /></div>
+      <ol class="notes">
+        <li><span class="n">!</span>Old warning still asks a question after payment.</li>
+        <li><span class="n">!</span>"September 2026" in the title and in the picker.</li>
+        <li><span class="n">!</span>"Edited · version 2".</li>
+      </ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>September, already paid</h3>
+      <div class="phone">
+        <div class="sb"><span>10:00</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><b>Salary</b></div><span class="lang">हि / En</span></div>
+          <div class="seg"><span class="on">Pay salary</span><span>Advances</span><span>Bonus / cut</span></div>
+          <div class="datebar"><span class="nav">‹</span><span class="mid">September 2026 <span class="n">1</span></span><span class="nav">›</span></div>
+          <div class="card dark"><p>Paid on 3 Oct · UPI</p><div class="big" style="color:#fff">₹65,400</div><p>6 staff · earned ₹70,900 · minus ₹2,500 advances</p></div>
+          <div class="card">
+            <div class="check done"><span class="box">✓</span><span class="txt">Step 1 · Attendance checked</span></div>
+            <div class="check done"><span class="box">✓</span><span class="txt">Step 2 · Salary slips sent</span></div>
+            <div class="check done"><span class="box">✓</span><span class="txt">Step 3 · Paid</span></div>
+          </div>
+          <div class="card mint"><h4>✓ September is done <span class="n">2</span></h4><p>6 salary slips sent. Staff can see them in their app.</p></div>
+          <div class="card"><div class="row"><div class="grow"><h4>Need to change something?</h4><p>We make a new slip and keep the old one. <span class="n">3</span></p></div><span class="btn line">Change salary</span></div></div>
+        </div>
+        <div class="tabs"><div><i>📖</i>Today</div><div><i>👥</i>Staff</div><div><div class="mic">🎤</div><div class="mic-label">Ask Mint</div></div><div class="on"><i>₹</i>Salary</div><div><i>☰</i>More</div></div>
+      </div>
+      <ol class="notes">
+        <li><span class="n">1</span>Month shown once, in the picker. Title is just "Salary".</li>
+        <li><span class="n">2</span>Once approved, "Is that right?" warnings are gone; a clear "done" line instead.</li>
+        <li><span class="n">3</span>"Change salary" with one plain sentence, instead of "Edited · version 2".</li>
+      </ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>Still checking (not approved)</h3>
+      <div class="phone">
+        <div class="sb"><span>10:00</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><b>Salary</b></div><span class="lang">हि / En</span></div>
+          <div class="seg"><span class="on">Pay salary</span><span>Advances</span><span>Bonus / cut</span></div>
+          <div class="datebar"><span class="nav">‹</span><span class="mid">October 2026</span><span class="nav" style="opacity:.3">›</span></div>
+          <div class="card dark"><p>Total to pay this month</p><div class="big" style="color:#fff">₹66,100</div><p>6 staff · earned ₹68,600 · minus ₹2,500 advances</p></div>
+          <div class="card amber">
+            <h4>Step 1 · Check attendance</h4>
+            <p>Suresh has 3 days with no attendance (8, 9, 10 Oct). Count them as absent?</p>
+            <div class="row" style="gap:6px;margin-top:6px"><span class="btn line" style="flex:1">Fix days</span><span class="btn" style="flex:1">Yes, absent</span></div>
+          </div>
+          <div class="check"><span class="box">2</span><span>Step 2 · Approve & send salary slips</span></div>
+          <div class="check"><span class="box">3</span><span>Step 3 · Pay staff, then slide "I've paid"</span></div>
+        </div>
+        <div class="tabs"><div><i>📖</i>Today</div><div><i>👥</i>Staff</div><div><div class="mic">🎤</div><div class="mic-label">Ask Mint</div></div><div class="on"><i>₹</i>Salary</div><div><i>☰</i>More</div></div>
+      </div>
+      <ol class="notes"><li>The question lives inside Step 1, with the dates, and buttons that say what they do ("Yes, absent" / "Fix days") instead of "Looks right / Change".</li></ol>
+    </div>
+  </div>
+</section>
+
+<!-- ============ A5 ============ -->
+<section class="flow" id="a5">
+  <h2>A5 · Staff profile (owner view)</h2>
+  <p class="why">The month strip still uses letter codes (P, L, WO, HD, A), so "L" can be read as Late or Leave, which we already fixed everywhere else. Shift and joining date sit under "Salary".</p>
+  <div class="steps">
+    <div class="step">
+      <h3><span class="tag before">BEFORE</span>Pooja Singh</h3>
+      <div class="phone shot"><img src="images/r2/before-o06-staff-profile.png" alt="Current staff profile" /></div>
+      <ol class="notes"><li><span class="n">!</span>Codes without a legend; "L" = Late.</li><li><span class="n">!</span>Shift and joining date under "Salary".</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>Pooja Singh</h3>
+      <div class="phone">
+        <div class="sb"><span>12:10</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="row" style="margin:2px 0 6px"><span>←</span><b class="grow" style="font-size:16px">Pooja Singh</b><span class="btn line">✎ Edit</span></div>
+          <div class="card"><div class="row"><span class="avatar">PS</span><div class="grow"><h4>Pooja Singh</h4><p>Cashier · +91 98765 00003</p></div><span class="btn">📞</span></div></div>
+          <div class="card">
+            <div class="row"><h4 class="grow">October so far <span class="n">1</span></h4><span class="btn ghost">Calendar ›</span></div>
+            <div class="summary"><span class="chip p">✓ 6 present</span><span class="chip l">⏰ 2 late</span><span class="chip a">✕ 2 absent</span><span class="chip" style="background:#ffe9d6;color:#c2570c">½ 1 half day</span></div>
+          </div>
+          <div class="grouptitle">Pay <span class="n">2</span></div>
+          <div class="card"><div class="kv"><span>Salary</span><b>₹14,000 / month</b></div><div class="kv"><span>Earned till today</span><b>₹4,968</b></div><div class="kv"><span>Advance to recover</span><b>₹0</b></div><div class="row" style="gap:6px;margin-top:6px"><span class="btn line" style="flex:1">Give advance</span><span class="btn line" style="flex:1">Bonus / cut</span></div></div>
+          <div class="grouptitle">Work</div>
+          <div class="card"><div class="kv"><span>Shift</span><b>9:00 AM – 9:00 PM</b></div><div class="kv"><span>Weekly off</span><b>Sunday</b></div><div class="kv"><span>Joined</span><b>25 Mar 2026</b></div></div>
+        </div>
+        <div class="tabs"><div><i>📖</i>Today</div><div class="on"><i>👥</i>Staff</div><div><div class="mic">🎤</div><div class="mic-label">Ask Mint</div></div><div><i>₹</i>Salary</div><div><i>☰</i>More</div></div>
+      </div>
+      <ol class="notes">
+        <li><span class="n">1</span>Same words and symbols as the calendar; "Calendar ›" opens her month.</li>
+        <li><span class="n">2</span>"Pay" and "Work" are separate groups; "Edit" has a word, not only a pencil.</li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- ============ A6 ============ -->
+<section class="flow" id="a6">
+  <h2>A6 · Buttons hidden behind the Ask Mint button</h2>
+  <p class="why">On long pages the round mic sits on top of the last button. On Salary rules, "Save" is half covered.</p>
+  <div class="steps">
+    <div class="step">
+      <h3><span class="tag before">BEFORE</span>Salary rules</h3>
+      <div class="phone shot"><img src="images/r2/before-o14-salary-rules.png" alt="Current salary rules" /></div>
+      <ol class="notes"><li><span class="n">!</span>"Save" is behind the mic.</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>Salary rules</h3>
+      <div class="phone">
+        <div class="sb"><span>12:11</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="row"><span>←</span><b class="grow" style="font-size:16px">Salary rules</b></div>
+          <div class="card"><div class="row"><span class="grow">Weekly offs are paid</span><span class="toggle"></span></div></div>
+          <div class="card"><div class="row"><span class="grow">Holidays are paid</span><span class="toggle"></span></div></div>
+          <div class="card"><div class="row"><span class="grow">Sick leave is paid</span><span class="toggle"></span></div></div>
+          <div class="card"><div class="row"><span class="grow">Round to nearest rupee</span><span class="toggle"></span></div></div>
+          <p class="small muted">Changes apply from today. Past days stay as they are.</p>
+          <div style="position:absolute;left:0;right:0;bottom:0;padding:8px 12px;background:var(--paper);border-top:1px solid var(--line)"><span class="btn block">Save <span class="n">1</span></span></div>
+        </div>
+        <div class="tabs"><div><i>📖</i>Today</div><div><i>👥</i>Staff</div><div><div class="mic">🎤</div><div class="mic-label">Ask Mint</div></div><div><i>₹</i>Salary</div><div class="on"><i>☰</i>More</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>Save sits in a fixed bar above the tabs, so it's always visible and never under the mic. Every page also gets extra space at the bottom.</li></ol>
+    </div>
+  </div>
+</section>
+
+<!-- ============ B1 ============ -->
+<section class="flow" id="b1">
+  <h2>B1 · Add staff</h2>
+  <p class="why">Today it's one long form with a small "Pick from contacts" button. The approved mock-up had 3 clear ways and a "What happens next" box. "Default shift" means nothing to a shop owner.</p>
+  <div class="steps">
+    <div class="step">
+      <h3><span class="tag before">BEFORE</span>Add staff</h3>
+      <div class="phone shot"><img src="images/r2/before-o07-add-staff.png" alt="Current add staff" /></div>
+      <ol class="notes"><li><span class="n">!</span>Form first; contacts is easy to miss; no Excel option; no "what next".</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>Add staff · choose a way</h3>
+      <div class="phone">
+        <div class="sb"><span>9:42</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="row"><span>←</span><b class="grow" style="font-size:16px">Add staff</b></div>
+          <div class="way"><span class="ic">📇</span><div class="grow"><b>Pick from contacts</b><small>Fastest. Choose many at once.</small></div><span class="btn">Open</span></div>
+          <div class="way"><span class="ic">✍️</span><div class="grow"><b>Type name & phone</b><small>One person at a time.</small></div><span class="btn line">Type</span></div>
+          <div class="way"><span class="ic">📊</span><div class="grow"><b>From Excel / SalaryBox</b><small>Easier on a computer: app.staffmint.app → Import</small></div><span class="btn line">Send link</span></div>
+          <div class="card mint"><h4>What happens next <span class="n">1</span></h4><p>✓ Each person gets a WhatsApp invite with the app link.<br/>✓ They log in with their own number, no password.<br/>✓ You see them on Home when they check in.</p></div>
+        </div>
+        <div class="tabs"><div><i>📖</i>Today</div><div class="on"><i>👥</i>Staff</div><div><div class="mic">🎤</div><div class="mic-label">Ask Mint</div></div><div><i>₹</i>Salary</div><div><i>☰</i>More</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>Removes the worry about how staff will join. "Send link" emails/WhatsApps the import link to the owner.</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>Type name & phone</h3>
+      <div class="phone">
+        <div class="sb"><span>9:43</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="row"><span>←</span><b class="grow" style="font-size:16px">New staff</b></div>
+          <div class="field"><small>Name</small>Pooja Singh</div>
+          <div class="field"><small>Mobile number</small>98765 00003</div>
+          <div class="label">How is salary paid?</div>
+          <div class="seg"><span class="on">Every month</span><span>Every day</span></div>
+          <div class="field"><small>Salary per month (₹)</small>14,000</div>
+          <div class="field"><small>Shift <span class="n">2</span></small>9:00 AM – 9:00 PM · Sunday off ▾</div>
+          <div class="field"><small>Job (optional)</small>Cashier</div>
+          <p class="small muted">Joining date: today · <u>change</u></p>
+          <span class="btn block">Add & send invite</span>
+        </div>
+        <div class="tabs"><div><i>📖</i>Today</div><div class="on"><i>👥</i>Staff</div><div><div class="mic">🎤</div><div class="mic-label">Ask Mint</div></div><div><i>₹</i>Salary</div><div><i>☰</i>More</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">2</span>Shift shows its real times instead of "Default shift"; joining date is a small line (today) instead of a big field; the button says it also sends the invite.</li></ol>
+    </div>
+  </div>
+</section>
+
+<!-- ============ B2 ============ -->
+<section class="flow" id="b2">
+  <h2>B2 · Staff tab</h2>
+  <p class="why">The add button is an icon squeezed next to the language button, and "Show inactive" takes a full row.</p>
+  <div class="steps">
+    <div class="step">
+      <h3><span class="tag before">BEFORE</span>Staff</h3>
+      <div class="phone shot"><img src="images/r2/before-o05-staff.png" alt="Current staff tab" /></div>
+      <ol class="notes"><li><span class="n">!</span>Icon-only add button; "Show inactive" row; status "Not yet".</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>Staff</h3>
+      <div class="phone">
+        <div class="sb"><span>12:00</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><small>9 staff · 1 manager</small><b>Staff</b></div><span class="btn">+ Add <span class="n">1</span></span></div>
+          <div class="card"><div class="row"><span>🔑</span><div class="grow"><h4>Team & access</h4><p>Partners, managers and your CA</p></div><span>›</span></div></div>
+          <div class="search">🔍 Search by name or phone</div>
+          <div class="summary"><span class="chip sel">Working (9)</span><span class="chip">Left (2) <span class="n">2</span></span></div>
+          <div class="list">
+            <div class="item"><span class="avatar">AV</span><div class="name">Amit Verma<small>Invited · hasn't joined</small></div><span class="btn ghost">Remind</span></div>
+            <div class="item"><span class="avatar">KS</span><div class="name">Kavita Sharma<small>Receptionist · ₹10,000/month</small></div><span class="status nn plain">Not in yet</span></div>
+            <div class="item"><span class="avatar">PS</span><div class="name">Pooja Singh<small>Cashier · ₹14,000/month</small></div><span class="status nn plain">Not in yet</span></div>
+            <div class="item"><span class="avatar">RK</span><div class="name">Ramesh Kumar <span class="chip lv">Manager</span><small>Pharmacist · ₹15,000/month</small></div><span class="status nn plain">Not in yet</span></div>
+          </div>
+        </div>
+        <div class="tabs"><div><i>📖</i>Today</div><div class="on"><i>👥</i>Staff</div><div><div class="mic">🎤</div><div class="mic-label">Ask Mint</div></div><div><i>₹</i>Salary</div><div><i>☰</i>More</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>"+ Add" with a word, away from the language button.</li><li><span class="n">2</span>"Working / Left" filter chips instead of a "Show inactive" switch.</li></ol>
+    </div>
+  </div>
+</section>
+
+<!-- ============ B3 ============ -->
+<section class="flow" id="b3">
+  <h2>B3 · Settings pages</h2>
+  <p class="why">"Timings & holidays" is a page with only two links. "Business details" still has the heading "Business & rules", "WhatsApp alerts" has no explanation, and it isn't clear what the Save button saves.</p>
+  <div class="steps">
+    <div class="step">
+      <h3><span class="tag before">BEFORE</span>Timings & holidays</h3>
+      <div class="phone shot"><img src="images/r2/before-o13-timings.png" alt="Current timings page" /></div>
+      <ol class="notes"><li><span class="n">!</span>An extra tap that shows nothing.</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>Timings & holidays</h3>
+      <div class="phone">
+        <div class="sb"><span>12:12</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="row"><span>←</span><b class="grow" style="font-size:16px">Timings & holidays</b></div>
+          <div class="grouptitle">Shifts <span class="n">1</span></div>
+          <div class="card"><div class="row"><div class="grow"><h4>General</h4><p>9:00 AM – 9:00 PM · Sunday off · 7 staff</p></div><span class="btn ghost">Edit</span></div></div>
+          <div class="card"><div class="row"><div class="grow"><h4>Morning</h4><p>7:00 AM – 3:00 PM · Monday off · 2 staff</p></div><span class="btn ghost">Edit</span></div></div>
+          <span class="btn ghost">+ Add shift</span>
+          <div class="grouptitle">Next holidays</div>
+          <div class="card"><div class="kv"><span>Diwali</span><b>Sun 8 Nov</b></div><div class="kv"><span>Christmas</span><b>Fri 25 Dec</b></div><div class="kv"><span>Republic Day</span><b>Tue 26 Jan</b></div></div>
+          <span class="btn ghost">+ Add holiday · See all</span>
+        </div>
+        <div class="tabs"><div><i>📖</i>Today</div><div><i>👥</i>Staff</div><div><div class="mic">🎤</div><div class="mic-label">Ask Mint</div></div><div><i>₹</i>Salary</div><div class="on"><i>☰</i>More</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>Shifts and the next holidays are on the page itself; edit in place.</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag before">BEFORE</span>Business details</h3>
+      <div class="phone shot"><img src="images/r2/before-q01-business.png" alt="Current business details" /></div>
+      <ol class="notes"><li><span class="n">!</span>"Business & rules"; Save in the middle; "WhatsApp alerts" unexplained.</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>Business details</h3>
+      <div class="phone">
+        <div class="sb"><span>12:13</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="row"><span>←</span><b class="grow" style="font-size:16px">Business details</b></div>
+          <div class="card"><div class="kv"><span>Name</span><b>Sharma Medical Store ✎</b></div><div class="kv"><span>Type</span><b>Pharmacy ✎</b></div><p class="small" style="margin-top:4px">Saves as soon as you change it. <span class="n">2</span></p></div>
+          <div class="card"><div class="row"><div class="grow"><h4>Morning summary on WhatsApp</h4><p>At 9:30 AM: who came, who is late. <span class="n">3</span></p></div><span class="toggle off"></span></div></div>
+          <div class="card"><div class="row"><div class="grow"><h4>Old staff can see old salary slips</h4><p>For 12 months after they leave (for loans, ITR).</p></div><span class="toggle"></span></div></div>
+          <div class="menu card" style="padding:0">
+            <div class="mi"><span class="ic">📍</span><div>Shop location & area<small>Where staff must be to check in</small></div></div>
+            <div class="mi"><span class="ic">🏛</span><div>PF, ESI & Professional Tax<small>Only if your shop is registered</small></div></div>
+          </div>
+          <span class="btn ghost" style="color:var(--red)">Close this business…</span>
+        </div>
+        <div class="tabs"><div><i>📖</i>Today</div><div><i>👥</i>Staff</div><div><div class="mic">🎤</div><div class="mic-label">Ask Mint</div></div><div><i>₹</i>Salary</div><div class="on"><i>☰</i>More</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">2</span>No separate Save button to guess about: each change saves at once with a small "Saved" message.</li><li><span class="n">3</span>Each switch says what it does in one line. "Team & access" is not repeated here (it's on the Staff tab).</li></ol>
+    </div>
+  </div>
+</section>
+
+<!-- ============ B4 ============ -->
+<section class="flow" id="b4">
+  <h2>B4 · Staff app: My salary</h2>
+  <p class="why">₹3,387 is shown twice, the "Why?" box is a block of numbers, "Deductions −₹0" adds noise, and each salary slip row shows the person's own initials.</p>
+  <div class="steps">
+    <div class="step">
+      <h3><span class="tag before">BEFORE</span>My salary</h3>
+      <div class="phone shot"><img src="images/r2/before-q09-staff-salary-2.png" alt="Current my salary" /></div>
+      <ol class="notes"><li><span class="n">!</span>Amount twice; maths in one paragraph; "−₹0"; "RK" on slips.</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>My salary</h3>
+      <div class="phone">
+        <div class="sb"><span>13:10</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><small>October, till today</small><b>My salary</b></div><span class="lang">हि / En</span></div>
+          <div class="card dark"><p>Earned so far</p><div class="big" style="color:#fff">₹3,387</div><p>Paid on salary day, after October ends</p></div>
+          <div class="card">
+            <h4>How it's worked out <span class="n">1</span></h4>
+            <div class="line2"><div>4 days present<small>4 × ₹484</small></div><b>₹1,935</b></div>
+            <div class="line2"><div>2 half days<small>= 1 day</small></div><b>₹484</b></div>
+            <div class="line2"><div>2 weekly offs<small>paid by shop rule</small></div><b>₹968</b></div>
+            <div class="line2"><div style="color:var(--muted)">3 absent · 1 not marked<small>not paid</small></div><b style="color:var(--muted)">₹0</b></div>
+            <p class="small muted" style="margin-top:4px">1 day = ₹15,000 ÷ 31 = ₹484</p>
+          </div>
+          <div class="grouptitle">Salary slips <span class="n">2</span></div>
+          <div class="card"><div class="row"><span style="font-size:18px">🧾</span><div class="grow"><h4>September 2026</h4><p>Paid 3 Oct · UPI</p></div><b>₹13,500 ›</b></div></div>
+        </div>
+        <div class="tabs"><div><i>👆</i>Home</div><div><i>📅</i>Attendance</div><div><i>☂</i>Leave</div><div class="on"><i>₹</i>Salary</div><div><i>👤</i>Profile</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>One line per reason, each with its amount; no "−₹0" (deductions show only when there are some).</li><li><span class="n">2</span>Slips show a receipt icon and when/how they were paid, not your own initials.</li></ol>
+    </div>
+  </div>
+</section>
+
+<!-- ============ B5 ============ -->
+<section class="flow" id="b5">
+  <h2>B5 · Staff app: Profile</h2>
+  <p class="why">"Profile 25% complete" reads like a warning, and the language switch appears twice (header and row).</p>
+  <div class="steps">
+    <div class="step">
+      <h3><span class="tag before">BEFORE</span>Profile</h3>
+      <div class="phone shot"><img src="images/r2/before-q10-staff-profile.png" alt="Current staff profile" /></div>
+      <ol class="notes"><li><span class="n">!</span>Percentage nag; language twice.</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>Profile</h3>
+      <div class="phone">
+        <div class="sb"><span>13:20</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="card dark" style="text-align:center"><div class="avatar" style="width:54px;height:54px;margin:4px auto;font-size:18px">RK</div><h4 style="color:#fff">Ramesh Kumar</h4><p>Pharmacist · Sharma Medical Store</p></div>
+          <div class="card amber"><div class="row"><span style="font-size:18px">🏦</span><div class="grow"><h4>Add your bank or UPI <span class="n">1</span></h4><p>So your salary can be sent straight to you.</p></div><span class="btn">Add</span></div></div>
+          <div class="menu card" style="padding:0">
+            <div class="mi"><span class="ic">👤</span><div>Name<small>Ramesh Kumar</small></div></div>
+            <div class="mi"><span class="ic">📱</span><div>Mobile<small>+91 98765 00001</small></div></div>
+            <div class="mi"><span class="ic">🆘</span><div>Emergency contact<small>Not added</small></div></div>
+            <div class="mi"><span class="ic">🙂</span><div>Face check<small>Set up · 10 seconds</small></div></div>
+          </div>
+          <p class="small muted">Language: use हि / En at the top of any screen. <span class="n">2</span></p>
+        </div>
+        <div class="tabs"><div><i>👆</i>Home</div><div><i>📅</i>Attendance</div><div><i>☂</i>Leave</div><div><i>₹</i>Salary</div><div class="on"><i>👤</i>Profile</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>One useful next step with the reason, instead of "25% complete".</li><li><span class="n">2</span>Language switch in one place only.</li></ol>
+    </div>
+  </div>
+</section>
+
+<!-- ============ C1 ============ -->
+<section class="flow" id="c1">
+  <h2>C1 · Hindi</h2>
+  <p class="why">In Hindi mode many labels repeat in English ("सैलरी दें · Pay salary", "इस महीने कुल देना है · Total to pay this month"), the date shows "अक्टू॰", "पंच" is still used, and "not here yet" is "बाकी" in one place and "अभी नहीं आए" in another.</p>
+  <div class="steps">
+    <div class="step">
+      <h3><span class="tag before">BEFORE</span>आज (Home)</h3>
+      <div class="phone shot"><img src="images/r2/before-h01-home-hi.png" alt="Current Hindi home" /></div>
+      <ol class="notes"><li><span class="n">!</span>"अक्टू॰"; "Kavita Sharma का पंच"; "बाकी" vs "अभी नहीं आए".</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>आज (Home)</h3>
+      <div class="phone">
+        <div class="sb"><span>11:20</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><small>सोमवार, 12 अक्टूबर <span class="n">1</span></small><b>Sharma Medical Store <span style="font-size:12px;color:var(--mintDark)">· बदलें ▾</span></b></div><span class="lang">हि / En</span></div>
+          <div class="seg"><span class="on">📋 दिन</span><span>📅 महीना</span></div>
+          <div class="card amber"><div class="row"><div class="grow"><h4>करने के काम · 4</h4><p>3 मंज़ूरी बाकी · Raju ने दुकान से दूर चेक-इन किया <span class="n">2</span></p></div><span class="btn">खोलें</span></div></div>
+          <div class="card" style="padding:8px 10px"><b style="font-size:17px">9 में से 6 काम पर</b><div class="summary"><span class="chip p">6 हाज़िर</span><span class="chip l">1 लेट</span><span class="chip">2 अभी नहीं आए</span></div></div>
+          <div class="list">
+            <div class="item"><div class="time"><b>9:02</b></div><div class="name">Ramesh Kumar<small>समय पर</small></div><span class="status p">हाज़िर</span></div>
+            <div class="item"><div class="time"><b>9:22</b></div><div class="name">Pooja Singh<small>7 मिनट लेट</small></div><span class="status l">लेट</span></div>
+            <div class="item"><div class="time">—</div><div class="name">Amit Verma<small>ऐप इंस्टॉल नहीं किया</small></div><span class="status nn">अभी नहीं आए <span class="n">3</span></span></div>
+          </div>
+        </div>
+        <div class="tabs"><div><i>📖</i>आज</div><div><i>👥</i>स्टाफ़</div><div><div class="mic">🎤</div><div class="mic-label">Mint से पूछें</div></div><div><i>₹</i>सैलरी</div><div><i>☰</i>और</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>Full day and month names ("सोमवार, 12 अक्टूबर").</li><li><span class="n">2</span>"चेक-इन" in plain words; no "पंच".</li><li><span class="n">3</span>One phrase, "अभी नहीं आए", everywhere.</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag before">BEFORE</span>सैलरी</h3>
+      <div class="phone shot"><img src="images/r2/before-h03-salary-hi.png" alt="Current Hindi salary" /></div>
+      <ol class="notes"><li><span class="n">!</span>Hindi + English on every heading; month twice.</li></ol>
+    </div>
+    <div class="arrow">→</div>
+    <div class="step">
+      <h3><span class="tag after">AFTER</span>सैलरी</h3>
+      <div class="phone">
+        <div class="sb"><span>10:00</span><span>●●● 4G</span></div>
+        <div class="scr">
+          <div class="hdr"><div class="t"><b>सैलरी</b></div><span class="lang">हि / En</span></div>
+          <div class="seg"><span class="on">सैलरी दें</span><span>एडवांस</span><span>बोनस / कटौती</span></div>
+          <div class="datebar"><span class="nav">‹</span><span class="mid">अक्टूबर 2026</span><span class="nav" style="opacity:.3">›</span></div>
+          <div class="card dark"><p>इस महीने कुल देना है <span class="n">1</span></p><div class="big" style="color:#fff">₹66,100</div><p>6 स्टाफ़ · कमाई ₹68,600 · एडवांस −₹2,500</p></div>
+          <div class="card amber"><h4>कदम 1 · हाज़िरी जाँचें</h4><p>Suresh के 3 दिन (8, 9, 10 अक्टूबर) की हाज़िरी नहीं है। इन्हें ग़ैरहाज़िर मानें?</p><div class="row" style="gap:6px;margin-top:6px"><span class="btn line" style="flex:1">दिन ठीक करें</span><span class="btn" style="flex:1">हाँ, ग़ैरहाज़िर</span></div></div>
+          <div class="check"><span class="box">2</span><span>कदम 2 · मंज़ूर करें और सैलरी स्लिप भेजें</span></div>
+          <div class="check"><span class="box">3</span><span>कदम 3 · पैसे देकर “दे दिया” स्लाइड करें</span></div>
+        </div>
+        <div class="tabs"><div><i>📖</i>आज</div><div><i>👥</i>स्टाफ़</div><div><div class="mic">🎤</div><div class="mic-label">Mint से पूछें</div></div><div class="on"><i>₹</i>सैलरी</div><div><i>☰</i>और</div></div>
+      </div>
+      <ol class="notes"><li><span class="n">1</span>Pure Hindi headings. A small English hint stays only under the bottom tabs and main buttons, and can be turned off in Profile.</li></ol>
+    </div>
+  </div>
+</section>
+
+<footer>StaffMint · UI round 2 mock-up · design only, no app changes yet</footer>
+</div>
+</body>
+</html>
