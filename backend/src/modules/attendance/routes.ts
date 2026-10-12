@@ -35,6 +35,11 @@ attendanceRouter.post('/sync', requireRole('employee', 'manager'), async (req, r
   res.json({ data: await svc.syncPunches(ctxOf(req), b.punches) });
 });
 
+attendanceRouter.post('/fix-request', requireRole('employee', 'manager'), async (req, res) => {
+  const b = body(req, z.object({ date: zDate, note: z.string().trim().max(300).optional() }));
+  res.json({ data: await svc.requestFix(ctxOf(req), b) });
+});
+
 attendanceRouter.get('/today', requireRole('employee', 'manager'), async (req, res) => {
   res.json({ data: await svc.todayForEmployee(ctxOf(req)) });
 });

@@ -14,8 +14,11 @@ class CheckInButton extends StatelessWidget {
     this.busy = false,
     this.busyLabel,
     this.size = 220,
+    this.checkInHint,
   });
 
+  /// Says what checking in does ("Takes a selfie and marks you present").
+  final String? checkInHint;
   final PunchButtonState state;
   final VoidCallback? onPressed;
   final bool busy;
@@ -26,7 +29,7 @@ class CheckInButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = context.s;
     final (label, hint, icon, color) = switch (state) {
-      PunchButtonState.checkIn => (s.checkIn, s.checkInHint, Icons.touch_app_rounded, AppColors.mint),
+      PunchButtonState.checkIn => (s.checkIn, checkInHint ?? s.checkInHint, Icons.touch_app_rounded, AppColors.mint),
       PunchButtonState.checkOut => (s.checkOut, s.checkOutHint, Icons.logout_rounded, AppColors.orange),
       PunchButtonState.completed => (s.checkInAgain, null, Icons.replay_rounded, AppColors.mintDark),
     };

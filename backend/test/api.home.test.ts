@@ -86,3 +86,22 @@ describe('Team & access', () => {
     expect((await api().post(`${V}/employees/${emp.id}/role`).set(auth(owner.token)).send({ role: 'owner' })).status).toBe(400);
   });
 });
+
+describe('staff app', () => {
+  it('"I was there — ask owner to fix" tells the owner once per day', async () => {
+    await mocks();
+    const owner = await createOwner();
+    const phone = nextPhone();
+    await addEmployee(owner, { phone, name: 'Ramesh Kumar' });
+    const e = await employeeSession(phone);
+    const r = await api().post(`${V}/attendance/fix-request`).set(auth(e.token)).send({ date: '2026-10-09', note: 'I was at the bank for the shop' }).expect(200);
+    expect(r.body.data).toEqual({ sent: true });
+    const { Notification } = await import('../src/models/index.js');
+    const n = await Notification.findOne({ companyId: owner.companyId, template: 'attendance_fix_request', channel: 'in_app' }).lean();
+    expect(n!.title).toMatch(/Ramesh Kumar.*2026-10-09/); // in the owner's language
+    expect(n!.body).toContain('I was at the bank');
+    expect((await api().post(`${V}/attendance/fix-request`).set(auth(e.token)).send({ date: '2026-10-09' })).body.data).toEqual({ sent: false });
+    expect((await api().post(`${V}/attendance/fix-request`).set(auth(e.token)).send({ date: '2099-01-01' })).status).toBe(400);
+    expect((await api().post(`${V}/attendance/fix-request`).set(auth(owner.token)).send({ date: '2026-10-09' })).status).toBe(403);
+  });
+});
