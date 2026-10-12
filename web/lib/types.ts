@@ -426,6 +426,10 @@ export interface AuditLog {
   before: unknown;
   after: unknown;
   at: string;
+  /** One plain sentence for people, e.g. "Raju: 1 Oct set to Absent". */
+  text?: string | null;
+  category?: string;
+  changes?: { label: string; from?: string | null; to?: string | null }[];
 }
 
 export interface Holiday {

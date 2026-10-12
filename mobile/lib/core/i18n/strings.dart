@@ -1532,6 +1532,32 @@ class S {
   String get changeLink => _t('change', 'बदलें');
   String get addAndInvite => _t('Add & send invite', 'जोड़ें और बुलावा भेजें');
 
+  // ------------------------------------------------------------- History
+  String get historyHint =>
+      _t('Every change in your business: who did it and when.', 'आपके बिज़नेस का हर बदलाव: किसने किया और कब।');
+  String historyFilter(String c) => switch (c) {
+    'attendance' => _t('Attendance', 'हाज़िरी'),
+    'leave' => _t('Leave', 'छुट्टी'),
+    'salary' => _t('Salary', 'सैलरी'),
+    'staff' => _t('Staff', 'स्टाफ़'),
+    'settings' => _t('Shop rules', 'दुकान के नियम'),
+    'team' => _t('Team', 'टीम'),
+    'billing' => _t('Plan', 'प्लान'),
+    _ => _t('All', 'सब'),
+  };
+  String historyBy(String name) => _t('by $name', '$name ने');
+  String historyVia(String channel) => switch (channel) {
+    'assistant' => _t('via Mint', 'Mint से'),
+    'whatsapp' => _t('via WhatsApp', 'WhatsApp से'),
+    'web' => _t('on computer', 'कंप्यूटर से'),
+    'import' => _t('from a file', 'फ़ाइल से'),
+    'system' => _t('automatic', 'अपने आप'),
+    _ => '',
+  };
+  String get historyAutomatic => _t('StaffMint', 'StaffMint');
+  String get historyChanged => _t('A change was made', 'एक बदलाव किया गया');
+  String get historyNothingHere => _t('Nothing here yet.', 'यहाँ अभी कुछ नहीं।');
+
   // ------------------------------------------------------------ Shop map
   String get shopLocationTitle => _t('Shop location', 'दुकान की लोकेशन');
   String get searchPlaceHint => _t('Search your shop, market or area', 'दुकान, बाज़ार या इलाक़ा खोजें');

@@ -13,6 +13,9 @@ class AuditLog {
     this.before,
     this.after,
     this.at,
+    this.text,
+    this.category = 'other',
+    this.changes = const [],
   });
   final String id;
   final String? actorId;
@@ -25,6 +28,15 @@ class AuditLog {
   final Object? after;
   final DateTime? at;
 
+  /// One plain sentence for people ("Raju: 1 Oct set to Absent"), in the app's language.
+  final String? text;
+
+  /// attendance | leave | salary | staff | settings | team | billing | other
+  final String category;
+
+  /// What changed, in words ("Status: Present → Absent").
+  final List<AuditChange> changes;
+
   factory AuditLog.fromJson(Json j) => AuditLog(
     id: asString(j['id']),
     actorId: asStringOrNull(j['actorId']),
@@ -36,7 +48,20 @@ class AuditLog {
     before: j['before'],
     after: j['after'],
     at: asDateTimeOrNull(j['at']),
+    text: asStringOrNull(j['text']),
+    category: asString(j['category'], 'other'),
+    changes: asList(j['changes'], AuditChange.fromJson),
   );
+}
+
+class AuditChange {
+  const AuditChange({required this.label, this.from, this.to});
+  final String label;
+  final String? from;
+  final String? to;
+
+  factory AuditChange.fromJson(Json j) =>
+      AuditChange(label: asString(j['label']), from: asStringOrNull(j['from']), to: asStringOrNull(j['to']));
 }
 
 class BillingInfo {

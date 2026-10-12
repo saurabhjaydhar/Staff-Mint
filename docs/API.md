@@ -197,7 +197,7 @@ Fields: `name, phone, ratePaise, wageType, designation, joiningDate, branch, adv
 | POST | /assistant/confirm | `{pendingActionId, action:'confirm'\|'cancel'\|'choose', optionId?}` | `AssistantReply` |
 
 ### Trust
-| GET | /audit-logs | `?entity&entityId&limit&before` | `AuditLog[]` |
+| GET | /audit-logs | `?entity&entityId&category?=attendance\|leave\|salary\|staff\|settings\|team\|billing&limit&before` (owner) | `AuditLog[]`, each also with `text` (one plain sentence in the caller's language, e.g. "Raju: 1 Oct set to Absent"), `category` and `changes: {label, from?, to}[]`. StaffMint support sign-ins are not listed |
 | GET | /export | `?delivery=url` optional | zip (xlsx + payslip PDFs), or `{url, filename}`; available even after cancellation (30 days) |
 
 ### Billing

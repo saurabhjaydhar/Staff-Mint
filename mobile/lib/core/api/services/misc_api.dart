@@ -85,8 +85,17 @@ class AuditApi {
   AuditApi(this._c);
   final ApiClient _c;
 
-  Future<List<AuditLog>> list({String? entity, String? entityId, int limit = 50, String? before}) async => asList(
-    await _c.get('/audit-logs', query: {'entity': entity, 'entityId': entityId, 'limit': limit, 'before': before}),
+  Future<List<AuditLog>> list({
+    String? entity,
+    String? entityId,
+    String? category,
+    int limit = 50,
+    String? before,
+  }) async => asList(
+    await _c.get(
+      '/audit-logs',
+      query: {'entity': entity, 'entityId': entityId, 'category': category, 'limit': limit, 'before': before},
+    ),
     AuditLog.fromJson,
   );
 }
