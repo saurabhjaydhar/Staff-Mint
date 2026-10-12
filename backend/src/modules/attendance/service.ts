@@ -194,7 +194,7 @@ export async function punch(ctx: Ctx, input: PunchInput, source: 'app' | 'offlin
     await notifyOwners(ctx.companyId, {
       template: 'punch_approval',
       title: 'Check-in needs approval',
-      titleHi: 'पंच को मंज़ूरी चाहिए',
+      titleHi: 'चेक-इन को मंज़ूरी चाहिए',
       body:
         insideGeofence === false || input.mockLocation
           ? `${employee.name} punched ${input.type} ${distanceM ?? '?'} m away from the shop`
@@ -203,10 +203,10 @@ export async function punch(ctx: Ctx, input: PunchInput, source: 'app' | 'offlin
             : `${employee.name} punched ${input.type} without unlocking their phone`,
       bodyHi:
         insideGeofence === false || input.mockLocation
-          ? `${employee.name} ने दुकान से ${distanceM ?? '?'} मीटर दूर पंच किया`
+          ? `${employee.name} ने दुकान से ${distanceM ?? '?'} मीटर दूर चेक-इन किया`
           : face && face.result !== 'match' && face.result !== 'error'
             ? `${employee.name} की सेल्फ़ी उनकी चेहरे की फ़ोटो से साफ़ मेल नहीं खाती`
-            : `${employee.name} ने फ़ोन लॉक खोले बिना पंच किया`,
+            : `${employee.name} ने फ़ोन लॉक खोले बिना चेक-इन किया`,
       data: { type: 'punch_approval', attendanceId: String(record._id), punchId: String(punchId) },
     });
   }
@@ -458,7 +458,7 @@ export async function decidePunch(ctx: Ctx, attendanceId: string, punchId: strin
   await notifyEmployee(ctx.companyId, r.employeeId, {
     template: 'punch_decision',
     title: approve ? 'Check-in approved' : 'Check-in rejected',
-    titleHi: approve ? 'पंच मंज़ूर' : 'पंच नामंज़ूर',
+    titleHi: approve ? 'चेक-इन मंज़ूर' : 'चेक-इन नामंज़ूर',
     body: `${r.date}`,
     bodyHi: `${r.date}`,
     data: { type: 'punch_decision', date: r.date },

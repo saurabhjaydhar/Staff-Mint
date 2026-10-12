@@ -106,7 +106,7 @@ export function describeRules(
   };
   const missing = {
     en: { half_day: 'Half Day', present: 'Present (full day)', flag: 'Present, flagged for your review' }[s.missingCheckoutPolicy],
-    hi: { half_day: 'Half Day', present: 'पूरा दिन Present', flag: 'Present, पर आपके रिव्यू के लिए फ़्लैग' }[s.missingCheckoutPolicy],
+    hi: { half_day: 'आधा दिन', present: 'पूरा दिन हाज़िर', flag: 'हाज़िर, पर आपके देखने के लिए निशान लगेगा' }[s.missingCheckoutPolicy],
   };
   const rules = {
     en: [
@@ -121,20 +121,20 @@ export function describeRules(
       ['phone_lock', { off: 'Staff are not asked to unlock their phone at check-in.', recommended: 'Staff unlock their phone (fingerprint, face, PIN or pattern) at check-in. If they can\'t, the check-in still counts and is tagged for you.', required: 'Staff unlock their phone at check-in. If they can\'t, the check-in waits for your approval.' }[s.phoneLockPolicy ?? 'recommended']!],
     ],
     hi: [
-      ['late', `शिफ्ट शुरू${shift ? ` (${shift.start})` : ''} होने के ${s.graceMinutes} मिनट बाद पंच-इन किया तो Late लगेगा।`],
-      ['half_day', `${s.halfDayHours} घंटे से कम काम किया तो Half Day लगेगा।`],
-      ['missing_checkout', `अगर punch-out नहीं किया तो ${missing.hi} लगेगा।`],
-      ['auto_absent', 'रात 11:59 तक कोई पंच नहीं हुआ तो Absent लगेगा (छुट्टी, त्योहार या साप्ताहिक छुट्टी को छोड़कर)।'],
+      ['late', `शिफ्ट शुरू${shift ? ` (${shift.start})` : ''} होने के ${s.graceMinutes} मिनट बाद चेक-इन किया तो लेट लगेगा।`],
+      ['half_day', `${s.halfDayHours} घंटे से कम काम किया तो आधा दिन लगेगा।`],
+      ['missing_checkout', `अगर चेक-आउट नहीं किया तो ${missing.hi} लगेगा।`],
+      ['auto_absent', 'रात 11:59 तक कोई चेक-इन नहीं हुआ तो ग़ैरहाज़िर लगेगा (छुट्टी, त्योहार या साप्ताहिक छुट्टी को छोड़कर)।'],
       ['week_off', s.weekOffsPaid ? 'मासिक स्टाफ़ को साप्ताहिक छुट्टी का पैसा मिलेगा।' : 'साप्ताहिक छुट्टी का पैसा नहीं मिलेगा।'],
       ['holiday', s.holidaysPaid ? 'मासिक स्टाफ़ को त्योहार की छुट्टी का पैसा मिलेगा।' : 'त्योहार की छुट्टी का पैसा नहीं मिलेगा।'],
-      ['salary', `मासिक वेतन = वेतन ÷ ${divisorText.hi} × देय दिन।`],
-      ['geofence', s.outsideGeofencePolicy === 'block' ? 'दुकान की दूरी से बाहर पंच-इन नहीं होगा।' : 'दुकान की दूरी से बाहर पंच-इन के लिए आपकी मंज़ूरी चाहिए।'],
-      ['phone_lock', { off: 'पंच-इन पर फ़ोन लॉक नहीं पूछा जाएगा।', recommended: 'पंच-इन पर स्टाफ़ अपना फ़ोन लॉक (फ़िंगरप्रिंट, चेहरा, PIN या पैटर्न) खोलेगा। न खुले तो भी हाज़िरी लगेगी, आपको टैग दिखेगा।', required: 'पंच-इन पर स्टाफ़ अपना फ़ोन लॉक खोलेगा। न खुले तो हाज़िरी आपकी मंज़ूरी के बाद लगेगी।' }[s.phoneLockPolicy ?? 'recommended']!],
+      ['salary', `एक महीने की सैलरी = सैलरी ÷ ${divisorText.hi} × पैसे वाले दिन।`],
+      ['geofence', s.outsideGeofencePolicy === 'block' ? 'दुकान की दूरी से बाहर चेक-इन नहीं होगा।' : 'दुकान की दूरी से बाहर चेक-इन के लिए आपकी मंज़ूरी चाहिए।'],
+      ['phone_lock', { off: 'चेक-इन पर फ़ोन लॉक नहीं पूछा जाएगा।', recommended: 'चेक-इन पर स्टाफ़ अपना फ़ोन लॉक (फ़िंगरप्रिंट, चेहरा, PIN या पैटर्न) खोलेगा। न खुले तो भी हाज़िरी लगेगी, आपको टैग दिखेगा।', required: 'चेक-इन पर स्टाफ़ अपना फ़ोन लॉक खोलेगा। न खुले तो हाज़िरी आपकी मंज़ूरी के बाद लगेगी।' }[s.phoneLockPolicy ?? 'recommended']!],
     ],
   };
   if (s.faceMatchPolicy === 'review') {
     rules.en.push(['face', 'Each check-in selfie is compared with the staff member\'s approved face photo. If it does not clearly match, the check-in waits for your approval.']);
-    rules.hi.push(['face', 'हर पंच की सेल्फ़ी स्टाफ़ की मंज़ूर चेहरे की फ़ोटो से मिलाई जाती है। साफ़ मेल न खाए तो हाज़िरी आपकी मंज़ूरी के बाद लगेगी।']);
+    rules.hi.push(['face', 'हर चेक-इन की सेल्फ़ी स्टाफ़ की मंज़ूर चेहरे की फ़ोटो से मिलाई जाती है। साफ़ मेल न खाए तो हाज़िरी आपकी मंज़ूरी के बाद लगेगी।']);
   }
   return rules[lang].map(([key, text]) => ({ key, text }));
 }

@@ -139,7 +139,7 @@ class _AttendanceDetailSheetState extends ConsumerState<AttendanceDetailSheet> {
                   style: const TextStyle(color: AppColors.amberDark, fontWeight: FontWeight.w700),
                 ),
               if (rec.earlyOutMinutes > 0) Text(s.earlyOutBy(rec.earlyOutMinutes)),
-              if (rec.workedMinutes > 0) Text(s.worked(Dates.durationHm(rec.workedMinutes))),
+              if (rec.workedMinutes > 0) Text(s.worked(Dates.durationHm(rec.workedMinutes, s.languageCode))),
             ],
           ),
           if (rec.overridden && rec.overrideReason != null)

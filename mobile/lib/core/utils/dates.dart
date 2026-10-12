@@ -65,7 +65,7 @@ class Dates {
   static String monthTitle(DateTime d, [String locale = 'en']) => _fmt('MMMM yyyy', locale).format(d);
 
   /// Local time of an instant: `9:05 AM`.
-  static String time(DateTime instant, [String locale = 'en']) => _fmt('h:mm a', locale).format(instant.toLocal());
+  static String time(DateTime instant, [String locale = 'en']) => _clockText(instant.toLocal(), locale);
 
   /// Compact clock for ledger margins: `8:56` (12-hour, no AM/PM).
   static String clock(DateTime instant) => DateFormat('h:mm', 'en_US').format(instant.toLocal());
@@ -84,21 +84,40 @@ class Dates {
     final parts = hhmm.split(':');
     if (parts.length != 2) return hhmm;
     final dt = DateTime(2000, 1, 1, int.tryParse(parts[0]) ?? 0, int.tryParse(parts[1]) ?? 0);
-    return _fmt('h:mm a', locale).format(dt);
+    return _clockText(dt, locale);
+  }
+
+  /// `9:05 AM`; in Hindi the way people say it: `सुबह 9:05`, `शाम 6:30`.
+  static String _clockText(DateTime t, String locale) {
+    if (locale != 'hi') return _fmt('h:mm a', locale).format(t);
+    final h = t.hour;
+    final part = h >= 4 && h < 12
+        ? 'सुबह'
+        : h >= 12 && h < 16
+        ? 'दोपहर'
+        : h >= 16 && h < 20
+        ? 'शाम'
+        : 'रात';
+    return '$part ${DateFormat('h:mm', 'en_US').format(t)}';
   }
 
   static String toHhmm(int hour, int minute) =>
       '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
 
-  static String durationHm(int minutes) {
+  static String durationHm(int minutes, [String locale = 'en']) {
     final h = minutes ~/ 60;
     final m = minutes % 60;
+    if (locale == 'hi') return h > 0 ? '$h घंटे $m मिनट' : '$m मिनट';
     return h > 0 ? '${h}h ${m}m' : '${m}m';
   }
 
   /// Display formatter. Falls back to built-in `en_US` data when locale data
   /// has not been initialised (e.g. in tests) instead of throwing.
   static DateFormat _fmt(String pattern, String locale) {
+    // Hindi short names read oddly ("अक्टू॰", "सोम"), so Hindi always uses full names.
+    if (locale == 'hi') {
+      pattern = pattern.replaceAll(RegExp(r'(?<!M)MMM(?!M)'), 'MMMM').replaceAll(RegExp(r'(?<!E)EEE(?!E)'), 'EEEE');
+    }
     try {
       return DateFormat(pattern, locale == 'hi' ? 'hi' : 'en');
     } catch (_) {

@@ -209,16 +209,16 @@ export function computePayslip(input: EngineInput): EngineResult {
     basic = round(e.ratePaise * payable);
     basicExplain = {
       en: `${parts.en} → ${fmtDays(payable)} payable days. ${money(e.ratePaise)}/day × ${fmtDays(payable)} = ${money(basic)}`,
-      hi: `${parts.hi} → ${fmtDays(payable)} देय दिन। ${money(e.ratePaise)}/दिन × ${fmtDays(payable)} = ${money(basic)}`,
+      hi: `${parts.hi} → ${fmtDays(payable)} पैसे वाले दिन। ${money(e.ratePaise)}/दिन × ${fmtDays(payable)} = ${money(basic)}`,
     };
   } else {
     const raw = (e.ratePaise * payable) / divisor;
     const capped = Math.min(raw, e.ratePaise);
     basic = round(capped);
-    const capNote = raw > e.ratePaise ? { en: ' (capped at full monthly salary)', hi: ' (पूरे मासिक वेतन तक सीमित)' } : { en: '', hi: '' };
+    const capNote = raw > e.ratePaise ? { en: ' (capped at full monthly salary)', hi: ' (पूरी महीने की सैलरी तक सीमित)' } : { en: '', hi: '' };
     basicExplain = {
       en: `${parts.en} → ${fmtDays(payable)} payable days of ${divisor}. ${money(e.ratePaise)} ÷ ${divisor} × ${fmtDays(payable)} = ${money(basic)}${capNote.en}`,
-      hi: `${parts.hi} → ${divisor} में से ${fmtDays(payable)} देय दिन। ${money(e.ratePaise)} ÷ ${divisor} × ${fmtDays(payable)} = ${money(basic)}${capNote.hi}`,
+      hi: `${parts.hi} → ${divisor} में से ${fmtDays(payable)} पैसे वाले दिन। ${money(e.ratePaise)} ÷ ${divisor} × ${fmtDays(payable)} = ${money(basic)}${capNote.hi}`,
     };
   }
 
@@ -238,7 +238,7 @@ export function computePayslip(input: EngineInput): EngineResult {
       label:
         allowancePart > 0
           ? { en: `Basic (${fmtDays(payable)} days)`, hi: `बेसिक (${fmtDays(payable)} दिन)` }
-          : { en: `Salary for ${fmtDays(payable)} days`, hi: `${fmtDays(payable)} दिन का वेतन` },
+          : { en: `Salary for ${fmtDays(payable)} days`, hi: `${fmtDays(payable)} दिन की सैलरी` },
       explanation:
         allowancePart > 0
           ? { en: `${basicExplain.en}. ${basicPercent}% of it is Basic.`, hi: `${basicExplain.hi}। इसका ${basicPercent}% बेसिक है।` }
@@ -251,7 +251,7 @@ export function computePayslip(input: EngineInput): EngineResult {
       kind: 'earning',
       amountPaise: allowancePart,
       label: { en: 'HRA & allowances', hi: 'मकान किराया भत्ता व अन्य भत्ते' },
-      explanation: { en: `The other ${100 - basicPercent}% of the salary earned (${money(basic)}).`, hi: `कमाए गए वेतन (${money(basic)}) का बाकी ${100 - basicPercent}%।` },
+      explanation: { en: `The other ${100 - basicPercent}% of the salary earned (${money(basic)}).`, hi: `कमाई गई सैलरी (${money(basic)}) का बाकी ${100 - basicPercent}%।` },
     });
   }
 
@@ -317,7 +317,7 @@ export function computePayslip(input: EngineInput): EngineResult {
     addStatutory(
       'esi',
       esi,
-      { en: 'ESI', hi: 'ESI (कर्मचारी राज्य बीमा)' },
+      { en: 'ESI', hi: 'ESI (स्टाफ़ का सरकारी बीमा)' },
       { en: `${st.esiEmployeePercent}% of ${money(esiWages)}. Covers medical care for you and your family.`, hi: `${money(esiWages)} का ${st.esiEmployeePercent}%। आपके और परिवार के इलाज के लिए।` },
     );
     employerContributions.push({
@@ -366,12 +366,12 @@ export function computePayslip(input: EngineInput): EngineResult {
 
   const net = gross - deductions;
 
-  if (capped) anomalies.push({ code: 'advance_capped', message: { en: 'Advance deduction reduced so salary does not go negative', hi: 'वेतन माइनस न हो, इसलिए एडवांस कटौती कम की गई' } });
-  if (e.ratePaise <= 0) anomalies.push({ code: 'zero_rate', message: { en: 'Salary amount is not set', hi: 'वेतन राशि सेट नहीं है' } });
+  if (capped) anomalies.push({ code: 'advance_capped', message: { en: 'Advance deduction reduced so salary does not go negative', hi: 'सैलरी माइनस न हो, इसलिए एडवांस कटौती कम की गई' } });
+  if (e.ratePaise <= 0) anomalies.push({ code: 'zero_rate', message: { en: 'Salary amount is not set', hi: 'सैलरी सेट नहीं है' } });
   if (summary.unmarked > 0)
     anomalies.push({ code: 'unmarked_days', message: { en: `${summary.unmarked} day(s) have no attendance`, hi: `${summary.unmarked} दिन की हाज़िरी नहीं लगी` } });
-  if (payable === 0 && !input.asOfDate) anomalies.push({ code: 'no_payable_days', message: { en: 'No payable days this month', hi: 'इस महीने कोई देय दिन नहीं' } });
-  if (net < 0) anomalies.push({ code: 'negative_net', message: { en: `Net salary is negative (${money(net)})`, hi: `कुल वेतन माइनस में है (${money(net)})` } });
+  if (payable === 0 && !input.asOfDate) anomalies.push({ code: 'no_payable_days', message: { en: 'No payable days this month', hi: 'इस महीने कोई पैसे वाला दिन नहीं' } });
+  if (net < 0) anomalies.push({ code: 'negative_net', message: { en: `Net salary is negative (${money(net)})`, hi: `कुल सैलरी माइनस में है (${money(net)})` } });
   if (e.lastNetPaise && e.lastNetPaise > 0 && !input.asOfDate) {
     const diff = net - e.lastNetPaise;
     if (Math.abs(diff) >= 100000 && Math.abs(diff) / e.lastNetPaise >= 0.25) {
@@ -413,15 +413,15 @@ function describeDays(s: DaySummary, settings: PayrollSettings, isDaily: boolean
   };
   add(paid, s.present, `Present ${s.present}`, `हाज़िर ${s.present}`);
   add(paid, s.halfDay, `Half day ${s.halfDay} (= ${fmtDays(s.halfDay / 2)})`, `आधा दिन ${s.halfDay} (= ${fmtDays(s.halfDay / 2)})`);
-  add(paid, s.paidLeave, `Paid leave ${s.paidLeave}`, `सवेतन छुट्टी ${s.paidLeave}`);
+  add(paid, s.paidLeave, `Paid leave ${s.paidLeave}`, `पेड छुट्टी ${s.paidLeave}`);
   add(offPaid(settings.weekOffsPaid) ? paid : unpaid, s.weekOffs, `${offPaid(settings.weekOffsPaid) ? 'Week offs' : 'week offs'} ${s.weekOffs}`, `साप्ताहिक छुट्टी ${s.weekOffs}`);
   add(offPaid(settings.holidaysPaid) ? paid : unpaid, s.holidays, `${offPaid(settings.holidaysPaid) ? 'Holidays' : 'holidays'} ${s.holidays}`, `त्योहार छुट्टी ${s.holidays}`);
   add(unpaid, s.absent, `absent ${s.absent}`, `गैरहाज़िर ${s.absent}`);
-  add(unpaid, s.unpaidLeave, `unpaid leave ${s.unpaidLeave}`, `बिना वेतन छुट्टी ${s.unpaidLeave}`);
+  add(unpaid, s.unpaidLeave, `unpaid leave ${s.unpaidLeave}`, `बिना पैसे की छुट्टी ${s.unpaidLeave}`);
   add(unpaid, s.unmarked, `not marked ${s.unmarked}`, `हाज़िरी नहीं ${s.unmarked}`);
   const join = (l: Bilingual[], k: 'en' | 'hi') => l.map((x) => x[k]).join(', ');
   return {
     en: (join(paid, 'en') || 'No paid days') + (unpaid.length ? `; not paid: ${join(unpaid, 'en')}` : ''),
-    hi: (join(paid, 'hi') || 'कोई देय दिन नहीं') + (unpaid.length ? `; वेतन नहीं: ${join(unpaid, 'hi')}` : ''),
+    hi: (join(paid, 'hi') || 'कोई पैसे वाला दिन नहीं') + (unpaid.length ? `; पैसे नहीं: ${join(unpaid, 'hi')}` : ''),
   };
 }

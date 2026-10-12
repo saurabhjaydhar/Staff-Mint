@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 
 import '../../../core/api/providers.dart';
 import '../../../core/i18n/strings.dart';
@@ -279,7 +278,7 @@ class StaffProfileScreen extends ConsumerWidget {
                             ? null
                             : Text(
                                 s.invitedAgo(
-                                  DateFormat('d MMM, h:mm a', s.languageCode).format(e.invitedAt!.toLocal()),
+                                  '${Dates.dayMonth(e.invitedAt!.toLocal(), s.languageCode)}, ${Dates.time(e.invitedAt!, s.languageCode)}',
                                 ),
                               ),
                         trailing: TextButton(
@@ -421,7 +420,7 @@ class _ThisMonth extends ConsumerWidget {
             children: [
               Expanded(
                 child: Text(
-                  s.monthSoFar(DateFormat('MMMM', s.languageCode).format(month)),
+                  s.monthSoFar(Dates.monthOnly(Dates.toApiMonth(month), s.languageCode)),
                   style: const TextStyle(fontWeight: FontWeight.w800),
                 ),
               ),
