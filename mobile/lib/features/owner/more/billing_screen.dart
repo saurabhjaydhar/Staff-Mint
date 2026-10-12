@@ -725,7 +725,7 @@ class _PlanCard extends StatelessWidget {
                                         ),
                                         if (!free)
                                           TextSpan(
-                                            text: ' / ${yearly ? s.aYear : s.aMonth}',
+                                            text: ' / ${yearly ? s.yearUnit : s.monthUnit}',
                                             style: const TextStyle(fontSize: 13, color: AppColors.muted),
                                           ),
                                       ],
@@ -835,14 +835,18 @@ class _CompareTable extends StatelessWidget {
       for (final g in compareGroups)
         if (plans.any((p) => g.$3.any(p.has))) g,
     ];
-    Widget cell(Plan p, Widget child) => Container(
-      color: p.code == highlight ? AppColors.mintFaint : null,
-      height: 34,
-      alignment: Alignment.center,
-      child: child,
+    // Rows grow with their label; plan cells fill the row so the highlighted column stays one band.
+    Widget cell(Plan p, Widget child) => TableCell(
+      verticalAlignment: TableCellVerticalAlignment.fill,
+      child: Container(
+        color: p.code == highlight ? AppColors.mintFaint : null,
+        constraints: const BoxConstraints(minHeight: 36),
+        alignment: Alignment.center,
+        child: child,
+      ),
     );
-    Widget label(IconData icon, String text, {bool bold = false}) => SizedBox(
-      height: 34,
+    Widget label(IconData icon, String text, {bool bold = false}) => Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
           Icon(icon, size: 16, color: AppColors.muted),
@@ -850,9 +854,7 @@ class _CompareTable extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: TextStyle(fontSize: 13.5, fontWeight: bold ? FontWeight.w800 : FontWeight.w400),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 13.5, height: 1.2, fontWeight: bold ? FontWeight.w800 : FontWeight.w400),
             ),
           ),
         ],
@@ -871,8 +873,8 @@ class _CompareTable extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(10, 10, 10, 6),
         child: Table(
           columnWidths: {
-            0: const FlexColumnWidth(2.5),
-            for (var i = 1; i <= plans.length; i++) i: const FlexColumnWidth(1.05),
+            0: const FlexColumnWidth(3),
+            for (var i = 1; i <= plans.length; i++) i: const FlexColumnWidth(1),
           },
           defaultVerticalAlignment: TableCellVerticalAlignment.middle,
           children: [

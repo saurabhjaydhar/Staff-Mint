@@ -1961,6 +1961,8 @@ class S {
   };
   String get aMonth => _t('a month', 'हर महीने');
   String get aYear => _t('a year', 'हर साल');
+  String get monthUnit => _t('month', 'महीना');
+  String get yearUnit => _t('year', 'साल');
   String aboutPerDay(String p) => _t('About $p a day', 'रोज़ लगभग $p');
   String perDayShort(String p) => _t('≈ $p a day', '≈ $p रोज़');
   String get whyThisPlan => _t('Why this plan', 'यह प्लान क्यों');
