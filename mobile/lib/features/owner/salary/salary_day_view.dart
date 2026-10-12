@@ -6,6 +6,7 @@ import '../../../core/api/services/payroll_api.dart';
 import '../../../core/i18n/strings.dart';
 import '../../../core/models/models.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/dates.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/slide_to_confirm.dart';
@@ -212,7 +213,8 @@ class _SalaryDayViewState extends ConsumerState<SalaryDayView> {
     final flagged = <Payslip>[];
     final fine = <Payslip>[];
     for (final p in slips ?? const <Payslip>[]) {
-      final needsLook = r.anomaliesFor(p.employeeId).isNotEmpty && !_ok.contains('${r.id}:${p.employeeId}');
+      final needsLook =
+          r.isDraft && r.anomaliesFor(p.employeeId).isNotEmpty && !_ok.contains('${r.id}:${p.employeeId}');
       (needsLook ? flagged : fine).add(p);
     }
     final reviewed = slips != null && flagged.isEmpty;
@@ -228,58 +230,44 @@ class _SalaryDayViewState extends ConsumerState<SalaryDayView> {
     return [
       _CashHero(run: r, advancePaise: advance),
       _SalarySteps(step: step, toCheck: flagged.length),
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            if (r.revision > 1)
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: Text(s.revisionLabel(r.revision), style: const TextStyle(color: AppColors.muted)),
-              ),
-            if (r.isDraft)
+      if (r.isDraft)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              if (r.revision > 1)
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 12),
+                    child: Text(s.revisionLabel(r.revision), style: const TextStyle(color: AppColors.muted)),
+                  ),
+                ),
               TextButton.icon(
                 onPressed: _busy ? null : () => _act(() => _api.prepare(widget.month)),
                 icon: const Icon(Icons.refresh_rounded),
                 label: Text(s.recalculate),
-              )
-            else
-              TextButton.icon(
-                onPressed: _busy
-                    ? null
-                    : () async {
-                        if (await confirmDialog(context, title: s.revise, message: s.reviseConfirm)) {
-                          await _act(() => _api.revise(r.id));
-                        }
-                      },
-                icon: const Icon(Icons.edit_note_rounded),
-                label: Text(s.revise),
               ),
-          ],
-        ),
-      ),
-      if (!r.isDraft)
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
-          child: Text(s.editSalaryHint, style: const TextStyle(color: AppColors.muted, fontSize: 12.5)),
+            ],
+          ),
         ),
       if (_busy) const LinearProgressIndicator(minHeight: 2),
       if (r.isPaid)
-        Container(
-          margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(color: AppColors.mintLight, borderRadius: AppTheme.radius),
-          child: Row(
-            children: [
-              const Icon(Icons.verified_rounded, color: AppColors.mint),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(s.paidBanner, style: const TextStyle(fontWeight: FontWeight.w700)),
-              ),
-              TextButton(onPressed: _busy ? null : () => _sendAgain(r), child: Text(s.sendAgain)),
-            ],
-          ),
+        _DoneCard(
+          month: Dates.monthOnly(r.month, s.languageCode),
+          staff: r.employees,
+          onSendAgain: _busy ? null : () => _sendAgain(r),
+        ),
+      if (!r.isDraft)
+        _ChangeCard(
+          revision: r.revision,
+          onChange: _busy
+              ? null
+              : () async {
+                  if (await confirmDialog(context, title: s.revise, message: s.reviseConfirm)) {
+                    await _act(() => _api.revise(r.id));
+                  }
+                },
         ),
       if (slips == null)
         const LoadingView(rows: 3)
@@ -421,7 +409,15 @@ class _CashHero extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(s.cashNeeded.joined, style: style),
+          Text(
+            run.isPaid && run.paidOn != null
+                ? s.paidOnVia(
+                    Dates.prettyApiDate(run.paidOn!, s.languageCode),
+                    s.paymentMethodLabel(run.paymentMethod ?? 'cash'),
+                  )
+                : s.cashNeeded.joined,
+            style: style,
+          ),
           const SizedBox(height: 2),
           FittedBox(
             fit: BoxFit.scaleDown,
@@ -457,6 +453,7 @@ class _FlagCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = context.s;
+    final unmarked = anomalies.any((a) => a.code == 'unmarked_days');
     return Container(
       key: Key('flag_${payslip.employeeId}'),
       margin: const EdgeInsets.fromLTRB(16, 10, 16, 0),
@@ -485,7 +482,7 @@ class _FlagCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            [...anomalies.skip(1).map((a) => a.message), s.isThatRight].join(' · '),
+            [...anomalies.skip(1).map((a) => a.message), unmarked ? s.countAsAbsent : s.isThatRight].join(' · '),
             style: const TextStyle(fontSize: 13.5, color: AppColors.muted, height: 1.35),
           ),
           const SizedBox(height: 8),
@@ -498,15 +495,109 @@ class _FlagCard extends StatelessWidget {
                 style: OutlinedButton.styleFrom(minimumSize: const Size(48, 48)),
                 onPressed: onOk,
                 icon: const Icon(Icons.check_rounded, size: 18),
-                label: Text(s.looksRight),
+                label: Text(unmarked ? s.yesAbsent : s.yesRight),
               ),
               OutlinedButton.icon(
+                key: Key('flagFix_${payslip.employeeId}'),
                 style: OutlinedButton.styleFrom(minimumSize: const Size(48, 48)),
                 onPressed: onChange,
                 icon: const Icon(Icons.edit_rounded, size: 18),
-                label: Text(s.change),
+                label: Text(unmarked ? s.fixDays : s.change),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Shown once a month is paid: a plain "done" line, no more questions.
+class _DoneCard extends StatelessWidget {
+  const _DoneCard({required this.month, required this.staff, required this.onSendAgain});
+  final String month;
+  final int staff;
+  final VoidCallback? onSendAgain;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.s;
+    return Container(
+      key: const Key('salaryDone'),
+      margin: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+      padding: const EdgeInsets.fromLTRB(14, 12, 8, 8),
+      decoration: BoxDecoration(color: AppColors.mintLight, borderRadius: AppTheme.radius),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.verified_rounded, color: AppColors.mint),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(s.monthDone(month), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.only(right: 6),
+            child: Text(s.slipsSentLine(staff), style: const TextStyle(color: AppColors.ink, height: 1.35)),
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(onPressed: onSendAgain, child: Text(s.sendAgain)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// After approval: one plain way to change a salary (makes a new slip, keeps the old).
+class _ChangeCard extends StatelessWidget {
+  const _ChangeCard({required this.revision, required this.onChange});
+  final int revision;
+  final VoidCallback? onChange;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.s;
+    return Container(
+      key: const Key('salaryChange'),
+      margin: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+      padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: AppTheme.radius,
+        border: Border.all(color: AppColors.line, width: 1.5),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (revision > 1)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(
+                      s.revisionLabel(revision),
+                      style: const TextStyle(color: AppColors.amberDark, fontSize: 12.5, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                Text(s.needChange, style: const TextStyle(fontWeight: FontWeight.w800)),
+                const SizedBox(height: 2),
+                Text(s.needChangeBody, style: const TextStyle(color: AppColors.muted, fontSize: 13)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          OutlinedButton(
+            key: const Key('changeSalary'),
+            style: OutlinedButton.styleFrom(minimumSize: const Size(48, 48)),
+            onPressed: onChange,
+            child: Text(s.revise),
           ),
         ],
       ),

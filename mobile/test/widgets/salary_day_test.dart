@@ -23,10 +23,13 @@ Payslip _slip(String id, String name, int net) => Payslip(
   ],
 );
 
-PayrollRun _run(String status) => PayrollRun(
+PayrollRun _run(String status, {int revision = 1}) => PayrollRun(
   id: 'r1',
   month: '2026-09',
   status: status,
+  revision: revision,
+  paidOn: status == 'paid' ? '2026-10-03' : null,
+  paymentMethod: status == 'paid' ? 'upi' : null,
   netPaise: 7050000,
   grossPaise: 7300000,
   employees: 3,
@@ -63,7 +66,7 @@ class _FakePayrollApi implements PayrollApi {
 void main() {
   late _FakePayrollApi api;
 
-  Future<void> pump(WidgetTester tester) async {
+  Future<void> pump(WidgetTester tester, {PayrollRun? run}) async {
     api = _FakePayrollApi();
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.6;
@@ -73,7 +76,7 @@ void main() {
         retry: (_, _) => null,
         overrides: [
           payrollApiProvider.overrideWithValue(api),
-          payrollRunsProvider.overrideWith((ref, month) async => [_run('draft')]),
+          payrollRunsProvider.overrideWith((ref, month) async => [run ?? _run('draft')]),
         ],
         child: const MaterialApp(
           home: Scaffold(body: SalaryDayView(month: '2026-09')),
@@ -122,5 +125,45 @@ void main() {
     expect(api.calls, ['approve:r1', 'send:r1']);
     expect(find.text('Salary approved!'), findsOneWidget);
     expect(find.textContaining('Salary slips are going to 3 staff'), findsOneWidget);
+  });
+
+  testWidgets('a paid month asks nothing: paid line, a "done" card and one plain "Change salary"', (tester) async {
+    await pump(tester, run: _run('paid', revision: 2));
+
+    expect(find.text('Paid on 3 Oct 2026 · UPI'), findsOneWidget);
+    expect(find.byKey(const Key('flag_e2')), findsNothing);
+    expect(find.text('Is that right?'), findsNothing);
+    expect(find.byKey(const Key('salaryDone')), findsOneWidget);
+    expect(find.text('September is done'), findsOneWidget);
+    expect(find.text('3 salary slips sent. Staff can see them in their app.'), findsOneWidget);
+    expect(find.text('Need to change something?'), findsOneWidget);
+    expect(find.text('Changed after approval · old slip kept'), findsOneWidget);
+    expect(find.text('Change salary'), findsOneWidget);
+    expect(find.textContaining('version'), findsNothing);
+    expect(find.byKey(const Key('salarySlider')), findsNothing);
+  });
+
+  testWidgets('days with no attendance ask "Count them as absent?" with buttons that say what they do', (tester) async {
+    final draft = _run('draft');
+    await pump(
+      tester,
+      run: PayrollRun(
+        id: draft.id,
+        month: draft.month,
+        employees: 3,
+        anomalies: const [
+          PayrollAnomaly(
+            employeeId: 'e3',
+            employeeName: 'Raju',
+            code: 'unmarked_days',
+            message: '3 day(s) have no attendance',
+          ),
+        ],
+        payslips: draft.payslips,
+      ),
+    );
+    expect(find.textContaining('Count them as absent?'), findsOneWidget);
+    expect(find.text('Yes, absent'), findsOneWidget);
+    expect(find.text('Fix days'), findsOneWidget);
   });
 }

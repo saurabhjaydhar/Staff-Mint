@@ -244,6 +244,24 @@ describe('leave', () => {
     expect(bal2.body.data[0].usedPaid).toBe(0);
   });
 
+  it('"Approve as unpaid" records unpaid leave and leaves the paid balance alone', async () => {
+    await mocks();
+    const { owner, emp, e } = await setup();
+    await api().put(`${V}/leave-balances/${emp.id}`).set(auth(owner.token)).send({ year: 2026, paid: 0, sick: 0 }).expect(200);
+    const r = await api().post(`${V}/leaves`).set(auth(e.token)).send({ type: 'paid', from: '2026-10-13', to: '2026-10-14' });
+    expect(r.status).toBe(201);
+    const d = await api().post(`${V}/leaves/${r.body.data.id}/decision`).set(auth(owner.token)).send({ decision: 'approved', asUnpaid: true });
+    expect(d.status).toBe(200);
+    expect(d.body.data).toMatchObject({ status: 'approved', type: 'unpaid' });
+    const recs = await Attendance.find({ companyId: owner.companyId, employeeId: emp.id }).sort({ date: 1 }).lean();
+    expect(recs.map((x) => [x.date, x.status, x.leaveType])).toEqual([
+      ['2026-10-13', 'leave', 'unpaid'],
+      ['2026-10-14', 'leave', 'unpaid'],
+    ]);
+    const bal = await api().get(`${V}/leave-balances?employeeId=${emp.id}&year=2026`).set(auth(owner.token));
+    expect(bal.body.data[0]).toMatchObject({ usedPaid: 0 });
+  });
+
   it('owner applying on behalf auto-approves; week offs excluded from day count', async () => {
     const owner = await createOwner();
     const emp = await addEmployee(owner);

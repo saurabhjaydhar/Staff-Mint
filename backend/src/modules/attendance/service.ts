@@ -332,12 +332,15 @@ export async function dayView(ctx: Ctx, date: string) {
   return Promise.all(
     emps.map(async (e) => {
       const r = byEmp.get(String(e._id)) ?? null;
+      const sh = dc.shiftOf(e);
       return {
         // linked/invitedAt: Home says "Hasn't installed the app · Invited" instead of a silent dash.
         employee: { id: String(e._id), name: e.name, phone: e.phone, designation: e.designation ?? null, linked: !!e.userId, invitedAt: e.invitedAt ?? null },
         record: r ? await attendanceView(r) : null,
         displayStatus: displayStatusOf(r, implicitStatus(dc, e, date), closed),
         holidayName: dc.holidayName(date) ?? null,
+        // "Shift starts at 9:00 AM" on Home before anyone is due.
+        shift: sh ? { start: sh.start, end: sh.end } : null,
       };
     }),
   );

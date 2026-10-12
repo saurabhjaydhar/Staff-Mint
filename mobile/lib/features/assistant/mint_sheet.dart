@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/common.dart';
+import '../auth/auth_controller.dart';
 import 'assistant_controller.dart';
 import 'chat_bubbles.dart';
+import 'mint_help.dart';
 import 'voice_recorder.dart';
 
 /// Opens Mint as a draggable sheet over the current screen (no page change).
@@ -67,7 +69,11 @@ class _MintChatState extends ConsumerState<MintChat> {
     if (t.trim().isEmpty) return;
     _input.clear();
     _scrollToEnd();
-    await ref.read(assistantControllerProvider.notifier).sendText(t);
+    final s = context.s;
+    final owner = ref.read(authControllerProvider).isOwner;
+    await ref
+        .read(assistantControllerProvider.notifier)
+        .sendText(t, localHelp: owner ? (q) => mintHelpFor(s, q) : null);
     _scrollToEnd();
   }
 
@@ -115,7 +121,33 @@ class _MintChatState extends ConsumerState<MintChat> {
                 controller: _scroll,
                 padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
                 children: [
-                  ChatBubble(outgoing: false, at: DateTime.now(), child: Text(s.mintWelcome)),
+                  if (state.messages.isEmpty)
+                    ChatBubble(
+                      outgoing: false,
+                      at: DateTime.now(),
+                      child: Column(
+                        key: const Key('mintExamples'),
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(s.mintIntro),
+                          const SizedBox(height: 6),
+                          for (final ex in s.mintExamples)
+                            InkWell(
+                              onTap: state.sending ? null : () => _send(ex),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 7),
+                                child: Text(
+                                  '“$ex”',
+                                  style: const TextStyle(color: AppColors.mintDark, fontWeight: FontWeight.w700),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    )
+                  else
+                    ChatBubble(outgoing: false, at: DateTime.now(), child: Text(s.mintWelcome)),
                   for (var i = 0; i < state.messages.length; i++)
                     ChatMessageView(
                       message: state.messages[i],
@@ -139,26 +171,20 @@ class _MintChatState extends ConsumerState<MintChat> {
             ),
           ),
           if (_recording) _RecordingBanner(text: s.listening),
-          SizedBox(
-            height: 44,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 10),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 4, 10, 4),
+            child: Wrap(
+              key: const Key('mintChips'),
+              spacing: 6,
+              runSpacing: 0,
               children: [
                 for (final (label, query) in s.mintSuggestionChips)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 6, bottom: 6),
-                    child: ActionChip(
-                      label: Text(label),
-                      labelStyle: const TextStyle(
-                        color: AppColors.mintDark,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13.5,
-                      ),
-                      side: const BorderSide(color: Color(0xFFCDEBDB)),
-                      backgroundColor: Colors.white,
-                      onPressed: state.sending ? null : () => _send(query),
-                    ),
+                  ActionChip(
+                    label: Text(label),
+                    labelStyle: const TextStyle(color: AppColors.mintDark, fontWeight: FontWeight.w700, fontSize: 13.5),
+                    side: const BorderSide(color: Color(0xFFCDEBDB)),
+                    backgroundColor: Colors.white,
+                    onPressed: state.sending ? null : () => _send(query),
                   ),
               ],
             ),

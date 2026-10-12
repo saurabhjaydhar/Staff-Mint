@@ -10,10 +10,10 @@ import '../../../core/utils/dates.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/utils/phone.dart';
 import '../../../core/widgets/common.dart';
-import '../../../core/widgets/month_dots.dart';
 import '../../../core/widgets/skeleton.dart';
 import '../../../core/widgets/pickers.dart';
 import '../../auth/auth_controller.dart';
+import '../attendance/month_summary.dart' show MonthTally, PersonMonthScreen;
 import '../../profile/profile_screen.dart' show BankCard;
 import '../../profile/profile_sheets.dart';
 import '../providers/owner_providers.dart';
@@ -42,9 +42,10 @@ class StaffProfileScreen extends ConsumerWidget {
         title: Text(emp.value?.name ?? s.staffTitle),
         actions: [
           if (emp.hasValue)
-            IconButton(
-              tooltip: s.editStaff,
-              icon: const Icon(Icons.edit_rounded),
+            TextButton.icon(
+              key: const Key('editStaffButton'),
+              icon: const Icon(Icons.edit_rounded, size: 18),
+              label: Text(s.edit),
               onPressed: () async {
                 final changed = await showModalBottomSheet<bool>(
                   context: context,
@@ -100,67 +101,80 @@ class StaffProfileScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-              SectionHeader(s.thisMonth),
+              const SizedBox(height: 10),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: _ThisMonth(employeeId: e.id),
               ),
-              SectionHeader(s.salary),
+              SectionHeader(s.pay),
               Card(
                 child: Column(
                   children: [
-                    ListTile(
-                      leading: const Icon(Icons.currency_rupee_rounded),
-                      title: Text(
-                        e.ratePaise > 0
-                            ? (e.isDaily ? s.perDay(Money.format(e.ratePaise)) : s.perMonth(Money.format(e.ratePaise)))
-                            : '—',
-                      ),
-                      subtitle: Text(e.isDaily ? s.wageDaily : s.wageMonthly),
+                    _InfoRow(
+                      label: s.salary,
+                      value: e.ratePaise > 0
+                          ? (e.isDaily ? s.perDay(Money.format(e.ratePaise)) : s.perMonth(Money.format(e.ratePaise)))
+                          : '—',
                     ),
-                    ListTile(
-                      leading: const Icon(Icons.schedule_rounded),
-                      title: Text(
-                        shift == null
-                            ? s.defaultShift
-                            : '${shift.name} · ${Dates.hhmmToDisplay(shift.start, s.languageCode)}–${Dates.hhmmToDisplay(shift.end, s.languageCode)}',
-                      ),
-                      subtitle: Text(s.shift),
+                    _InfoRow(
+                      key: const Key('advanceToRecover'),
+                      label: s.advanceToRecover,
+                      value: Money.format(e.advanceBalancePaise ?? 0),
+                      valueColor: (e.advanceBalancePaise ?? 0) > 0 ? AppColors.red : null,
                     ),
-                    if (e.joiningDate != null)
-                      ListTile(
-                        leading: const Icon(Icons.event_rounded),
-                        title: Text(Dates.prettyApiDate(e.joiningDate!, s.languageCode)),
-                        subtitle: Text(s.joiningDate),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              key: const Key('profileGiveAdvance'),
+                              style: OutlinedButton.styleFrom(minimumSize: const Size(48, 48)),
+                              onPressed: () async {
+                                if (await showAddAdvanceSheet(context, ref, employee: e)) invalidate();
+                              },
+                              child: Text(s.giveAdvanceShort),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: OutlinedButton(
+                              key: const Key('profileBonusCut'),
+                              style: OutlinedButton.styleFrom(minimumSize: const Size(48, 48)),
+                              onPressed: () async {
+                                final month = Dates.toApiMonth(DateTime.now());
+                                if (await showAddAdjustmentSheet(context, ref, month: month, employee: e)) {
+                                  invalidate();
+                                }
+                              },
+                              child: Text(s.bonusCutShort),
+                            ),
+                          ),
+                        ],
                       ),
+                    ),
                   ],
                 ),
               ),
-              SectionHeader(
-                s.advances,
-                trailing: TextButton.icon(
-                  icon: const Icon(Icons.add),
-                  label: Text(s.addAdvance),
-                  onPressed: () async {
-                    if (await showAddAdvanceSheet(context, ref, employee: e)) invalidate();
-                  },
-                ),
-              ),
-              Card(
-                child: ListTile(
-                  leading: const Icon(Icons.account_balance_wallet_rounded),
-                  title: Text(
-                    Money.format(e.advanceBalancePaise ?? 0),
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 20,
-                      color: (e.advanceBalancePaise ?? 0) > 0 ? AppColors.red : AppColors.ink,
-                    ),
-                  ),
-                  subtitle: Text(s.advanceBalance),
-                ),
-              ),
               AdvancesList(employeeId: e.id, compact: true),
+              SectionHeader(s.work),
+              Card(
+                key: const Key('workGroup'),
+                child: Column(
+                  children: [
+                    _InfoRow(
+                      label: s.shift,
+                      value: shift == null
+                          ? s.defaultShift
+                          : '${Dates.hhmmToDisplay(shift.start, s.languageCode)} – ${Dates.hhmmToDisplay(shift.end, s.languageCode)}',
+                    ),
+                    if (shift != null && shift.weeklyOff.isNotEmpty)
+                      _InfoRow(label: s.weeklyOffLabel, value: _weekdays(shift.weeklyOff, s.languageCode)),
+                    if (e.joiningDate != null)
+                      _InfoRow(label: s.joinedLabel, value: Dates.prettyApiDate(e.joiningDate!, s.languageCode)),
+                  ],
+                ),
+              ),
               SectionHeader(
                 s.leaveBalance,
                 trailing: TextButton(
@@ -383,13 +397,95 @@ class _ThisMonth extends ConsumerWidget {
     final grid = ref.watch(employeeMonthProvider((month: Dates.toApiMonth(month), employeeId: employeeId)));
     final row = grid.value?.rows.where((r) => r.employee.id == employeeId).firstOrNull ?? grid.value?.rows.firstOrNull;
     if (row == null) return grid.isLoading ? const SkeletonBox(height: 72, radius: 16) : const SizedBox.shrink();
-    final present = row.days.values.where((d) => d == 'present' || d == 'late' || d == 'checked_in').length;
-    return MonthDots(
-      month: month,
-      days: row.days,
-      title: s.monthDaysPresent(Dates.monthTitle(month, s.languageCode).split(' ').first, present),
+    final t = MonthTally(row.totals);
+    final chips = [
+      ('present', s.chipPresentN((row.totals['present'] ?? 0).round())),
+      if (t.late > 0) ('late', s.chipLateN(t.late.round())),
+      if (t.absent > 0) ('absent', s.chipAbsentN(t.absent.round())),
+      if (t.halfDay > 0) ('half_day', s.chipHalfDayN(t.halfDay.round())),
+      if (t.leave > 0) ('leave', s.chipLeaveN(t.leave.round())),
+    ];
+    return Container(
+      key: const Key('profileMonth'),
+      padding: const EdgeInsets.fromLTRB(14, 6, 6, 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: AppTheme.radius,
+        border: Border.all(color: AppColors.line, width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  s.monthSoFar(DateFormat('MMMM', s.languageCode).format(month)),
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
+              TextButton(
+                key: const Key('profileCalendar'),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => PersonMonthScreen(employee: row.employee, month: month),
+                  ),
+                ),
+                child: Text('${s.calendarLink} ›'),
+              ),
+            ],
+          ),
+          Wrap(
+            spacing: 14,
+            runSpacing: 6,
+            children: [
+              for (final (status, label) in chips)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(StatusStyle.of(status).icon, size: 16, color: StatusStyle.of(status).fg),
+                    const SizedBox(width: 4),
+                    Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  ],
+                ),
+            ],
+          ),
+        ],
+      ),
     );
   }
+}
+
+/// "Sunday" / "रविवार" for weekday numbers (0 = Sunday).
+String _weekdays(List<int> days, String locale) {
+  final fmt = DateFormat('EEEE', locale);
+  // 2026-10-11 is a Sunday.
+  return days.map((d) => fmt.format(DateTime(2026, 10, 11 + d))).join(', ');
+}
+
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({super.key, required this.label, required this.value, this.valueColor});
+  final String label;
+  final String value;
+  final Color? valueColor;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+    child: Row(
+      children: [
+        Text(label, style: const TextStyle(color: AppColors.muted)),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: TextStyle(fontWeight: FontWeight.w800, color: valueColor ?? AppColors.ink),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _EditStaffSheet extends ConsumerStatefulWidget {

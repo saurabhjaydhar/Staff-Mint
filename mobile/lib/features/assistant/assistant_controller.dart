@@ -7,6 +7,8 @@ import '../auth/auth_controller.dart';
 class ChatMessage {
   ChatMessage.user(this.text, {this.isVoice = false, this.voiceDuration, this.transcript, DateTime? at})
     : fromUser = true,
+      route = null,
+      routeLabel = null,
       reply = null,
       resolved = false,
       error = null,
@@ -14,6 +16,8 @@ class ChatMessage {
 
   ChatMessage.assistant(AssistantReply this.reply, {this.resolved = false, DateTime? at})
     : fromUser = false,
+      route = null,
+      routeLabel = null,
       text = '',
       isVoice = false,
       voiceDuration = null,
@@ -23,6 +27,8 @@ class ChatMessage {
 
   ChatMessage.error(Object this.error)
     : fromUser = false,
+      route = null,
+      routeLabel = null,
       text = '',
       isVoice = false,
       voiceDuration = null,
@@ -31,8 +37,22 @@ class ChatMessage {
       resolved = true,
       at = DateTime.now();
 
+  /// A "how do I…" answer from the app itself, with a button that opens [route].
+  ChatMessage.help(this.text, {this.route, this.routeLabel})
+    : fromUser = false,
+      isVoice = false,
+      voiceDuration = null,
+      transcript = null,
+      reply = null,
+      resolved = true,
+      error = null,
+      at = DateTime.now();
+
   final bool fromUser;
   final String text;
+  final String? route;
+  final String? routeLabel;
+  bool get isHelp => !fromUser && reply == null && error == null;
   final bool isVoice;
   final Duration? voiceDuration;
 
@@ -78,10 +98,13 @@ class AssistantController extends Notifier<AssistantState> {
 
   void reset() => state = const AssistantState();
 
-  Future<void> sendText(String text) async {
+  Future<void> sendText(String text, {ChatMessage? Function(String)? localHelp}) async {
     final t = text.trim();
     if (t.isEmpty || state.sending) return;
     _push(ChatMessage.user(t));
+    // "Where is…/how do I…" questions are answered by the app with a button to the screen.
+    final help = localHelp?.call(t);
+    if (help != null) return _push(help);
     await _run(() => ref.read(assistantApiProvider).message(text: t, sessionId: state.sessionId));
   }
 

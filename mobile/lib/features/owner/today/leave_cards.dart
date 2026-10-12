@@ -7,15 +7,26 @@ import '../../../core/utils/dates.dart';
 
 /// Leave request with explicit Reject / Approve buttons.
 class LeaveDecisionCard extends StatelessWidget {
-  const LeaveDecisionCard({super.key, required this.leave, required this.busy, required this.onDecide});
+  const LeaveDecisionCard({
+    super.key,
+    required this.leave,
+    required this.busy,
+    required this.onDecide,
+    this.onApproveUnpaid,
+  });
   final Leave leave;
   final bool busy;
   final ValueChanged<bool> onDecide;
+
+  /// Approve as unpaid leave — offered when there aren't enough paid/sick leaves left.
+  final VoidCallback? onApproveUnpaid;
 
   @override
   Widget build(BuildContext context) {
     final s = context.s;
     final l = leave;
+    // Not enough paid/sick leave left for these days.
+    final short = l.type != 'unpaid' && l.balanceAfter != null && l.balanceAfter! < 0;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -67,20 +78,59 @@ class LeaveDecisionCard extends StatelessWidget {
                 style: const TextStyle(fontStyle: FontStyle.italic, color: AppColors.muted),
               ),
             ],
-            if (l.isPending && l.balanceLeft != null) ...[
+            if (l.isPending && l.balanceLeft != null && l.balanceAfter != null && !short) ...[
               const SizedBox(height: 4),
               Text(
-                s.leaveBalanceEffect(s.leaveTypeLabel(l.type).toLowerCase(), l.balanceLeft!, l.balanceAfter!),
+                s.leavesAfter(s.leaveKind(l.type), l.balanceLeft!, l.balanceAfter!),
                 key: Key('leaveEffect_${l.id}'),
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: l.balanceAfter! < 0 ? AppColors.red : AppColors.ink,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ],
+            if (l.isPending && short) ...[
+              const SizedBox(height: 8),
+              Container(
+                key: Key('leaveShort_${l.id}'),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: AppColors.redLight, borderRadius: BorderRadius.circular(12)),
+                child: Text(
+                  l.balanceLeft! <= 0
+                      ? s.noLeavesLeft(s.leaveKind(l.type), l.days)
+                      : s.fewLeavesLeft(s.leaveKind(l.type), l.balanceLeft!, l.days),
+                  style: const TextStyle(color: AppColors.red, fontWeight: FontWeight.w600),
                 ),
               ),
             ],
             if (l.isPending) ...[
               const SizedBox(height: 10),
-              DecisionButtons(busy: busy, onDecide: onDecide, rejectLabel: s.sayNo),
+              if (short && onApproveUnpaid != null) ...[
+                // The main button says exactly what happens: these days are unpaid.
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    key: Key('leaveUnpaid_${l.id}'),
+                    onPressed: busy ? null : onApproveUnpaid,
+                    icon: const Icon(Icons.check_rounded),
+                    label: Text(s.approveAsUnpaid),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    key: Key('leaveNo_${l.id}'),
+                    onPressed: busy ? null : () => onDecide(false),
+                    child: Text(s.sayNo),
+                  ),
+                ),
+                Center(
+                  child: TextButton(
+                    key: Key('leavePaidAnyway_${l.id}'),
+                    onPressed: busy ? null : () => onDecide(true),
+                    child: Text(s.giveAsPaid),
+                  ),
+                ),
+              ] else
+                DecisionButtons(busy: busy, onDecide: onDecide, rejectLabel: s.sayNo),
             ],
           ],
         ),
@@ -111,18 +161,20 @@ class DecisionButtons extends StatelessWidget {
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.red,
               side: const BorderSide(color: AppColors.red, width: 1.5),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             ),
             onPressed: busy ? null : () => onDecide(false),
             icon: const Icon(Icons.close_rounded),
-            label: Text(rejectLabel ?? s.reject, maxLines: 1, overflow: TextOverflow.ellipsis),
+            label: FittedBox(fit: BoxFit.scaleDown, child: Text(rejectLabel ?? s.reject, maxLines: 1)),
           ),
         ),
         const SizedBox(width: 10),
         Expanded(
           child: FilledButton.icon(
+            style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8)),
             onPressed: busy ? null : () => onDecide(true),
             icon: const Icon(Icons.check_rounded),
-            label: Text(approveLabel ?? s.approve, maxLines: 1, overflow: TextOverflow.ellipsis),
+            label: FittedBox(fit: BoxFit.scaleDown, child: Text(approveLabel ?? s.approve, maxLines: 1)),
           ),
         ),
       ],

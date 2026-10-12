@@ -147,11 +147,22 @@ class Attendance {
 }
 
 class DayRow {
-  const DayRow({required this.employee, this.record, required this.displayStatus, this.holidayName});
+  const DayRow({
+    required this.employee,
+    this.record,
+    required this.displayStatus,
+    this.holidayName,
+    this.shiftStart,
+    this.shiftEnd,
+  });
   final EmployeeRef employee;
   final Attendance? record;
   final String displayStatus;
   final String? holidayName;
+
+  /// "09:00" — this person's shift today, for "Shift starts at 9:00 AM".
+  final String? shiftStart;
+  final String? shiftEnd;
 
   /// Row rebuilt from a fresh record (e.g. the response of an override).
   /// Holiday / week-off / leave rows without a record keep [fallback].
@@ -160,6 +171,8 @@ class DayRow {
     record: r,
     displayStatus: displayStatusFor(r, fallback: fallback),
     holidayName: holidayName,
+    shiftStart: shiftStart,
+    shiftEnd: shiftEnd,
   );
 
   /// Mirrors the server's `displayStatus` for a single record.
@@ -199,6 +212,8 @@ class DayRow {
     record: j['record'] is Map ? Attendance.fromJson(asMap(j['record'])) : null,
     displayStatus: asString(j['displayStatus'], 'not_marked'),
     holidayName: asStringOrNull(j['holidayName']),
+    shiftStart: asStringOrNull(asMap(j['shift'])['start']),
+    shiftEnd: asStringOrNull(asMap(j['shift'])['end']),
   );
 }
 

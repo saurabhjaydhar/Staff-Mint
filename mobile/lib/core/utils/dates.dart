@@ -51,6 +51,9 @@ class Dates {
   /// "Sat" / "शनि".
   static String weekdayOnly(DateTime d, [String locale = 'en']) => _fmt('EEE', locale).format(d);
 
+  /// `October` from an API month (`2026-10`).
+  static String monthOnly(String apiMonth, [String locale = 'en']) => _fmt('MMMM', locale).format(parseMonth(apiMonth));
+
   /// `October 2026`.
   static String monthTitle(DateTime d, [String locale = 'en']) => _fmt('MMMM yyyy', locale).format(d);
 

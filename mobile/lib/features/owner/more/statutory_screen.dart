@@ -140,10 +140,13 @@ class _StatutoryScreenState extends ConsumerState<StatutoryScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(s.statutoryBi.text)),
+      bottomNavigationBar: _st == null
+          ? null
+          : StickySaveBar(buttonKey: const Key('saveStatutory'), label: s.save, onPressed: _saving ? null : _save),
       body: _st == null
           ? (_error != null ? ErrorView(error: _error!, onRetry: _load) : const LoadingView())
           : ListView(
-              padding: const EdgeInsets.only(bottom: 32),
+              padding: const EdgeInsets.only(bottom: 96),
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
@@ -205,14 +208,6 @@ class _StatutoryScreenState extends ConsumerState<StatutoryScreen> {
                         ),
                       ),
                   ],
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                  child: FilledButton(
-                    key: const Key('saveStatutory'),
-                    onPressed: _saving ? null : _save,
-                    child: Text(s.save),
-                  ),
                 ),
               ],
             ),

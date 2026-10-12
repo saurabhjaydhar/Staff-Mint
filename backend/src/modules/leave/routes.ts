@@ -23,8 +23,8 @@ leaveRouter.post('/leaves', requireRole('owner', 'manager', 'employee'), async (
 });
 
 leaveRouter.post('/leaves/:id/decision', requireRole('owner', 'manager'), async (req, res) => {
-  const b = body(req, z.object({ decision: z.enum(['approved', 'rejected']), note: z.string().max(300).optional() }));
-  res.json({ data: await withName(await svc.decideLeave(ctxOf(req), param(req, 'id'), b.decision, b.note)) });
+  const b = body(req, z.object({ decision: z.enum(['approved', 'rejected']), note: z.string().max(300).optional(), asUnpaid: z.boolean().optional() }));
+  res.json({ data: await withName(await svc.decideLeave(ctxOf(req), param(req, 'id'), b.decision, b.note, { asUnpaid: b.asUnpaid })) });
 });
 
 leaveRouter.post('/leaves/:id/cancel', requireRole('owner', 'manager', 'employee'), async (req, res) => {
