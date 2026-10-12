@@ -42,6 +42,11 @@ class EmployeesApi {
       Employee.fromJson(asMap(await _c.patch('/employees/$id', body: partial)));
 
   /// Employee ID, UAN, ESIC, PAN and PF/ESI exemption for the salary slip (owner only).
+  /// Make someone a manager (or back to staff). [allBranches]: see every branch, not just their own.
+  Future<Employee> setRole(String id, String role, {bool allBranches = false}) async => Employee.fromJson(
+    asMap(await _c.post('/employees/$id/role', body: {'role': role, if (allBranches) 'allBranches': true})),
+  );
+
   Future<EmployeeStatutory> updateStatutory(String id, Json partial) async =>
       EmployeeStatutory.fromJson(asMap(await _c.patch('/employees/$id/statutory', body: partial)));
 

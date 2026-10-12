@@ -59,3 +59,30 @@ describe('owner Home (redesign)', () => {
     expect(rows[0]).toMatchObject({ displayStatus: 'holiday', holidayName: 'Shop anniversary' });
   });
 });
+
+describe('Team & access', () => {
+  it('Make manager: own branch by default or all branches; the person is told; back to staff tells them too', async () => {
+    await mocks();
+    const owner = await createOwner({ plan: 'growth' });
+    const phone = nextPhone();
+    const emp = await addEmployee(owner, { phone, name: 'Ramesh Kumar' });
+    const e = await employeeSession(phone);
+
+    const r = await api().post(`${V}/employees/${emp.id}/role`).set(auth(owner.token)).send({ role: 'manager', allBranches: true }).expect(200);
+    expect(r.body.data.appRole).toBe('manager');
+    const { Membership, Notification } = await import('../src/models/index.js');
+    const m = await Membership.findOne({ companyId: owner.companyId, employeeId: emp.id }).lean();
+    expect(m).toMatchObject({ role: 'manager', branchIds: [] });
+    expect(await Notification.findOne({ companyId: owner.companyId, template: 'role_manager', channel: 'in_app' }).lean()).toBeTruthy();
+    // Their open session is ended so the app refreshes into the manager view.
+    expect((await api().get(`${V}/attendance`).set(auth(e.token))).status).toBe(401);
+
+    // Same role again: no second message.
+    await api().post(`${V}/employees/${emp.id}/role`).set(auth(owner.token)).send({ role: 'manager' }).expect(200);
+    expect(await Notification.countDocuments({ companyId: owner.companyId, template: 'role_manager', channel: 'in_app' })).toBe(1);
+
+    await api().post(`${V}/employees/${emp.id}/role`).set(auth(owner.token)).send({ role: 'employee' }).expect(200);
+    expect(await Notification.findOne({ companyId: owner.companyId, template: 'role_employee', channel: 'in_app' }).lean()).toBeTruthy();
+    expect((await api().post(`${V}/employees/${emp.id}/role`).set(auth(owner.token)).send({ role: 'owner' })).status).toBe(400);
+  });
+});

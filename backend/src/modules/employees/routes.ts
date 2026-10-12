@@ -66,6 +66,6 @@ employeesRouter.patch('/:id/statutory', requireRole('owner'), async (req, res) =
 });
 
 employeesRouter.post('/:id/role', requireRole('owner'), async (req, res) => {
-  const b = body(req, z.object({ role: z.enum(['employee', 'manager']) }));
-  res.json({ data: employeeView(await svc.setAppRole(ctxOf(req), param(req, 'id'), b.role)) });
+  const b = body(req, z.object({ role: z.enum(['employee', 'manager']), allBranches: z.boolean().optional() }));
+  res.json({ data: employeeView(await svc.setAppRole(ctxOf(req), param(req, 'id'), b.role, { allBranches: b.allBranches })) });
 });

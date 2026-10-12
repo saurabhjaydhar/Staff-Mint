@@ -41,6 +41,8 @@ class _SalaryScreenState extends ConsumerState<SalaryScreen> {
             children: [
               ScreenHeader(subtitle: s.salaryDayBi.joined, title: Dates.monthTitle(_month, s.languageCode)),
               TabBar(
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
                 tabs: [
                   Tab(text: s.salaryDayBi.text),
                   Tab(text: s.advances),

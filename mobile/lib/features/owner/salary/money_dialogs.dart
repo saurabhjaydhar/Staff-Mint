@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/providers.dart';
 import '../../../core/i18n/strings.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/models/models.dart';
 import '../../../core/utils/dates.dart';
 import '../../../core/utils/money.dart';
@@ -72,6 +73,7 @@ class _AdvanceFormState extends ConsumerState<_AdvanceForm> {
   final _note = TextEditingController();
   final _installments = TextEditingController(text: '1');
   String? _employeeId;
+  Employee? _employee;
   DateTime _date = DateTime.now();
   String _mode = 'full_next';
   bool _busy = false;
@@ -80,6 +82,29 @@ class _AdvanceFormState extends ConsumerState<_AdvanceForm> {
   void initState() {
     super.initState();
     _employeeId = widget.employee?.id;
+    _employee = widget.employee;
+    _amount.addListener(_changed);
+    _installments.addListener(_changed);
+  }
+
+  void _changed() => setState(() {});
+
+  /// Shows the effect on the next salary before saving.
+  String? _preview(S s) {
+    final e = _employee;
+    final amt = Money.parseRupees(_amount.text);
+    if (e == null || amt == null || amt <= 0) return null;
+    final parts = _mode == 'installments' ? (int.tryParse(_installments.text) ?? 1).clamp(1, 120) : 1;
+    final cut = (amt / parts).round();
+    final first = e.name.split(' ').first;
+    if (e.isDaily || e.ratePaise <= 0) return s.advanceCutPreview(first, Money.format(cut));
+    final after = e.ratePaise - cut < 0 ? 0 : e.ratePaise - cut;
+    return s.advancePreview(
+      first,
+      Dates.monthTitle(_date, s.languageCode),
+      Money.format(after),
+      Money.format(e.ratePaise),
+    );
   }
 
   @override
@@ -123,10 +148,16 @@ class _AdvanceFormState extends ConsumerState<_AdvanceForm> {
         shrinkWrap: true,
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
         children: [
-          Text(s.addAdvance, style: Theme.of(context).textTheme.titleLarge),
+          Text(s.giveAdvance, style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 16),
           if (widget.employee == null) ...[
-            EmployeeDropdown(value: _employeeId, onChanged: (e) => setState(() => _employeeId = e?.id)),
+            EmployeeDropdown(
+              value: _employeeId,
+              onChanged: (e) => setState(() {
+                _employeeId = e?.id;
+                _employee = e;
+              }),
+            ),
             const SizedBox(height: 12),
           ] else
             ListTile(
@@ -162,8 +193,25 @@ class _AdvanceFormState extends ConsumerState<_AdvanceForm> {
             controller: _note,
             decoration: InputDecoration(labelText: '${s.note} (${s.optional})'),
           ),
+          if (_preview(s) case final p?) ...[
+            const SizedBox(height: 12),
+            Container(
+              key: const Key('advancePreview'),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: AppColors.amberLight, borderRadius: BorderRadius.circular(12)),
+              child: Text(p, style: const TextStyle(fontWeight: FontWeight.w600)),
+            ),
+          ],
           const SizedBox(height: 20),
-          FilledButton(onPressed: _busy ? null : _submit, child: Text(s.save)),
+          FilledButton(
+            key: const Key('saveAdvance'),
+            onPressed: _busy ? null : _submit,
+            child: Text(
+              (Money.parseRupees(_amount.text) ?? 0) > 0
+                  ? s.giveAmount(Money.format(Money.parseRupees(_amount.text)!))
+                  : s.save,
+            ),
+          ),
         ],
       ),
     );

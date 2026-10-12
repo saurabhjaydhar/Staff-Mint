@@ -28,7 +28,7 @@ Trial     { planCode, planName, endsAt, daysLeft, active, ended, paidFeatures: s
           // free trial countdown; after the end, ended:true for 30 days (owners see "trial ended"). null when no trial.
 Branch    { id, name, location:{lat,lng,address?}, radiusM, shiftId }
 Shift     { id, name, start:'09:00', end:'19:00', graceMinutes:number|null, weeklyOff:number[] }
-Employee  { id, name, phone, branchId, shiftId, wageType:'monthly'|'daily', ratePaise, designation?, joiningDate?, status:'active'|'inactive',
+Employee  { id, name, phone, branchId, shiftId, wageType:'monthly'|'daily', ratePaise, designation?, joiningDate?, status:'active'|'inactive', appRole:'employee'|'manager',
             consent:{ location:boolean, at?:string }, hasDevice:boolean, language }
 Punch     { id, type:'in'|'out', clientTime /* effective time: server time online, device time for offline sync */, deviceTime, serverTime, geo:{lat,lng,accuracyM}|null, distanceM|null, insideGeofence|null, selfieUrl|null,
             mockLocation, lockCheck:'passed'|'failed'|'unavailable'|null, face:{result:'match'|'unsure'|'mismatch'|'no_face'|'many_faces'|'error', similarity}|null, deviceId, source:'app'|'offline_sync'|'owner'|'assistant'|'import', flags:string[], approval:'not_required'|'pending'|'approved'|'rejected' }
@@ -133,7 +133,7 @@ Phone: E.164 (`+919876543210`) or 10-digit Indian (`9876543210`, normalised serv
 | POST | /employees/:id/face/approve | — | `FaceInfo`; 409 if nothing is pending |
 | DELETE | /employees/:id/face | — (reject / reset; photo deleted, staff asked to enrol again) | `FaceInfo` |
 | POST | /employees/:id/reactivate | — | `Employee` |
-| POST | /employees/:id/role | `{role:'employee'\|'manager'}` (owner) | `Employee` |
+| POST | /employees/:id/role | `{role:'employee'\|'manager', allBranches?}` (owner) | `Employee`; a manager sees their own branch unless `allBranches`. The person gets a message (`role_manager` / `role_employee`) and their open sessions refresh into the new role |
 
 ### Import / switching (owner)
 | POST | /imports | multipart `file` (xlsx/csv) **or** JSON `{text}` (pasted) ; optional `kind:'staff'\|'attendance'`, `month` (for attendance grid), `source?:'auto'\|'salarybox'\|'pagarbook'\|'generic'` | `ImportSession` |
