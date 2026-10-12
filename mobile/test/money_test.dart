@@ -65,6 +65,11 @@ void main() {
       expect(Phones.normalize('919876543210'), '9876543210');
       expect(Phones.normalize('09876543210'), '9876543210');
       expect(Phones.normalize('(987) 654-3210'), '9876543210');
+      // Formats phones really save contacts in.
+      expect(Phones.normalize('0091 98765 43210'), '9876543210');
+      expect(Phones.normalize('+91 098765 43210'), '9876543210');
+      expect(Phones.normalize('+91-98765-43210'), '9876543210');
+      expect(Phones.normalize('098765-43210'), '9876543210');
     });
 
     test('rejects invalid numbers', () {
