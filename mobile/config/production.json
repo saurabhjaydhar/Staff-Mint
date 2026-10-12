@@ -1,3 +1,4 @@
 {
-  "API_BASE_URL": "http://krwvdyrgj8ekhok6egdb4r8e.187.126.122.142.sslip.io/api/v1"
+  "API_BASE_URL": "http://krwvdyrgj8ekhok6egdb4r8e.187.126.122.142.sslip.io/api/v1",
+  "GOOGLE_MAPS": true
 }

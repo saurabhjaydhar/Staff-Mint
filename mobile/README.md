@@ -49,8 +49,19 @@ so release builds allow plain HTTP to `*.sslip.io` only
 (`android/app/src/main/res/xml/network_security_config.xml`, `NSAppTransportSecurity` in `ios/Runner/Info.plist`).
 Once the API has a real HTTPS domain, update the JSON and remove both exceptions.
 
-Optional: `--dart-define=MAP_TILE_URL=https://your-tiles/{z}/{x}/{y}.png` to use a tile server
-other than the public OpenStreetMap one (recommended for production — see OSM tile usage policy).
+**Google Maps (shop location picker).** `config/production.json` turns on Google Maps (`"GOOGLE_MAPS": true`),
+so builds with it need the Maps app key, or the map stays blank:
+
+```bash
+# Android: key from the environment (or -P via --android-project-arg=MAPS_API_KEY=...)
+MAPS_API_KEY=your-app-key flutter build appbundle --release --dart-define-from-file=config/production.json
+MAPS_API_KEY=your-app-key flutter run --dart-define-from-file=config/production.json
+# iOS: put `MAPS_API_KEY = your-app-key` in ios/Flutter/Maps.xcconfig (gitignored)
+```
+
+`config/local.json` leaves Google Maps off, so local runs use the OpenStreetMap-style map with no key.
+Optional for that fallback map: `--dart-define=MAP_TILE_URL=https://your-tiles/{z}/{x}/{y}.png`
+(the public OpenStreetMap tiles are for development only — see the OSM tile usage policy).
 
 Plain HTTP to any host is allowed **only in debug/profile builds** (`android/app/src/debug|profile/res/xml/network_security_config.xml`).
 Release builds require HTTPS.
