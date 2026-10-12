@@ -8,6 +8,7 @@ import { Alert, Button, Card, Checkbox, EmptyState, Field, Input, Loading, PageH
 import { useAction, useAsync } from "@/hooks/useAsync";
 import { api } from "@/lib/api";
 import { formatDate, WEEKDAYS_EN, WEEKDAYS_HI } from "@/lib/format";
+import { fill, type DictKey } from "@/lib/i18n";
 import type { Branch, Company, CompanySettings, Holiday, Shift } from "@/lib/types";
 
 export default function SettingsPage() {
@@ -134,6 +135,18 @@ function toDraft(s: CompanySettings): Draft {
   };
 }
 
+const clock = (mins: number) => `${Math.floor(mins / 60) % 12 || 12}:${String(mins % 60).padStart(2, "0")}`;
+/** "Shift starts 9:00 → 9:16 counts as Late." */
+function lateHint(t: (k: DictKey) => string, grace: string) {
+  const g = Number(grace);
+  return Number.isFinite(g) && g >= 0 ? fill(t("late_example"), { t: clock(9 * 60 + g + 1) }) : undefined;
+}
+/** "In at 9:00, out at 12:30 → Half day." */
+function halfDayHint(t: (k: DictKey) => string, hours: string) {
+  const h = Number(hours);
+  return Number.isFinite(h) && h > 0 ? fill(t("half_day_example"), { t: clock(9 * 60 + Math.round(h * 60) - 30) }) : undefined;
+}
+
 function SettingsForm({ settings, onSaved }: { settings: CompanySettings; onSaved: (c: Company) => void }) {
   const toast = useToast();
   const { t } = useI18n();
@@ -174,10 +187,10 @@ function SettingsForm({ settings, onSaved }: { settings: CompanySettings; onSave
     <Card title="Attendance & salary rules">
       <form onSubmit={submit} className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Grace period (minutes)" hint="Late only after this many minutes">
+          <Field label="Grace period (minutes)" hint={lateHint(t, d.graceMinutes)}>
             {(id) => <Input id={id} type="number" min={0} value={d.graceMinutes} onChange={(e) => set("graceMinutes", e.target.value)} />}
           </Field>
-          <Field label="Half day if worked less than (hours)">
+          <Field label="Half day if worked less than (hours)" hint={halfDayHint(t, d.halfDayHours)}>
             {(id) => <Input id={id} type="number" min={0} step="0.5" value={d.halfDayHours} onChange={(e) => set("halfDayHours", e.target.value)} />}
           </Field>
           <Field label="Monthly salary is divided by">

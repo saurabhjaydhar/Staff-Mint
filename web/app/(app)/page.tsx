@@ -1,12 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useI18n, useToast } from "@/components/providers";
 import { TrialBanner } from "@/components/TrialBanner";
 import { Alert, Badge, Button, Card, EmptyState, Loading, PageHeader, Stat } from "@/components/ui";
 import { useAction, useAsync } from "@/hooks/useAsync";
 import { api } from "@/lib/api";
+import { fill } from "@/lib/i18n";
 import { formatDate, formatTime } from "@/lib/format";
+import type { DictKey } from "@/lib/i18n";
 import type { DashboardToday } from "@/lib/types";
 
 const FLAG_LABELS: Record<string, string> = {
@@ -75,6 +78,10 @@ export default function DashboardPage() {
       />
       <TrialBanner />
       {errorText && <Alert onRetry={reload}>{errorText}</Alert>}
+      <p className="text-2xl font-bold" data-testid="at-work">
+        {fill(t("at_work"), { n: c.present, total: Math.max(0, c.total - (c.off ?? 0)) })}
+      </p>
+      {data.setup && <SetupChecklist setup={data.setup} onChanged={reload} />}
       {action.error && <Alert>{action.error}</Alert>}
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
@@ -99,7 +106,7 @@ export default function DashboardPage() {
         )}
       </div>
 
-      <Card title={t("dash_needs_action")} padded={false}>
+      <Card title={nothing ? t("dash_needs_action") : needOk(t, na.leaveRequests.length + na.punchApprovals.length + na.flags.length + devices.length)} padded={false}>
         {nothing ? (
           <EmptyState>{t("dash_all_clear")}</EmptyState>
         ) : (
@@ -111,16 +118,21 @@ export default function DashboardPage() {
                   {na.leaveRequests.map((l) => (
                     <li key={l.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2">
                       <div className="text-sm">
-                        <span className="font-medium">{l.employeeName}</span> · {l.type} leave · {formatDate(l.from)}
+                        <span className="font-medium">{fill(t("wants_leave"), { name: l.employeeName })}</span> · {l.type} · {formatDate(l.from)}
                         {l.to !== l.from && <> → {formatDate(l.to)}</>} ({l.halfDay ? "half day" : `${l.days} day${l.days === 1 ? "" : "s"}`})
                         {l.reason && <div className="text-xs text-slate-500">“{l.reason}”</div>}
+                        {l.balance && (
+                          <div className={l.balance.after < 0 ? "text-xs font-medium text-red-600" : "text-xs font-medium text-slate-700"}>
+                            {fill(t("leave_effect"), { left: l.balance.left, type: l.type, after: l.balance.after })}
+                          </div>
+                        )}
                       </div>
                       <div className="flex gap-2">
                         <Button size="sm" loading={action.busy === `leave:${l.id}`} onClick={() => decideLeave(l.id, "approved")}>
                           {t("approve")}
                         </Button>
                         <Button size="sm" variant="secondary" disabled={!!action.busy} onClick={() => decideLeave(l.id, "rejected")}>
-                          {t("reject")}
+                          {t("say_no")}
                         </Button>
                       </div>
                     </li>
@@ -135,8 +147,12 @@ export default function DashboardPage() {
                   {na.punchApprovals.map((p) => (
                     <li key={p.punch.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2">
                       <div className="text-sm">
-                        <span className="font-medium">{p.employeeName}</span> · check-{p.punch.type} at {formatTime(p.punch.serverTime)}
-                        {p.punch.distanceM != null && <> · {Math.round(p.punch.distanceM)} m away</>}
+                        <span className="font-medium">
+                          {p.punch.distanceM != null && p.punch.insideGeofence === false
+                            ? fill(t("checked_in_away"), { name: p.employeeName, m: Math.round(p.punch.distanceM) })
+                            : p.employeeName}
+                        </span>{" "}
+                        · check-{p.punch.type} at {formatTime(p.punch.serverTime)}
                         <div className="mt-1 flex flex-wrap gap-1">
                           {p.punch.flags.map((f) => (
                             <Badge key={f} tone="amber">
@@ -156,10 +172,10 @@ export default function DashboardPage() {
                           loading={action.busy === `punch:${p.punch.id}`}
                           onClick={() => decidePunch(p.attendanceId, p.punch.id, true)}
                         >
-                          {t("approve")}
+                          {t("count_it")}
                         </Button>
                         <Button size="sm" variant="secondary" disabled={!!action.busy} onClick={() => decidePunch(p.attendanceId, p.punch.id, false)}>
-                          {t("reject")}
+                          {t("dont_count")}
                         </Button>
                       </div>
                     </li>
@@ -221,6 +237,91 @@ export default function DashboardPage() {
         <QuickLink href="/reports" title="Download reports" body="Attendance, salary, advances, late list." />
       </div>
     </div>
+  );
+}
+
+function needOk(t: (k: DictKey) => string, n: number) {
+  return n === 1 ? t("need_ok_one") : fill(t("need_ok_many"), { n });
+}
+
+/** "Let's get your shop running · 2 of 5": each step ticks itself; hidden per business. */
+function SetupChecklist({ setup, onChanged }: { setup: NonNullable<DashboardToday["setup"]>; onChanged: () => void }) {
+  const { t } = useI18n();
+  const toast = useToast();
+  const action = useAction();
+  const key = "sm_setup_hidden";
+  const [hidden, setHidden] = useState(() => typeof window !== "undefined" && window.localStorage.getItem(key) === "1");
+  if (hidden || setup.done >= setup.total) return null;
+  async function remind() {
+    const res = await action.run("remind", () => api.post<{ sent: number }>("/employees/remind-invites"));
+    if (res.ok) {
+      toast(res.value.sent ? fill(t("remind_sent"), { n: res.value.sent }) : t("remind_none"));
+      onChanged();
+    }
+  }
+  const steps: { done: boolean; label: string; href?: string; onClick?: () => void; cta?: string }[] = [
+    { done: true, label: t("setup_business") },
+    { done: setup.steps.staffAdded, label: t("setup_staff"), href: "/staff", cta: t("add") },
+    { done: setup.steps.staffJoined, label: t("setup_join"), onClick: setup.notJoined > 0 ? remind : undefined, cta: t("remind") },
+    { done: setup.steps.salarySet, label: t("setup_salary"), href: "/staff", cta: t("open") },
+    { done: setup.steps.teamAdded, label: t("setup_team"), href: "/settings", cta: t("open") },
+  ];
+  return (
+    <Card
+      title={
+        <span className="flex items-center gap-2">
+          {t("checklist_title")} <Badge tone="mint">{fill(t("setup_count"), { d: setup.done, t: setup.total })}</Badge>
+        </span>
+      }
+      actions={
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => {
+            window.localStorage.setItem(key, "1");
+            setHidden(true);
+          }}
+        >
+          {t("hide")}
+        </Button>
+      }
+    >
+      {setup.notJoined > 0 && (
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">
+          {fill(t("invited_joined"), { n: setup.staff, j: setup.joined })}
+          <Button size="sm" variant="secondary" loading={action.busy === "remind"} onClick={remind}>
+            {t("remind")}
+          </Button>
+        </div>
+      )}
+      <ol className="space-y-1.5">
+        {steps.map((st, i) => (
+          <li key={st.label} className="flex items-center gap-3 text-sm">
+            <span
+              className={
+                st.done
+                  ? "flex h-6 w-6 items-center justify-center rounded-full bg-mint-600 text-xs text-white"
+                  : "flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-600"
+              }
+            >
+              {st.done ? "✓" : i + 1}
+            </span>
+            <span className={st.done ? "text-slate-400 line-through" : "font-medium"}>{st.label}</span>
+            {!st.done && st.href && (
+              <Link href={st.href} className="ml-auto text-sm font-medium text-mint-700 underline">
+                {st.cta}
+              </Link>
+            )}
+            {!st.done && st.onClick && (
+              <Button size="sm" variant="ghost" className="ml-auto" onClick={st.onClick}>
+                {st.cta}
+              </Button>
+            )}
+          </li>
+        ))}
+      </ol>
+      {action.error && <Alert className="mt-2">{action.error}</Alert>}
+    </Card>
   );
 }
 

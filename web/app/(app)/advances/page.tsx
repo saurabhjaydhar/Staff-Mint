@@ -6,6 +6,7 @@ import { useI18n, useToast } from "@/components/providers";
 import { Alert, Badge, Button, Card, EmptyState, Field, Input, Loading, Modal, PageHeader, Segmented, Select, Table, Td, Th } from "@/components/ui";
 import { useAction, useAsync } from "@/hooks/useAsync";
 import { api } from "@/lib/api";
+import { fill } from "@/lib/i18n";
 import { currentMonth, formatDate, formatMonth, todayStr } from "@/lib/format";
 import { formatPaise, parseRupeesToPaise } from "@/lib/money";
 import type { Adjustment, Advance } from "@/lib/types";
@@ -138,6 +139,7 @@ function AdvancesTab() {
 }
 
 function AddAdvanceModal({ open, onClose, onDone }: { open: boolean; onClose: () => void; onDone: () => void }) {
+  const { t } = useI18n();
   const employees = useEmployees();
   const [form, setForm] = useState(() => ({
     employeeId: "",
@@ -151,6 +153,15 @@ function AddAdvanceModal({ open, onClose, onDone }: { open: boolean; onClose: ()
   const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) => setForm((f) => ({ ...f, [k]: v }));
   const paise = parseRupeesToPaise(form.amount);
   const n = Math.max(1, Math.floor(Number(form.installments) || 1));
+  const emp = employees.data?.find((e) => e.id === form.employeeId);
+  const cut = paise ? (form.mode === "installments" ? Math.round(paise / n) : paise) : 0;
+  const first = emp?.name.split(" ")[0] ?? "";
+  // Shows the effect on the next salary before saving.
+  const preview = !emp || !cut
+    ? null
+    : emp.wageType === "daily" || !emp.ratePaise
+      ? fill(t("advance_cut_preview"), { name: first, cut: formatPaise(cut) })
+      : fill(t("advance_preview"), { name: first, after: formatPaise(Math.max(0, emp.ratePaise - cut)), before: formatPaise(emp.ratePaise) });
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -195,6 +206,11 @@ function AddAdvanceModal({ open, onClose, onDone }: { open: boolean; onClose: ()
           )}
         </div>
         <Field label="Note (optional)">{(id) => <Input id={id} value={form.note} onChange={(e) => set("note", e.target.value)} />}</Field>
+        {preview && (
+          <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900" data-testid="advance-preview">
+            {preview}
+          </p>
+        )}
         {action.error && <Alert>{action.error}</Alert>}
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>

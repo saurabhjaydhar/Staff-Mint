@@ -15,7 +15,7 @@ export interface OverrideTarget {
   status: AttendanceStatus;
 }
 
-/** Owner/manager attendance override. A reason is mandatory (audited). */
+/** Owner/manager attendance override: pick what happened; the reason is optional (both are audited). */
 export function OverrideModal({
   target,
   onClose,
@@ -40,14 +40,13 @@ function OverrideForm({ target, onClose, onSaved }: { target: OverrideTarget; on
   const action = useAction();
 
   async function save() {
-    if (!reason.trim()) return action.setError("Please write a reason — it is saved in the audit log.");
     const res = await action.run("save", () =>
       api.post<Attendance>("/attendance/override", {
         employeeId: target.employeeId,
         date: target.date,
         status,
         ...(status === "leave" ? { leaveType } : {}),
-        reason: reason.trim(),
+        ...(reason.trim() ? { reason: reason.trim() } : {}),
       }),
     );
     if (res.ok) onSaved(res.value);
@@ -80,7 +79,7 @@ function OverrideForm({ target, onClose, onSaved }: { target: OverrideTarget; on
           )}
         </Field>
       )}
-      <Field label="Reason (required)">
+      <Field label="Reason (optional)">
         {(id) => (
           <Input id={id} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Forgot to check in, was at shop" autoFocus />
         )}
@@ -90,7 +89,7 @@ function OverrideForm({ target, onClose, onSaved }: { target: OverrideTarget; on
         <Button variant="secondary" onClick={onClose}>
           Cancel
         </Button>
-        <Button onClick={save} loading={action.busy === "save"} disabled={!reason.trim()}>
+        <Button onClick={save} loading={action.busy === "save"}>
           Save
         </Button>
       </div>

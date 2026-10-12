@@ -151,6 +151,8 @@ export interface Employee {
   linked?: boolean;
   invitedAt?: string | null;
   language: Lang;
+  /** 'manager' marks attendance and approves leave; can't see salary or billing. */
+  appRole?: "employee" | "manager";
 }
 
 export interface EmployeeInput {
@@ -591,14 +593,26 @@ export interface DashboardToday {
     onLeave: number;
     notMarked: number;
     checkedIn: number;
+    /** Week off / holiday today. */
+    off?: number;
   };
   needsAction: {
-    leaveRequests: Leave[];
+    /** `balance`: paid/sick leaves left before and after approving. */
+    leaveRequests: (Leave & { balance?: { left: number; after: number } | null })[];
     punchApprovals: { attendanceId: string; employeeName: string; punch: Punch }[];
     flags: { employeeName: string; date: string; flags: string[] }[];
     deviceRequests?: DeviceRequestItem[];
   };
   plan: { staffCount: number; staffLimit: number };
+  /** Owners only: the "Let's get your shop running" checklist. */
+  setup?: {
+    steps: { business: boolean; staffAdded: boolean; staffJoined: boolean; salarySet: boolean; teamAdded: boolean };
+    done: number;
+    total: number;
+    staff: number;
+    joined: number;
+    notJoined: number;
+  } | null;
 }
 
 // ---- Imports ----
