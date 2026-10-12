@@ -75,7 +75,7 @@ export default function AuditPage() {
                 <Th>When</Th>
                 <Th>Who</Th>
                 <Th>Channel</Th>
-                <Th>Action</Th>
+                <Th>What happened</Th>
                 <Th>Entity</Th>
               </tr>
             </thead>
@@ -91,7 +91,7 @@ export default function AuditPage() {
                       <Td>
                         <Badge tone={CHANNEL_TONE[l.channel] ?? "slate"}>{l.channel}</Badge>
                       </Td>
-                      <Td className="font-medium">{l.action}</Td>
+                      <Td className="font-medium">{l.text ?? l.action}</Td>
                       <Td className="text-xs text-slate-600">
                         {l.entity} <span className="text-slate-400">#{l.entityId?.slice(-6)}</span>
                       </Td>
@@ -127,6 +127,21 @@ function AuditDiff({ log }: { log: AuditLog }) {
   const entries = diffObjects(log.before, log.after);
   return (
     <div className="space-y-2 pt-2">
+      {!!log.changes?.length && !raw && (
+        <ul className="space-y-1 text-sm">
+          {log.changes.map((c) => (
+            <li key={c.label}>
+              <span className="text-slate-500">{c.label}: </span>
+              {c.from != null && (
+                <>
+                  <span className="line-through">{c.from}</span> →{" "}
+                </>
+              )}
+              <span className="font-semibold">{c.to ?? "—"}</span>
+            </li>
+          ))}
+        </ul>
+      )}
       <div className="flex justify-end">
         <button type="button" className="text-xs text-mint-700 underline" onClick={() => setRaw((r) => !r)}>
           {raw ? "Show changes" : "Show raw JSON"}
