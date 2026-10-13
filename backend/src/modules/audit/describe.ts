@@ -397,6 +397,14 @@ export function describe(
     case 'profile.logout_all':
       return r(t('Logged out on all phones', 'सभी फ़ोन से लॉग आउट किया'), 'other');
 
+    // ------------------------------------------------------------------- roster
+    case 'roster.send':
+      return r(
+        t(`Roster sent to ${Number(a.staff ?? 0)} staff`, `${Number(a.staff ?? 0)} स्टाफ़ को रोस्टर भेजा`),
+        'attendance',
+        [{ label: t('Days changed', 'बदले दिन'), to: String(a.days ?? 0) }],
+      );
+
     // ------------------------------------------------------------------- billing
     case 'billing.subscribe':
       return r(t(`Plan bought: ${String(a.planCode ?? '')}`, `प्लान लिया: ${String(a.planCode ?? '')}`), 'billing', typeof a.amountPaise === 'number' ? [{ label: t('Amount', 'रकम'), to: money(a.amountPaise) }] : []);
@@ -431,7 +439,7 @@ function importSummary(a: any, lang: Lang): HistoryChange[] {
 
 /** Category of an action without building the sentence (used to filter in the database). */
 export const CATEGORY_ACTIONS: Record<Exclude<HistoryCategory, 'other'>, RegExp> = {
-  attendance: /^attendance\./,
+  attendance: /^(attendance|roster)\./,
   leave: /^leave(_balance)?\./,
   salary: /^(advance|adjustment|payroll|payslips)\./,
   staff: /^(employee|device)\.(?!role$)/,

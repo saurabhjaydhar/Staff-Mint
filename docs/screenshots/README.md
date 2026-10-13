@@ -50,6 +50,12 @@ The redesign follows [docs/design](../design/README.md): a warm paper ledger, Hi
 |---|---|---|
 | <img src="mobile/n1-who-are-you.jpg" width="240"><br>A number StaffMint doesn't know is asked first | <img src="mobile/n2-ask-employer.jpg" width="240"><br>Staff not added yet: ask the employer, then "Check again" | <img src="mobile/n4-linked-staff.jpg" width="240"><br>After the owner adds the number, "Check again" goes straight to the staff app |
 
+### Roster
+
+| | | |
+|---|---|---|
+| <img src="roster/en-2-day.jpg" width="240"><br>Roster: one day at a time ([all roster screens](roster/README.md)) | <img src="roster/en-5-send.jpg" width="240"><br>Send to staff, with one-tap fixes | <img src="roster/en-7-my-week.jpg" width="240"><br>Staff home: My week |
+
 ## Web dashboard
 
 ### My profile

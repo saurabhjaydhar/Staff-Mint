@@ -25,6 +25,7 @@ class Routes {
   static const ownerStaff = '/owner/staff';
   static const ownerStaffAdd = '/owner/staff/add';
   static const ownerTeam = '/owner/staff/team';
+  static const ownerRoster = '/owner/staff/roster';
   static String ownerStaffProfile(String id) => '/owner/staff/$id';
   static const ownerSalary = '/owner/salary';
   static const ownerMore = '/owner/more';

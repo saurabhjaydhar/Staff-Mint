@@ -36,6 +36,7 @@ import '../../features/owner/shell/owner_shell.dart';
 import '../../features/owner/staff/add_staff_screen.dart';
 import '../../features/owner/staff/staff_list_screen.dart';
 import '../../features/owner/staff/staff_profile_screen.dart';
+import '../../features/owner/staff/roster_screen.dart';
 import '../../features/owner/staff/team_screen.dart';
 import '../../features/owner/today/today_screen.dart';
 import '../../features/setup/setup_screen.dart';
@@ -109,6 +110,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                 routes: [
                   GoRoute(path: 'add', builder: (_, _) => const AddStaffScreen()),
                   GoRoute(path: 'team', builder: (_, _) => const TeamScreen()),
+                  GoRoute(path: 'roster', builder: (_, _) => const RosterScreen()),
                   GoRoute(
                     path: ':id',
                     builder: (_, s) => StaffProfileScreen(employeeId: s.pathParameters['id']!),

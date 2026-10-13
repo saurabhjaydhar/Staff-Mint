@@ -151,13 +151,22 @@ Fields: `name, phone, ratePaise, wageType, designation, joiningDate, branch, adv
 | POST | /attendance/check-in | `{clientTime, geo:{lat,lng,accuracyM}, mockLocation:boolean, lockCheck?:'passed'\|'failed'\|'unavailable', deviceId, selfieBase64?, clientPunchId}` (employee) | `{record: Attendance, punch: Punch}` ; 422 `OUTSIDE_GEOFENCE` if blocked. `lockCheck` is the phone screen-lock result (the app never sees the biometric). It never blocks: with `phoneLockPolicy:'recommended'` a non-pass is only flagged; with `'required'` anything but `passed` (including a missing value) makes the punch `pending` for owner approval |
 | POST | /attendance/check-out | same | same |
 | POST | /attendance/sync | `{punches: [{type:'in'\|'out', ...same as above}]}` (offline queue) | `{results: {clientPunchId, ok, error?, punch?}[]}` — idempotent by `clientPunchId` |
-| GET | /attendance/today | (employee) | `{date, record: Attendance\|null, shift: Shift, branch: Branch}` |
+| GET | /attendance/today | (employee) | `{date, record: Attendance\|null, shift: Shift, branch: Branch}`. `shift` is today's roster shift when one was sent |
 | GET | /attendance | `?date=YYYY-MM-DD` (owner/manager day view) | `DayRow[]` |
 | GET | /attendance/month | `?month=YYYY-MM&employeeId?` (employee: own only) | `{month, days:string[], rows: {employee, days: {[date]: displayStatus}, totals}[]}` |
 | POST | /attendance/fix-request | `{date, note?}` (staff) | `{sent}`: "I was there — ask owner to fix"; tells owners and managers (`attendance_fix_request`), once per day per date; future dates refused |
 | POST | /attendance/override | `{employeeId, date, status, leaveType?, reason?}` (owner/manager; reason optional) | `Attendance` (audited) |
 | POST | /attendance/:id/punches/:punchId/decision | `{approve:boolean}` | `Attendance` |
 | POST | /attendance/clear-override | `{employeeId, date, reason}` (owner/manager) | `Attendance` with status recomputed from punches/leave/holiday (may be `null`), or `null` if no record. Used for Undo |
+
+### Roster (owner/manager; feature `roster`: Starter and up)
+| Method | Path | Body / Query | Returns |
+|---|---|---|---|
+| GET | /roster | `?week=YYYY-MM-DD` (any day of the week; default today) `&branchId` | `{weekStart, days: {date, holiday}[7], shifts: Shift[], staff: {id, name, designation, cells: {date, kind:'shift'\|'off', shiftId, usual, changed, leave, employed}[7]}[], notSent, problems: {type:'leave_working'\|'no_day_off', employeeId, name, date}[]}`. A cell is the owner's plan: a roster day, or the usual shift and weekly off (`usual: true`). `changed` = not sent to staff yet |
+| PUT | /roster/cells | `{cells: {employeeId, date, kind:'shift'\|'off'\|'usual', shiftId?}[]}` (max 500) | `{saved}`. Saved as not sent; `usual` puts the day back to the usual shift |
+| POST | /roster/copy-last-week | `{week?, branchId?}` | `{copied}`: last week's roster days onto the same weekdays, not sent |
+| POST | /roster/send | `{week?, branchId?}` | `{sentTo, days}`. Sent days are what attendance (late/half day/auto-absent), leave counting and salary use. People whose days changed get a push, or WhatsApp `roster_published` if they haven't joined the app. Days already worked are re-checked against the new shift |
+| GET | /roster/mine | `?week` (employee, every plan) | `{weekStart, rostered, shifts, days: {date, kind, shiftId, holiday, leave, changed}[7]}`: their week as sent (`changed` = sent in the last 3 days and different from their usual day; `rostered` = a roster was sent for this week) |
 
 ### Leave
 | GET | /leaves | `?status&employeeId` (employee → own) | `Leave[]` |

@@ -19,6 +19,7 @@ const FEATURE_LABELS: Record<string, { en: string; hi: string }> = {
   payslips: { en: 'payslips', hi: 'सैलरी स्लिप' },
   assistant: { en: 'the assistant', hi: 'असिस्टेंट' },
   reports: { en: 'reports', hi: 'रिपोर्ट' },
+  roster: { en: 'the roster', hi: 'रोस्टर' },
   branches: { en: 'more branches', hi: 'ज़्यादा ब्रांच' },
   whatsapp_payslips: { en: 'payslips on WhatsApp', hi: 'WhatsApp पर सैलरी स्लिप' },
   whatsapp_assistant: { en: 'the WhatsApp assistant', hi: 'WhatsApp असिस्टेंट' },

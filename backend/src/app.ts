@@ -15,6 +15,7 @@ import { profileRouter } from './modules/profile/routes.js';
 import { companyRouter } from './modules/company/routes.js';
 import { employeesRouter } from './modules/employees/routes.js';
 import { importsRouter } from './modules/imports/routes.js';
+import { rosterRouter } from './modules/roster/routes.js';
 import { attendanceRouter } from './modules/attendance/routes.js';
 import { leaveRouter } from './modules/leave/routes.js';
 import { advancesRouter } from './modules/advances/routes.js';
@@ -75,6 +76,7 @@ export function createApp() {
   api.use('/employees', employeesRouter);
   api.use('/imports', importsRouter);
   api.use('/attendance', attendanceRouter);
+  api.use('/roster', rosterRouter);
   api.use('/', leaveRouter);
   api.use('/', advancesRouter);
   api.use('/', payrollRouter);

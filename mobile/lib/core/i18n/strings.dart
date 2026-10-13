@@ -645,6 +645,8 @@ class S {
         return _t('More branches', 'कई ब्रांच');
       case 'reports':
         return _t('Reports', 'रिपोर्ट');
+      case 'roster':
+        return _t('Roster', 'रोस्टर');
       case 'whatsapp_payslips':
         return _t('Salary slips on WhatsApp', 'WhatsApp पर सैलरी स्लिप');
       case 'whatsapp_assistant':
@@ -2049,6 +2051,7 @@ class S {
     'attendance' => _t('Attendance & leave', 'हाज़िरी और छुट्टी'),
     'salary' => _t('Salary & advances', 'सैलरी और एडवांस'),
     'slips' => _t('Salary slips & reports', 'सैलरी स्लिप, रिपोर्ट'),
+    'roster' => _t('Weekly roster (shifts)', 'हफ़्ते का रोस्टर (शिफ़्ट)'),
     'mint' => _t('Ask Mint (voice)', 'Mint से पूछें (आवाज़)'),
     'branches' => _t('More branches', 'कई ब्रांच'),
     'whatsapp' => _t('Slips & helper on WhatsApp', 'WhatsApp पर स्लिप, सहायक'),
@@ -2149,6 +2152,51 @@ class S {
       _ => '${n}th',
     };
   }
+
+  // ---------------------------------------------------------------- Roster (who works which shift)
+  String get rosterTitle => _t('Roster', 'रोस्टर');
+  String get rosterCardHint => _t('Plan who works which shift this week', 'इस हफ़्ते कौन किस शिफ़्ट में, तय करें');
+  String thisWeekRange(String range) => _t('This week · $range', 'इस हफ़्ते · $range');
+  String rosterNotSent(int n) => n == 1
+      ? _t('1 change not sent to staff yet', '1 बदलाव अभी स्टाफ़ को नहीं भेजा')
+      : _t('$n changes not sent to staff yet', '$n बदलाव अभी स्टाफ़ को नहीं भेजे');
+  String get rosterAllSent => _t('Staff have this week', 'स्टाफ़ के पास यह हफ़्ता है');
+  String get dayOff => _t('Day off', 'छुट्टी');
+  String get noWork => _t('No work', 'काम नहीं');
+  String get onLeaveTag => _t('On leave', 'छुट्टी पर');
+  String holidayLabel(String name) => _t('Holiday · $name', 'त्योहार · $name');
+  String get copyLastWeek => _t('Copy last week', 'पिछला हफ़्ता कॉपी');
+  String get sendToStaff => _t('Send to staff', 'स्टाफ़ को भेजें');
+  String get sameAllWeek => _t('Same shift all week', 'पूरे हफ़्ते यही शिफ़्ट');
+  String get sameAllWeekHint => _t('Except their days off', 'छुट्टी वाले दिन छोड़कर');
+  String get usualShiftOption => _t('Usual shift', 'रोज़ वाली शिफ़्ट');
+  String usualShiftIs(String what) => _t('From their profile: $what', 'प्रोफ़ाइल से: $what');
+  String get sendSheetTitle => _t('Send shifts to staff?', 'स्टाफ़ को शिफ़्ट भेजें?');
+  String get sendSheetBody =>
+      _t('Staff whose days changed get a message on their phone.', 'जिनके दिन बदले, उन्हें फ़ोन पर मैसेज जाएगा।');
+  String thingsToFix(int n) => n == 1
+      ? _t('1 thing to fix first', 'पहले 1 चीज़ ठीक करें')
+      : _t('$n things to fix first', 'पहले $n चीज़ें ठीक करें');
+  String problemLeave(String name, String day) => _t('$name is on leave on $day', '$name $day को छुट्टी पर है');
+  String get fixMakeOff => _t('Make it Off', 'छुट्टी करें');
+  String problemNoOff(String name) => _t('$name has no day off this week', '$name को इस हफ़्ते कोई छुट्टी नहीं');
+  String fixGiveOff(String day) => _t('Give $day off', '$day छुट्टी दें');
+  String sendToN(int n) =>
+      n == 1 ? _t('Send to 1 staff', '1 स्टाफ़ को भेजें') : _t('Send to $n staff', '$n स्टाफ़ को भेजें');
+  String get nothingToSend => _t('Nothing new to send', 'भेजने को कुछ नया नहीं');
+  String rosterSent(int n) =>
+      n == 1 ? _t('Sent to 1 staff', '1 स्टाफ़ को भेजा') : _t('Sent to $n staff', '$n स्टाफ़ को भेजा');
+  String copiedLastWeek(int n) => n == 0
+      ? _t('Last week had no roster changes to copy', 'पिछले हफ़्ते कॉपी करने को कोई बदलाव नहीं')
+      : _t('Copied last week. Check it, then send.', 'पिछला हफ़्ता कॉपी हुआ। देखकर भेजें।');
+  String get rosterAddShiftsTip => _t(
+    'Tip: add shifts like Morning and Evening in Timings & holidays, then plan them here.',
+    'सुझाव: समय और छुट्टियाँ में सुबह, शाम जैसी शिफ़्ट जोड़ें, फिर यहाँ तय करें।',
+  );
+  String get addShifts => _t('Add shifts', 'शिफ़्ट जोड़ें');
+  String get rosterNeedsPlan => _t('Roster comes with Starter and up.', 'रोस्टर स्टार्टर और उससे ऊपर के प्लान में है।');
+  String get myWeek => _t('My week', 'मेरा हफ़्ता');
+  String get changedTag => _t('Changed', 'बदला');
 
   // ---------------------------------------------------------------- Misc
   String get thisMonth => _t('This month', 'इस महीने');

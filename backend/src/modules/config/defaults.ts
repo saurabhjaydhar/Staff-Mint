@@ -22,7 +22,7 @@ export const DEFAULT_PLANS = [
     extraStaffPricePaise: 0,
     maxStaffHardCap: 15,
     trialDays: 14,
-    features: ['attendance', 'leave', 'digest', 'payroll', 'advances', 'payslips', 'assistant', 'reports'],
+    features: ['attendance', 'leave', 'digest', 'payroll', 'advances', 'payslips', 'assistant', 'reports', 'roster'],
     sort: 1,
   },
   {
@@ -34,7 +34,7 @@ export const DEFAULT_PLANS = [
     extraStaffPricePaise: 0,
     maxStaffHardCap: 30,
     trialDays: 14,
-    features: ['attendance', 'leave', 'digest', 'payroll', 'advances', 'payslips', 'assistant', 'reports', 'branches', 'whatsapp_payslips', 'whatsapp_assistant', 'face_match'],
+    features: ['attendance', 'leave', 'digest', 'payroll', 'advances', 'payslips', 'assistant', 'reports', 'roster', 'branches', 'whatsapp_payslips', 'whatsapp_assistant', 'face_match'],
     sort: 2,
   },
   {
@@ -55,6 +55,7 @@ export const DEFAULT_PLANS = [
       'payslips',
       'assistant',
       'reports',
+      'roster',
       'branches',
       'whatsapp_payslips',
       'whatsapp_assistant',
@@ -65,6 +66,14 @@ export const DEFAULT_PLANS = [
     sort: 3,
   },
 ];
+
+/**
+ * Features added after plans were first saved in the database. seedDefaults adds each one to these
+ * plans once (remembered in config `features.added`), so an admin removing it later sticks.
+ */
+export const ADDED_FEATURES: Record<string, string[]> = {
+  roster: ['starter', 'growth', 'pro'],
+};
 
 export const DEFAULT_CONFIG: Record<string, unknown> = {
   /** Every new owner tries all features (Pro) for the plan's trialDays, once per owner. */

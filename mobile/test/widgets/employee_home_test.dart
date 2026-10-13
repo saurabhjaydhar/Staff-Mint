@@ -23,6 +23,9 @@ import 'package:staffmint/features/employee/punch/punch_state.dart';
 /// The company's phone-lock policy for the current test.
 var _lockPolicy = 'recommended';
 
+/// This week's roster for the current test (not used by the shop unless `rostered`).
+var _roster = const MyRosterWeek(weekStart: '2026-10-05');
+
 class _FakeAuth extends AuthController {
   @override
   SessionState build() => SessionState(
@@ -104,6 +107,7 @@ void main() {
     capture = _FakeCapture();
     serverRecord = null;
     _lockPolicy = 'recommended';
+    _roster = const MyRosterWeek(weekStart: '2026-10-05');
   });
 
   Future<_FakePunchApi> pumpHome(WidgetTester tester, {GeoPoint shop = const GeoPoint(lat: 28.6001, lng: 77.2)}) async {
@@ -152,6 +156,7 @@ void main() {
               estimate: Payslip(id: '', employeeId: 'e1', employeeName: 'Ramesh', month: '2026-10', netPaise: 361300),
             ),
           ),
+          myRosterProvider.overrideWith((ref, date) async => _roster),
           punchQueueProvider.overrideWithValue(queue),
           punchServiceProvider.overrideWithValue(PunchService(api: api, queue: queue)),
           punchCaptureProvider.overrideWithValue(capture),
@@ -172,6 +177,47 @@ void main() {
     expect(find.textContaining('Your shift: 9:00 AM – 7:00 PM'), findsOneWidget);
     expect(find.text('Takes a selfie and marks you present'), findsOneWidget);
     expect(find.byKey(const Key('pendingSyncBanner')), findsNothing);
+  });
+
+  testWidgets('a shop that uses the roster: My week shows each day, today first-class, changed days tagged', (
+    tester,
+  ) async {
+    final now = DateTime.now();
+    final monday = DateTime(now.year, now.month, now.day).subtract(Duration(days: now.weekday - 1));
+    String d(int i) => Dates.toApiDate(monday.add(Duration(days: i)));
+    final today = Dates.toApiDate(now);
+    final offDay = now.weekday == DateTime.sunday ? 5 : 6;
+    _roster = MyRosterWeek(
+      weekStart: d(0),
+      rostered: true,
+      shifts: const [
+        Shift(id: 'm', name: 'Morning', start: '08:00', end: '14:00'),
+        Shift(id: 'e', name: 'Evening', start: '14:00', end: '20:00'),
+      ],
+      days: [
+        for (var i = 0; i < 7; i++)
+          MyRosterDay(
+            date: d(i),
+            kind: i == offDay ? 'off' : 'shift',
+            shiftId: i == offDay ? null : (d(i) == today ? 'e' : 'm'),
+            changed: d(i) == today,
+          ),
+      ],
+    );
+    await pumpHome(tester);
+    await tester.scrollUntilVisible(find.byKey(const Key('myWeek')), 300);
+    expect(find.text('My week'), findsOneWidget);
+    final row = find.byKey(Key('myWeek_$today'));
+    expect(find.descendant(of: row, matching: find.text('Today')), findsOneWidget);
+    expect(find.descendant(of: row, matching: find.text('Evening')), findsOneWidget);
+    expect(find.descendant(of: row, matching: find.text('2 – 8')), findsOneWidget);
+    expect(find.descendant(of: row, matching: find.text('Changed')), findsOneWidget);
+    expect(find.descendant(of: find.byKey(Key('myWeek_${d(offDay)}')), matching: find.text('Day off')), findsOneWidget);
+  });
+
+  testWidgets('a shop that does not use the roster sees no My week', (tester) async {
+    await pumpHome(tester);
+    expect(find.byKey(const Key('myWeek')), findsNothing);
   });
 
   testWidgets('GPS is ready before the tap: "At shop" chip and month strip', (tester) async {
