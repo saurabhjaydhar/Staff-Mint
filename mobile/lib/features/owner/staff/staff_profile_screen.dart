@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../more/shifts_screen.dart';
 import '../../../core/api/providers.dart';
 import '../../../core/i18n/strings.dart';
 import '../../../core/models/models.dart';
@@ -547,7 +548,6 @@ class _EditStaffSheetState extends ConsumerState<_EditStaffSheet> {
   @override
   Widget build(BuildContext context) {
     final s = context.s;
-    final shifts = ref.watch(shiftsProvider).value ?? const <Shift>[];
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Form(
@@ -586,20 +586,7 @@ class _EditStaffSheetState extends ConsumerState<_EditStaffSheet> {
               onChanged: (d) => setState(() => _effectiveFrom = d),
             ),
             const SizedBox(height: 12),
-            if (shifts.isNotEmpty)
-              DropdownButtonFormField<String>(
-                initialValue: shifts.any((x) => x.id == _shiftId) ? _shiftId : defaultShiftOf(shifts)?.id,
-                isExpanded: true,
-                decoration: InputDecoration(labelText: s.shift),
-                items: [
-                  for (final sh in shifts)
-                    DropdownMenuItem(
-                      value: sh.id,
-                      child: Text(shiftText(s, sh, withName: shifts.length > 1), overflow: TextOverflow.ellipsis),
-                    ),
-                ],
-                onChanged: (v) => setState(() => _shiftId = v),
-              ),
+            ShiftPicker(value: _shiftId, onChanged: (v) => setState(() => _shiftId = v)),
             const SizedBox(height: 20),
             FilledButton(onPressed: _busy ? null : _save, child: Text(s.save)),
           ],

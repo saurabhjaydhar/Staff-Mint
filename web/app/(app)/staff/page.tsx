@@ -308,6 +308,8 @@ export default function StaffPage() {
         onClose={() => setAdding(false)}
         branches={branches}
         shifts={shifts}
+        canAddShift={role === "owner"}
+        onShiftAdded={(sh) => refs.setData((d) => ({ branches: d?.branches ?? [], shifts: [...(d?.shifts ?? []), sh] }))}
         onCreated={(emp) => {
           setAdding(false);
           employees.setData((prev) => [emp, ...(prev ?? [])]);
@@ -355,18 +357,34 @@ function AddEmployeeModal({
   onCreated,
   branches,
   shifts,
+  canAddShift,
+  onShiftAdded,
 }: {
   open: boolean;
   onClose: () => void;
   onCreated: (e: Employee) => void;
   branches: Branch[];
   shifts: Shift[];
+  /** Owners can make a new shift from the list ("+ Add shift"). */
+  canAddShift: boolean;
+  onShiftAdded: (s: Shift) => void;
 }) {
   const empty = { name: "", phone: "", wageType: "monthly" as WageType, rate: "", designation: "", branchId: "", shiftId: "", joiningDate: "" };
   const [form, setForm] = useState(empty);
   const action = useAction();
   const [planLimit, setPlanLimit] = useState(false);
   const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) => setForm((f) => ({ ...f, [k]: v }));
+  const { t } = useI18n();
+  const [newShift, setNewShift] = useState<{ name: string; start: string; end: string } | null>(null);
+
+  async function addShift() {
+    if (!newShift) return;
+    const res = await action.run("shift", () => api.post<Shift>("/shifts", { ...newShift, name: newShift.name.trim(), weeklyOff: [] }));
+    if (!res.ok) return;
+    onShiftAdded(res.value);
+    set("shiftId", res.value.id);
+    setNewShift(null);
+  }
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -428,19 +446,43 @@ function AddEmployeeModal({
               )}
             </Field>
           )}
-          {shifts.length > 0 && (
+          {(shifts.length > 0 || canAddShift) && (
             <Field label="Shift">
               {(id) => (
-                <Select id={id} value={form.shiftId} onChange={(e) => set("shiftId", e.target.value)}>
+                <Select
+                  id={id}
+                  value={newShift ? "__new" : form.shiftId}
+                  onChange={(e) => (e.target.value === "__new" ? setNewShift({ name: "", start: "09:00", end: "19:00" }) : (setNewShift(null), set("shiftId", e.target.value)))}
+                >
                   <option value="">Default</option>
                   {shifts.map((s) => (
                     <option key={s.id} value={s.id}>
-                      {s.name}
+                      {s.name} ({s.start}–{s.end})
                     </option>
                   ))}
+                  {canAddShift && <option value="__new">{t("staff_add_shift")}</option>}
                 </Select>
               )}
             </Field>
+          )}
+          {newShift && (
+            <div className="flex flex-wrap items-end gap-2 rounded-lg bg-slate-50 p-3 sm:col-span-2" data-testid="new-shift">
+              <Field label={t("staff_shift_name")} className="min-w-40 flex-1">
+                {(id) => <Input id={id} value={newShift.name} maxLength={60} onChange={(e) => setNewShift({ ...newShift, name: e.target.value })} placeholder="Night" />}
+              </Field>
+              <Field label={t("staff_shift_start")} className="w-32">
+                {(id) => <Input id={id} type="time" value={newShift.start} onChange={(e) => setNewShift({ ...newShift, start: e.target.value })} />}
+              </Field>
+              <Field label={t("staff_shift_end")} className="w-32">
+                {(id) => <Input id={id} type="time" value={newShift.end} onChange={(e) => setNewShift({ ...newShift, end: e.target.value })} />}
+              </Field>
+              <Button type="button" disabled={!newShift.name.trim()} loading={action.busy === "shift"} onClick={addShift}>
+                {t("staff_shift_create")}
+              </Button>
+              <Button type="button" variant="ghost" onClick={() => setNewShift(null)}>
+                {t("cancel")}
+              </Button>
+            </div>
           )}
         </div>
         {action.error && (
