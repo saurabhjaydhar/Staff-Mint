@@ -23,24 +23,42 @@ class VerificationApi {
   Future<OwnerVerification> askAgain(String checkId) async =>
       OwnerVerification.fromJson(asMap(await _c.post('/verification/checks/$checkId/ask-again')));
 
-  // ---- Staff
-  Future<MyVerification> mine() async => MyVerification.fromJson(asMap(await _c.get('/verification/mine')));
+  // ---- Staff (or, with [employeeId], the owner doing the steps with someone who has no smartphone)
+  String _steps(String? employeeId) =>
+      employeeId == null ? '/verification/mine' : '/verification/employees/$employeeId/on-behalf';
+
+  Future<MyVerification> mine({String? employeeId}) async =>
+      MyVerification.fromJson(asMap(await _c.get(_steps(employeeId))));
 
   Future<MyVerification> consent() async => MyVerification.fromJson(asMap(await _c.post('/verification/mine/consent')));
 
-  Future<MyVerification> aadhaarOtp(String aadhaar) async =>
-      MyVerification.fromJson(asMap(await _c.post('/verification/mine/aadhaar/otp', body: {'aadhaar': aadhaar})));
+  /// They agreed on paper: the owner adds a photo of the signed slip.
+  Future<MyVerification> consentOnPaper(String employeeId, DocFile slip) async => MyVerification.fromJson(
+    asMap(await _c.post('${_steps(employeeId)}/consent', body: {'staffAgreed': true, 'slip': slip.toJson()})),
+  );
 
-  Future<MyVerification> aadhaarVerify(String otp) async =>
-      MyVerification.fromJson(asMap(await _c.post('/verification/mine/aadhaar/verify', body: {'otp': otp})));
+  Future<MyVerification> aadhaarOtp(String aadhaar, {String? employeeId}) async =>
+      MyVerification.fromJson(asMap(await _c.post('${_steps(employeeId)}/aadhaar/otp', body: {'aadhaar': aadhaar})));
 
-  Future<MyVerification> pan(String pan) async =>
-      MyVerification.fromJson(asMap(await _c.post('/verification/mine/pan', body: {'pan': pan})));
+  Future<MyVerification> aadhaarVerify(String otp, {String? employeeId}) async =>
+      MyVerification.fromJson(asMap(await _c.post('${_steps(employeeId)}/aadhaar/verify', body: {'otp': otp})));
+
+  Future<MyVerification> pan(String pan, {String? employeeId}) async =>
+      MyVerification.fromJson(asMap(await _c.post('${_steps(employeeId)}/pan', body: {'pan': pan})));
 
   /// No account given: checks the salary account on file.
-  Future<MyVerification> bank({String? accountNumber, String? ifsc}) async => MyVerification.fromJson(
-    asMap(await _c.post('/verification/mine/bank', body: {'accountNumber': ?accountNumber, 'ifsc': ?ifsc})),
-  );
+  Future<MyVerification> bank({String? accountNumber, String? ifsc, String? employeeId}) async =>
+      MyVerification.fromJson(
+        asMap(await _c.post('${_steps(employeeId)}/bank', body: {'accountNumber': ?accountNumber, 'ifsc': ?ifsc})),
+      );
+
+  /// Selfie (base64 JPEG) matched with the photo on their ID. Not kept.
+  Future<MyVerification> face(String selfie, {String? employeeId}) async =>
+      MyVerification.fromJson(asMap(await _c.post('${_steps(employeeId)}/face', body: {'selfie': selfie})));
+
+  /// A short link to the slip they signed.
+  Future<String> slipUrl(String employeeId) async =>
+      asString(asMap(await _c.post('/verification/employees/$employeeId/slip/open'))['url']);
 
   // ---- Documents
   Future<StaffDocs> documentsFor(String employeeId) async =>

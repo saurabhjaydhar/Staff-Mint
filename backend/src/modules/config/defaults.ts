@@ -101,6 +101,8 @@ export const DEFAULT_CONFIG: Record<string, unknown> = {
   'verification.extraPricePaise': 14900,
   /** Below this name match (0–100) a check shows "Name doesn't match" for the owner to look at. */
   'verification.nameMatchMin': 80,
+  /** Selfie vs the photo on their ID: at least this similarity (0–100) is a match; below it the owner looks. */
+  'verification.faceMatchMin': 80,
   /** Checks and results are deleted this long after the person leaves. */
   'verification.retentionDays': 180,
   /** Sent in staff invites. Replace with the real Play Store link at launch. */

@@ -13,6 +13,8 @@ export class MockFaceProvider implements FaceProvider {
   async compare(reference: Buffer, probe: Buffer): Promise<FaceCompareResult> {
     if (this.production) throw new Error('Face match is not configured (FACE_PROVIDER=mock)');
     const text = probe.toString('latin1');
+    // An ID photo (reference) with no face on it.
+    if (reference.toString('latin1').includes('noface') && !reference.equals(probe)) return { similarity: null, faces: 1 };
     if (text.includes('noface')) return { similarity: null, faces: 0 };
     if (text.includes('twofaces')) return { similarity: 97, faces: 2 };
     if (text.includes('stranger')) return { similarity: 12, faces: 1 };
