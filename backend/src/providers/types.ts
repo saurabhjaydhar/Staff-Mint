@@ -129,6 +129,8 @@ export interface PaymentProvider {
   parseWebhook(body: any): PaymentEvent[];
   /** Link to the gateway's invoice (with GST) for a payment, when it makes one. */
   invoiceUrl?(invoiceId: string): Promise<string | null>;
+  /** Gateways that bill against their own plan objects (Razorpay): make one for this exact price. */
+  createPlan?(input: { planCode: string; name: string; interval: 'monthly' | 'yearly'; amountPaise: number; currency: string }): Promise<string>;
 }
 
 // ---------- Email ----------

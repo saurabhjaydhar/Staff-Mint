@@ -33,7 +33,7 @@ test/                  golden payroll files, unit + API tests
 - Around 3 AM, purges selfies older than 90 days and precise locations older than 12 months. Both limits are configurable.
 
 ## Dynamic config (no release needed)
-- `PUT /api/v1/admin/plans/:code`: prices, limits, features, trial days, Razorpay plan IDs.
+- `PUT /api/v1/admin/plans/:code`: prices, limits, features, trial days, optional Razorpay plan IDs (made automatically when missing).
 - `PUT /api/v1/admin/flags`: feature flags per plan or company.
 - `PUT /api/v1/admin/configs/:key`: e.g. `signup.trialPlan`, `billing.priceLockMonths`, `assistant.pendingTtlMinutes`.
 

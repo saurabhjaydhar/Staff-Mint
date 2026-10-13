@@ -2,7 +2,10 @@ import type { CreateSubscriptionInput, PaymentEvent, PaymentProvider } from '../
 import { AppError } from '../../lib/errors.js';
 import { hmacSha256Hex, safeEqual } from '../../lib/crypto.js';
 
-/** Razorpay Subscriptions via REST. Plans must exist in Razorpay (ids stored in plans.providerPlanIds.razorpay). */
+/**
+ * Razorpay Subscriptions via REST. Each subscription needs a Razorpay plan for its exact price;
+ * the billing service makes them on first use (createPlan) and remembers the ids.
+ */
 export class RazorpayPaymentProvider implements PaymentProvider {
   readonly name = 'razorpay';
   constructor(private cfg: { keyId: string; keySecret: string; webhookSecret: string }) {}
@@ -27,6 +30,15 @@ export class RazorpayPaymentProvider implements PaymentProvider {
       notes: { companyId: input.customer.companyId, planCode: input.planCode },
     });
     return { providerSubId: sub.id as string, checkoutUrl: sub.short_url as string, keyId: this.cfg.keyId };
+  }
+  async createPlan(input: { planCode: string; name: string; interval: 'monthly' | 'yearly'; amountPaise: number; currency: string }) {
+    const plan = await this.call('POST', '/plans', {
+      period: input.interval,
+      interval: 1,
+      item: { name: `StaffMint ${input.name} (${input.interval})`, amount: input.amountPaise, currency: input.currency },
+      notes: { planCode: input.planCode },
+    });
+    return plan.id as string;
   }
   async cancelSubscription(providerSubId: string) {
     await this.call('POST', `/subscriptions/${providerSubId}/cancel`, { cancel_at_cycle_end: 1 });
