@@ -26,6 +26,8 @@ export interface DocumentInput {
 }
 
 const MAX_FILE_BYTES = 4 * 1024 * 1024;
+/** All files of one upload together (the request body limit is 10 MB of base64). */
+const MAX_TOTAL_BYTES = 7 * 1024 * 1024;
 const MIMES: Record<string, { ext: string; magic: (b: Buffer) => boolean }> = {
   'image/jpeg': { ext: 'jpg', magic: (b) => b[0] === 0xff && b[1] === 0xd8 },
   'image/png': { ext: 'png', magic: (b) => b.subarray(0, 4).toString('latin1') === '\x89PNG' },
@@ -111,6 +113,8 @@ async function todayFor(companyId: Types.ObjectId) {
 function validate(input: DocumentInput, today: string) {
   if (!input.files.length) throw new AppError('VALIDATION_ERROR', 'Add a photo or PDF of the document');
   if (input.kind === 'other' && !input.label?.trim()) throw new AppError('VALIDATION_ERROR', 'Say what the document is');
+  const total = input.files.reduce((n, f) => n + Math.floor((f.data.length * 3) / 4), 0);
+  if (total > MAX_TOTAL_BYTES) throw new AppError('VALIDATION_ERROR', 'Files too large together (max 7 MB)');
   if (input.expiresOn && input.expiresOn < addDays(today, -3650)) throw new AppError('VALIDATION_ERROR', 'Check the expiry date');
 }
 

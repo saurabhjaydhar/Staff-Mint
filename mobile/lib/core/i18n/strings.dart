@@ -2417,6 +2417,7 @@ class S {
   String get pickDate => _t('Pick date', 'तारीख़ चुनें');
   String get photosOfDocument => _t('Photos (front and back)', 'फ़ोटो (आगे और पीछे)');
   String get addPhoto => _t('Add photo', 'फ़ोटो जोड़ें');
+  String get addSlipPhoto => _t('Add photo of slip', 'पर्ची की फ़ोटो जोड़ें');
   String staffAgreedTick(String name) => _t('$name agreed to me keeping a copy', '$name ने कॉपी रखने की सहमति दी है');
   String get consentSlip => _t('Photo of the signed consent slip', 'साइन की हुई सहमति पर्ची की फ़ोटो');
   String get consentSlipHint => _t(

@@ -391,23 +391,26 @@ class _AddDocSheetState extends ConsumerState<_AddDocSheet> {
             ],
           ),
           if (_kind == 'other') ...[
-            title(s.documentName),
+            const SizedBox(height: 14),
             TextField(
               key: const Key('docLabel'),
               controller: _label,
               maxLength: 60,
-              decoration: InputDecoration(hintText: s.documentNameHint, counterText: ''),
+              decoration: InputDecoration(labelText: s.documentName, hintText: s.documentNameHint, counterText: ''),
               onChanged: (_) => setState(() {}),
             ),
           ],
-          title('${_kind == 'aadhaar' ? s.aadhaarLast4 : s.documentNumber} (${s.optional})'),
+          const SizedBox(height: 14),
           TextField(
             key: const Key('docNumber'),
             controller: _number,
             maxLength: _kind == 'aadhaar' ? 4 : 24,
             keyboardType: _kind == 'aadhaar' ? TextInputType.number : TextInputType.text,
             textCapitalization: TextCapitalization.characters,
-            decoration: const InputDecoration(counterText: ''),
+            decoration: InputDecoration(
+              labelText: '${_kind == 'aadhaar' ? s.aadhaarLast4 : s.documentNumber} (${s.optional})',
+              counterText: '',
+            ),
           ),
           if (_kind == 'aadhaar')
             Padding(
@@ -470,7 +473,7 @@ class _AddDocSheetState extends ConsumerState<_AddDocSheet> {
                     if (f != null) setState(() => _slip = f);
                   },
                   icon: const Icon(Icons.draw_rounded),
-                  label: Text(s.addPhoto),
+                  label: Text(s.addSlipPhoto),
                 ),
             ],
           ],
@@ -671,7 +674,10 @@ class _DocViewerState extends ConsumerState<_DocViewer> {
                     children: [
                       for (final f in o.files) _FileView(url: f.url, mime: f.mime),
                       if (o.slip != null) ...[
-                        SectionHeader(s.signedSlip),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8, bottom: 8),
+                          child: Text(s.signedSlip, style: Theme.of(context).textTheme.titleMedium),
+                        ),
                         _FileView(url: o.slip!.url, mime: o.slip!.mime),
                       ],
                     ],

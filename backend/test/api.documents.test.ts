@@ -74,6 +74,9 @@ describe('staff documents', () => {
     expect((await addMine(staff.token, { kind: 'other', files: [photo()] })).status).toBe(400);
     expect((await addMine(staff.token, { kind: 'aadhaar', number: 'ABCD12341234', files: [photo()] })).status).toBe(400);
     await addMine(staff.token, { kind: 'other', label: '10th marksheet', files: [{ data: b64(PDF), mime: 'application/pdf' }] }).expect(201);
+    // 4 MB each, 7 MB together.
+    const big = { data: b64(Buffer.concat([JPEG(), Buffer.alloc(3_900_000)])), mime: 'image/jpeg' };
+    expect((await addMine(staff.token, { kind: 'pan', files: [big, big] })).body.error.message).toMatch(/7 MB/);
   });
 
   it('owner adds for staff without a phone: they must agree, with a signed slip the first time', async () => {

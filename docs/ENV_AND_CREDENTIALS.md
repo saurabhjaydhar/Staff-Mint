@@ -27,8 +27,8 @@ The server **refuses to start in production** while these still have their dev v
 | `JOBS_DRIVER` | `bullmq` in production (run the `worker` service) | — |
 | `JWT_ACCESS_SECRET` | random, ≥ 48 chars | `openssl rand -base64 48` |
 | `JWT_REFRESH_SECRET` | random, ≥ 48 chars (different from the access secret) | `openssl rand -base64 48` |
-| `FIELD_ENCRYPTION_KEY` | 32-byte key, base64 (field-level encryption) | `openssl rand -base64 32`. **Back it up; data encrypted with it cannot be read without it** |
-| `FILE_URL_SECRET` | signs private file links | `openssl rand -base64 32` |
+| `FIELD_ENCRYPTION_KEY` | 32-byte key, base64 (field-level encryption, and staff document files) | `openssl rand -base64 32`. **Back it up; data encrypted with it cannot be read without it** (that includes every uploaded staff document) |
+| `FILE_URL_SECRET` | signs private file links (including the 5-minute links that open staff documents at `PUBLIC_BASE_URL/doc-files/…`) | `openssl rand -base64 32` |
 | `ADMIN_API_KEY` | for scripts calling `/api/v1/admin/*`. People use the admin app (email + password + emailed code); create the first admin with `node dist/scripts/createAdmin.js --email … --password …` | `openssl rand -hex 24` |
 
 ### OTP login (🔴)

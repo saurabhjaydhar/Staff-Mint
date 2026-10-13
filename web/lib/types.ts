@@ -776,3 +776,49 @@ export interface SubscribeResult {
 
 export type ReportType = "attendance" | "salary" | "advances" | "late";
 export type ReportFormat = "pdf" | "xlsx";
+
+// ---------- Documents check and staff documents ----------
+export type VerifyKind = "aadhaar" | "pan" | "bank";
+
+export interface VerifyCheck {
+  id: string;
+  kind: VerifyKind;
+  status: "waiting" | "otp_sent" | "verified" | "mismatch" | "not_found" | "failed";
+  last4: string | null;
+  nameOnRecord: string | null;
+  matchScore: number | null;
+  override: { reason: string; at: string } | null;
+  details: Record<string, string> | null;
+  attempts: number;
+}
+
+export interface OwnerVerification {
+  badge: NonNullable<Employee["verification"]>;
+  request: { id: string; kinds: VerifyKind[]; status: "asked" | "in_progress" | "done" | "cancelled"; consented: boolean } | null;
+  checks: VerifyCheck[];
+  quota: { used: number; limit: number; extraPricePaise: number };
+}
+
+export type DocumentKind = "aadhaar" | "pan" | "dl" | "voter" | "passport" | "bank_proof" | "address" | "police" | "experience" | "other";
+
+export interface StaffDoc {
+  id: string;
+  kind: DocumentKind;
+  label: string | null;
+  numberLast4: string | null;
+  files: { mime: string; size: number | null }[];
+  expiresOn: string | null;
+  expiry: "ok" | "soon" | "expired" | null;
+  addedBy: "staff" | "owner";
+  hasSlip: boolean;
+}
+
+export interface StaffDocs {
+  documents: StaffDoc[];
+  agreementOnFile: boolean;
+}
+
+export interface OpenedDoc {
+  files: { url: string; mime: string }[];
+  slip: { url: string; mime: string } | null;
+}

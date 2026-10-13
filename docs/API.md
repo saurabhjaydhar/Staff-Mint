@@ -195,6 +195,22 @@ Owner only for results (they include names on records and date of birth). Featur
 
 Names are compared ignoring case, order, titles and initials; below `verification.nameMatchMin` (80) a check is `mismatch` for the owner to accept or ask again. Staff can retry "not found" or a mismatch up to 5 times; provider errors are `failed` (try again). When every check has a result, owners get a push (`verification_done`).
 
+### Staff documents
+Photos (JPG, PNG) and PDFs, up to 3 files per document, 4 MB each and 7 MB together. Feature `documents` (Starter and up) to add; anyone can still see and remove what's there. Files are encrypted with `FIELD_ENCRYPTION_KEY` before they reach storage and are opened only through 5-minute signed links; each opening is audited (`document.view`, shown in History as "Ramesh Kumar: PAN opened"). Only the last 4 characters of a document number are kept (digits only for Aadhaar). Owners see everyone's documents; managers and accountants don't. Staff see and add their own. Deleted with their files `verification.retentionDays` (180) after the person leaves.
+
+| Method | Path | Body / query | Response |
+|---|---|---|---|
+| GET | /verification/employees/:id/documents | (owner) | `{documents: Doc[], agreementOnFile}`. `Doc`: `{id, kind:'aadhaar'\|'pan'\|'dl'\|'voter'\|'passport'\|'bank_proof'\|'address'\|'police'\|'experience'\|'other', label, numberLast4, files: {mime, size}[], expiresOn, expiry:'ok'\|'soon'\|'expired'\|null, addedBy:'staff'\|'owner', hasSlip, createdAt}`. `agreementOnFile`: they added a document themselves, agreed to a documents check, or a signed slip is on file |
+| POST | /verification/employees/:id/documents | `{kind, label?, number?, expiresOn?, files: {data (base64), mime}[], staffAgreed, slip?: {data, mime}}` (owner; `documents`) | `Doc`. For staff without the app: `staffAgreed` must be true (`CONSENT_REQUIRED`), and a photo of the signed consent slip is needed the first time (no agreement on file) |
+| PATCH | /verification/documents/:id | `{expiresOn?, label?}` (owner) | `Doc`. A new expiry date reminds again |
+| DELETE | /verification/documents/:id | (owner: any; staff: only ones they added) | `{ok}`. Files are deleted too |
+| POST | /verification/documents/:id/open | (owner; staff for their own) | `{files: {url, mime}[], slip: {url, mime}\|null (owner only), expiresInSec: 300}`. Audited |
+| GET | /doc-files/:token | (no login; the signed link) | The decrypted file. `403` when the link is changed or expired |
+| GET | /verification/mine/documents | (staff) | `{documents: Doc[]}` |
+| POST | /verification/mine/documents | `{kind, label?, number?, expiresOn?, files}` (staff; `documents`) | `Doc`. Owners get a push (`document_added`) |
+
+Driving licences, passports and police certificates ask for a "valid till" date. From 10 AM each day, documents that run out within 30 days (or already have) push the owner and the staff member once per date (`document_expiring`).
+
 ### Leave
 | GET | /leaves | `?status&employeeId` (employee → own) | `Leave[]` |
 | POST | /leaves | `{type, from, to, halfDay?, reason?, employeeId?}` (employeeId only for owner applying on behalf) | `Leave` |

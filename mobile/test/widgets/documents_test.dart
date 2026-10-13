@@ -13,8 +13,7 @@ import 'package:staffmint/features/documents/documents.dart';
 const _raju = Employee(id: 'e1', name: 'Raju', phone: '9876543210');
 
 // 1×1 PNG.
-const _png =
-    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+const _png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
 
 class _FakePicker implements DocPicker {
   int picked = 0;
@@ -106,14 +105,21 @@ Future<void> _addPhoto(WidgetTester tester, String key) async {
   await tester.pumpAndSettle();
 }
 
-bool _saveEnabled(WidgetTester tester) => tester.widget<FilledButton>(find.byKey(const Key('docSave'))).onPressed != null;
+bool _saveEnabled(WidgetTester tester) =>
+    tester.widget<FilledButton>(find.byKey(const Key('docSave'))).onPressed != null;
 
 void main() {
   testWidgets('owner adds a document for staff without the app: photo, "they agreed", signed slip the first time', (
     tester,
   ) async {
     final api = _FakeApi();
-    await _pump(tester, api, const Scaffold(body: SingleChildScrollView(child: DocumentsCard(employee: _raju))));
+    await _pump(
+      tester,
+      api,
+      const Scaffold(
+        body: SingleChildScrollView(child: DocumentsCard(employee: _raju)),
+      ),
+    );
     expect(find.text('Documents'), findsOneWidget);
     expect(find.text('Keep copies of Aadhaar, PAN, licence and more, safely in one place.'), findsOneWidget);
 
@@ -155,18 +161,18 @@ void main() {
       ..docs = const StaffDocs(
         agreementOnFile: true,
         documents: [
-          StaffDoc(
-            id: 'd1',
-            kind: 'dl',
-            mimes: ['image/jpeg', 'image/jpeg'],
-            expiresOn: '2026-10-30',
-            expiry: 'soon',
-          ),
+          StaffDoc(id: 'd1', kind: 'dl', mimes: ['image/jpeg', 'image/jpeg'], expiresOn: '2026-10-30', expiry: 'soon'),
           StaffDoc(id: 'd2', kind: 'pan', numberLast4: '234F', mimes: ['image/jpeg'], addedBy: 'owner', hasSlip: true),
           StaffDoc(id: 'd3', kind: 'other', label: '10th marksheet', mimes: ['application/pdf']),
         ],
       );
-    await _pump(tester, api, const Scaffold(body: SingleChildScrollView(child: DocumentsCard(employee: _raju))));
+    await _pump(
+      tester,
+      api,
+      const Scaffold(
+        body: SingleChildScrollView(child: DocumentsCard(employee: _raju)),
+      ),
+    );
     expect(find.text('Driving licence'), findsOneWidget);
     expect(find.textContaining('2 pages · Added by staff'), findsOneWidget);
     expect(find.textContaining('Expires 30 Oct 2026'), findsOneWidget);
@@ -187,13 +193,21 @@ void main() {
   testWidgets('owner opens a document: the files and the signed slip', (tester) async {
     final api = _FakeApi()
       ..docs = const StaffDocs(
-        documents: [StaffDoc(id: 'd3', kind: 'police', mimes: ['application/pdf'], addedBy: 'owner', hasSlip: true)],
+        documents: [
+          StaffDoc(id: 'd3', kind: 'police', mimes: ['application/pdf'], addedBy: 'owner', hasSlip: true),
+        ],
       )
       ..opened = const OpenedDoc(
         files: [(url: 'http://x/doc-files/a', mime: 'application/pdf')],
         slip: (url: 'http://x/doc-files/b', mime: 'application/pdf'),
       );
-    await _pump(tester, api, const Scaffold(body: SingleChildScrollView(child: DocumentsCard(employee: _raju))));
+    await _pump(
+      tester,
+      api,
+      const Scaffold(
+        body: SingleChildScrollView(child: DocumentsCard(employee: _raju)),
+      ),
+    );
     await tester.tap(find.byKey(const Key('doc_d3')));
     await tester.pumpAndSettle();
     expect(api.calls, ['open:d3']);
@@ -251,7 +265,9 @@ void main() {
     await _pump(
       tester,
       _FakeApi(),
-      const Scaffold(body: SingleChildScrollView(child: DocumentsCard(employee: _raju))),
+      const Scaffold(
+        body: SingleChildScrollView(child: DocumentsCard(employee: _raju)),
+      ),
       lang: 'hi',
     );
     expect(find.text('दस्तावेज़'), findsOneWidget);

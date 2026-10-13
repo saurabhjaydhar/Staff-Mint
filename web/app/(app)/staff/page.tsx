@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState, type FormEvent } from "react";
 import { useRole } from "@/components/AppShell";
+import { DocumentsModal } from "@/components/DocumentsModal";
 import { SlipDetailsModal } from "@/components/StatutoryCards";
 import { useI18n, useToast } from "@/components/providers";
 import { Alert, Badge, Button, Card, EmptyState, Field, Input, Loading, Modal, PageHeader, Select, Table, Td, Th, cx } from "@/components/ui";
@@ -26,6 +27,7 @@ export default function StaffPage() {
   const [adding, setAdding] = useState(false);
   const [deactivating, setDeactivating] = useState<Employee | null>(null);
   const [slipFor, setSlipFor] = useState<Employee | null>(null);
+  const [docsFor, setDocsFor] = useState<Employee | null>(null);
   const action = useAction();
   const q = useDebounced(search.trim());
 
@@ -278,6 +280,11 @@ export default function StaffPage() {
                         </Button>
                       )}
                       {role === "owner" && (
+                        <Button size="sm" variant="ghost" data-docs={emp.id} onClick={() => setDocsFor(emp)}>
+                          {t("docs_button")}
+                        </Button>
+                      )}
+                      {role === "owner" && (
                         <Button size="sm" variant="ghost" onClick={() => setSlipFor(emp)}>
                           {t("slip_details")}
                         </Button>
@@ -308,6 +315,7 @@ export default function StaffPage() {
         }}
       />
       <SlipDetailsModal employee={slipFor} onClose={() => setSlipFor(null)} />
+      <DocumentsModal employee={docsFor} onClose={() => setDocsFor(null)} onChanged={employees.reload} />
       <DeactivateModal
         employee={deactivating}
         onClose={() => setDeactivating(null)}
