@@ -364,6 +364,14 @@ export function describe(
       const changes = a.by === 'owner_on_behalf' ? [{ label: t('Consent', 'सहमति'), to: a.slip ? t('Signed slip added', 'साइन की हुई पर्ची लगाई') : t('Agreed earlier', 'पहले से सहमति') }] : [];
       return r(t(`${emp}: ${what} added`, `${emp}: ${what} जोड़ा`), 'staff', changes);
     }
+    case 'tracking.enable':
+      return r(t(`${emp}: location sharing during shifts turned on`, `${emp}: शिफ़्ट में लोकेशन शेयर करना चालू किया`), 'staff');
+    case 'tracking.disable':
+      return r(t(`${emp}: location sharing turned off`, `${emp}: लोकेशन शेयर करना बंद किया`), 'staff');
+    case 'tracking.consent':
+      return r(t(`${emp} agreed to share location during shifts`, `${emp} ने शिफ़्ट में लोकेशन शेयर करने की सहमति दी`), 'staff');
+    case 'tracking.withdraw':
+      return r(t(`${emp} stopped sharing location`, `${emp} ने लोकेशन शेयर करना बंद किया`), 'staff');
     case 'employee.bank.remove':
       return r(t(`${emp}: salary account removed`, `${emp}: सैलरी खाता हटाया`), 'staff');
     case 'employee.phone_recycled':
@@ -516,7 +524,7 @@ export const CATEGORY_ACTIONS: Record<Exclude<HistoryCategory, 'other'>, RegExp>
   attendance: /^(attendance|roster)\./,
   leave: /^leave(_balance)?\./,
   salary: /^(advance|adjustment|payroll|payslips)\./,
-  staff: /^(employee|device|verification|document)\.(?!role$)/,
+  staff: /^(employee|device|verification|document|tracking)\.(?!role$)/,
   settings: /^(company\.(create|update|settings\.update|statutory\.update|close|restore)|branch\.|shift\.|holiday\.)/,
   team: /^(employee\.role$|user\.ca\.|owner\.|account\.)/,
   billing: /^billing\./,

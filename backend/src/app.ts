@@ -30,6 +30,7 @@ import { messagingWebhookRouter } from './modules/messaging/routes.js';
 import { dashboardRouter } from './modules/dashboard/routes.js';
 import { adminAuthRouter, adminRouter } from './modules/admin/routes.js';
 import { filesRouter } from './modules/files/routes.js';
+import { trackingRouter } from './modules/tracking/routes.js';
 import { docFilesRouter } from './modules/verification/files.js';
 import { accountsRouter } from './modules/accounts/routes.js';
 import { geoRouter } from './modules/geo/routes.js';
@@ -81,6 +82,7 @@ export function createApp() {
   api.use('/attendance', attendanceRouter);
   api.use('/roster', rosterRouter);
   api.use('/verification', verificationRouter);
+  api.use('/tracking', trackingRouter);
   api.use('/', leaveRouter);
   api.use('/', advancesRouter);
   api.use('/', payrollRouter);
