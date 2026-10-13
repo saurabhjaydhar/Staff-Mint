@@ -1,6 +1,6 @@
 # Plan: Roster, live tracking for field staff, background verification
 
-Status (13 Oct 2026): **The roster is built (rounds 1, 2a and 2b)** (owner day view, change-shift sheet, send with one-tap fixes, staff "My week"; attendance and salary follow the sent roster). Round 2a added "Repeat every week", the whole-week view, alternating weekly offs and the web roster grid; round 2b adds shift swaps, minimum staff per shift, rest and 48-hour checks, the "roster changed" message and Mint roster commands. Next: background verification. Screenshots: [docs/screenshots/roster](../screenshots/roster/README.md). Verification and tracking are planned, not built. Round 0 mock-ups (step-by-step guides): [docs/mockups/roster-tracking-verification.html](../mockups/roster-tracking-verification.html).
+Status (13 Oct 2026): **The roster is built (rounds 1, 2a and 2b)** (owner day view, change-shift sheet, send with one-tap fixes, staff "My week"; attendance and salary follow the sent roster). Round 2a added "Repeat every week", the whole-week view, alternating weekly offs and the web roster grid; round 2b adds shift swaps, minimum staff per shift, rest and 48-hour checks, the "roster changed" message and Mint roster commands. Background verification round V1a is built: owner "Check now", staff consent as step 0, Aadhaar OTP, PAN and bank ₹1 test, results with accept / ask again, badges, monthly allowance. Next: V1b (documents upload, face vs ID photo, report). Screenshots: [roster](../screenshots/roster/README.md), [documents check](../screenshots/verification/README.md). Live tracking is planned, not built. Round 0 mock-ups (step-by-step guides): [docs/mockups/roster-tracking-verification.html](../mockups/roster-tracking-verification.html).
 
 **Mock-up changes the owner approved (13 Oct):**
 - **Verification:** the staff consent screen is now **step 0 of the staff steps** (one flow: agree → Aadhaar → PAN → bank), not a separate screen.
@@ -300,7 +300,13 @@ Costs are rough market figures and depend on the provider.
 Document storage itself (upload and view) is on all paid plans. Only the government checks cost money.
 
 ### Rounds
-- **V1:** documents (upload, view, expiry, audit), consent, the mock and Cashfree providers, PAN, bank ₹1 test, face match, badges, owner request flow, tests.
+- **V1a (built, 13 Oct):** the flow from the approved mock-ups.
+  - Owner: staff profile → Documents check → "Check now" → Aadhaar, PAN and bank ticked, with "Included in your plan: 2 of 3 left this month" → "Send to Raju". Results show each check; a name mismatch has "This is fine" (with a reason) or "Ask again"; "not found" has "Ask again". Badges on the staff list (app and web).
+  - Staff: a home card → consent in plain words (step 0, nothing runs before it) → Aadhaar with an OTP → PAN → bank ₹1 test (their salary account on file, or another one, which then becomes their salary account) → "All done".
+  - Only the last 4 digits of Aadhaar and account numbers are kept; Aadhaar extras (date of birth) are encrypted; owner only. Results are deleted 180 days after someone leaves.
+  - Monthly allowance enforced (Growth 3, Pro 10); more checks show the ₹149 price as "coming soon" until paid checks land.
+  - Providers: mock and Cashfree (`VERIFICATION_PROVIDER`), Cashfree built from its API reference and to be tried with sandbox keys.
+- **V1b:** documents (upload, view, expiry, audit), face match (selfie vs ID photo), the owner doing the steps on a staff member's behalf (with a consent slip), web results panel.
 - **V2:** DigiLocker Aadhaar, DL, Voter ID, UAN history, PDF report, paid checks (Razorpay one-time payment), police certificate reminders, the verification step in add-staff.
 
 ---

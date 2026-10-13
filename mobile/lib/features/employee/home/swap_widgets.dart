@@ -218,7 +218,10 @@ class _SwapSheetState extends ConsumerState<_SwapSheet> {
               future: _options,
               builder: (context, snap) {
                 if (snap.hasError) {
-                  return Padding(padding: const EdgeInsets.only(top: 12), child: Text(errorMessage(context, snap.error!)));
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Text(errorMessage(context, snap.error!)),
+                  );
                 }
                 final o = snap.data;
                 if (o == null) {

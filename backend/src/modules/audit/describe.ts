@@ -150,6 +150,14 @@ function diff(
   return out;
 }
 
+const DOC_KIND: Record<string, [string, string]> = { aadhaar: ['Aadhaar', 'आधार'], pan: ['PAN', 'PAN'], bank: ['bank account', 'बैंक खाता'] };
+const DOC_RESULT: Record<string, [string, string]> = {
+  verified: ['verified', 'सही निकला'],
+  mismatch: ['name doesn’t match', 'नाम नहीं मिला'],
+  not_found: ['not found', 'नहीं मिला'],
+  failed: ['couldn’t be checked', 'जाँच नहीं हो पाई'],
+};
+
 export function describe(
   log: { action: string; entity: string; entityId?: unknown; before?: any; after?: any },
   lang: Lang,
@@ -309,6 +317,25 @@ export function describe(
       return r(t(`${emp}: salary slip details changed`, `${emp}: सैलरी स्लिप की जानकारी बदली`), 'staff');
     case 'employee.bank.update':
       return r(t(`${emp}: salary account saved`, `${emp}: सैलरी खाता सेव हुआ`), 'staff');
+    case 'verification.request':
+      return r(t(`${emp}: asked to verify documents`, `${emp}: दस्तावेज़ जाँचने को कहा`), 'staff');
+    case 'verification.cancel':
+      return r(t(`${emp}: document check cancelled`, `${emp}: दस्तावेज़ जाँच रद्द की`), 'staff');
+    case 'verification.consent':
+      return r(t(`${emp} agreed to the document check`, `${emp} ने दस्तावेज़ जाँच की अनुमति दी`), 'staff');
+    case 'verification.check': {
+      const kind = pick(DOC_KIND[a.kind] ?? [a.kind, a.kind], lang);
+      const result = pick(DOC_RESULT[a.status] ?? [a.status, a.status], lang);
+      return r(t(`${emp}: ${kind} ${result}`, `${emp}: ${kind} ${result}`), 'staff');
+    }
+    case 'verification.accept':
+      return r(
+        t(`${emp}: ${pick(DOC_KIND[a.kind] ?? [a.kind, a.kind], lang)} name accepted`, `${emp}: ${pick(DOC_KIND[a.kind] ?? [a.kind, a.kind], lang)} का नाम मान लिया`),
+        'staff',
+        [...note(reasonLabel, a.reason), ...(a.nameOnRecord ? [{ label: t('Name on record', 'रिकॉर्ड में नाम'), to: String(a.nameOnRecord) }] : [])],
+      );
+    case 'verification.ask_again':
+      return r(t(`${emp}: asked to check ${pick(DOC_KIND[a.kind] ?? [a.kind, a.kind], lang)} again`, `${emp}: ${pick(DOC_KIND[a.kind] ?? [a.kind, a.kind], lang)} फिर से जाँचने को कहा`), 'staff');
     case 'employee.bank.remove':
       return r(t(`${emp}: salary account removed`, `${emp}: सैलरी खाता हटाया`), 'staff');
     case 'employee.phone_recycled':
@@ -461,7 +488,7 @@ export const CATEGORY_ACTIONS: Record<Exclude<HistoryCategory, 'other'>, RegExp>
   attendance: /^(attendance|roster)\./,
   leave: /^leave(_balance)?\./,
   salary: /^(advance|adjustment|payroll|payslips)\./,
-  staff: /^(employee|device)\.(?!role$)/,
+  staff: /^(employee|device|verification)\.(?!role$)/,
   settings: /^(company\.(create|update|settings\.update|statutory\.update|close|restore)|branch\.|shift\.|holiday\.)/,
   team: /^(employee\.role$|user\.ca\.|owner\.|account\.)/,
   billing: /^billing\./,

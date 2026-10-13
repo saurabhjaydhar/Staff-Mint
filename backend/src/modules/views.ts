@@ -30,6 +30,8 @@ export const employeeView = (e: any, extra: Record<string, unknown> = {}) => ({
   attendanceMarking: e.attendanceMarking ?? null,
   consent: { location: !!e.consent?.location, at: e.consent?.at ?? null },
   face: { status: e.face?.status ?? 'none', enrolledAt: e.face?.enrolledAt ?? null, approvedAt: e.face?.approvedAt ?? null },
+  /** Background verification badge: none / asked / in_progress / verified / needs_attention. */
+  verification: e.verification?.status ?? 'none',
   hasDevice: !!extra.hasDevice,
   /** Has this number opened StaffMint for this business yet; when the app invite was last sent. */
   linked: !!e.userId,

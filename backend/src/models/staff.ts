@@ -41,6 +41,11 @@ const employeeSchema = new Schema(
     uan: { type: String, default: null },
     esicNumber: { type: String, default: null },
     panEnc: { type: String, default: null }, // field-level encrypted
+    /** Background verification, kept here for the staff list badge (details live in VerificationRequest/Check). */
+    verification: {
+      status: { type: String, enum: ['none', 'asked', 'in_progress', 'verified', 'needs_attention'], default: 'none' },
+      at: { type: Date, default: null },
+    },
     pfExempt: { type: Boolean, default: false },
     esiExempt: { type: Boolean, default: false },
     importSessionId: { type: Schema.Types.ObjectId, ref: 'ImportSession', default: null },

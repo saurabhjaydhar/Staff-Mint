@@ -26,6 +26,7 @@ import '../punch/punch_service.dart';
 import '../punch/punch_state.dart';
 import 'check_in_button.dart';
 import 'swap_widgets.dart';
+import '../verify/verify_screen.dart';
 
 /// Employee home: the shift in words ("Started 12 minutes ago", never "848
 /// min late"), where they are and why it matters, one big button that says
@@ -291,6 +292,7 @@ class _EmployeeHomeScreenState extends ConsumerState<EmployeeHomeScreen> {
             ref.invalidate(employeeTodayProvider);
             ref.invalidate(myRosterProvider);
             ref.invalidate(mySwapsProvider);
+            ref.invalidate(myVerificationProvider);
             _prefetch().ignore();
             await ref.read(punchSyncProvider.notifier).syncNow();
             await ref.read(employeeTodayProvider.future);
@@ -416,6 +418,7 @@ class _EmployeeHomeScreenState extends ConsumerState<EmployeeHomeScreen> {
                   ),
                 ),
               ),
+            const _VerifyCard(),
             const _MyWeek(),
             const _Swaps(),
             const Padding(padding: EdgeInsets.fromLTRB(16, 18, 16, 0), child: _MonthSummary()),
@@ -594,6 +597,35 @@ class _InfoCard extends StatelessWidget {
 
 /// "October so far · ✓ 8 days present · ⏰ 1 late · ✕ 1 absent ·
 /// Earned till today: ₹3,387" — counts in words instead of codes.
+/// The owner asked for a documents check and there's something to do.
+class _VerifyCard extends ConsumerWidget {
+  const _VerifyCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = context.s;
+    final v = ref.watch(myVerificationProvider).value;
+    if (v == null || !v.todo) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+      child: Card(
+        key: const Key('verifyHomeCard'),
+        color: AppColors.amberLight,
+        child: ListTile(
+          leading: const Icon(Icons.verified_user_rounded, color: AppColors.amberDark),
+          title: Text(s.verifyCardTitle, style: const TextStyle(fontWeight: FontWeight.w800)),
+          subtitle: Text(s.verifyCardHint(v.businessName)),
+          trailing: FilledButton(
+            key: const Key('verifyHomeStart'),
+            onPressed: () => context.push(Routes.employeeVerify),
+            child: Text(s.verifyStart),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _Swaps extends ConsumerWidget {
   const _Swaps();
 

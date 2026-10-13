@@ -201,6 +201,17 @@ class _StaffTile extends ConsumerWidget {
               ),
             ),
           ],
+          // Documents check: verified, or something for the owner to look at.
+          if (e.verification == 'verified' || e.verification == 'needs_attention') ...[
+            const SizedBox(width: 6),
+            Icon(
+              e.verification == 'verified' ? Icons.verified_rounded : Icons.error_outline_rounded,
+              key: Key('verifyBadge_${e.id}'),
+              size: 17,
+              semanticLabel: e.verification == 'verified' ? s.docBadgeVerified : s.docBadgeLook,
+              color: e.verification == 'verified' ? AppColors.mint : AppColors.amber,
+            ),
+          ],
         ],
       ),
       subtitle: Text(

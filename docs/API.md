@@ -176,6 +176,25 @@ Fields: `name, phone, ratePaise, wageType, designation, joiningDate, branch, adv
 | POST | /roster/swaps/:id/approve \| reject | (owner/manager) | `Swap`. Approving checks both still have the day they asked about (else `CONFLICT`), then swaps it as sent (attendance and salary follow it, today's late marks are re-checked), tells both and audits `roster.swap_approved` |
 | GET | /roster/mine | `?week` (employee, every plan) | `{weekStart, rostered, swapsAllowed, shifts, days: {date, kind, shiftId, holiday, leave, changed}[7]}`: their week as sent (`changed` = sent in the last 3 days and different from their usual day; `rostered` = a roster was sent for this week) |
 
+### Documents check (background verification)
+Owner only for results (they include names on records and date of birth). Feature `verification` (Growth and up) to ask; config `verification.monthly` = `{growth: 3, pro: 10}` checks a month, `verification.extraPricePaise` for more (paid checks come in a later round). Nothing is checked until the staff member agrees. Full Aadhaar and bank numbers are never stored, only the last 4 digits. Results are deleted `verification.retentionDays` (180) after the person leaves.
+
+| Method | Path | Body / query | Response |
+|---|---|---|---|
+| GET | /verification/employees/:id | (owner) | `{badge, request: {id, kinds, status:'asked'\|'in_progress'\|'done', consented, …}\|null, checks: Check[], quota: {used, limit, extraPricePaise}}`. `Check`: `{id, kind:'aadhaar'\|'pan'\|'bank', status:'waiting'\|'otp_sent'\|'verified'\|'mismatch'\|'not_found'\|'failed', last4, nameOnRecord, matchScore, override: {reason, at}\|null, details (owner only, e.g. dob), attempts}` |
+| POST | /verification/employees/:id | `{kinds}` (owner; `verification`) | View. One open request per person; `PLAN_LIMIT` (402, with `used`, `limit`, `extraPricePaise`) when the month's checks are used. Staff get a push, or WhatsApp `verification_request` if they haven't joined the app |
+| DELETE | /verification/employees/:id | (owner) | View. Cancels an open request; it no longer counts for the month |
+| POST | /verification/checks/:id/accept | `{reason}` (owner) | View. Accepts a name mismatch ("Rajesh" vs "Rajesh Kumar") |
+| POST | /verification/checks/:id/ask-again | (owner) | View. Sends one check back to the staff member |
+| GET | /verification/mine | (staff) | `{businessName, request, checks, consentText: {en: string[], hi: string[]}, savedBank: {last4, ifsc}\|null}` |
+| POST | /verification/mine/consent | (staff) | Mine. Records the consent version and time |
+| POST | /verification/mine/aadhaar/otp | `{aadhaar}` (staff) | Mine. OTP to the Aadhaar-linked mobile |
+| POST | /verification/mine/aadhaar/verify | `{otp}` (staff) | Mine. Wrong OTP → `OTP_INVALID` |
+| POST | /verification/mine/pan | `{pan}` (staff) | Mine. A verified PAN fills the profile's PAN if it was empty |
+| POST | /verification/mine/bank | `{accountNumber?, ifsc?}` (staff) | Mine. ₹1 test; no account given = the salary account on file. A verified new account becomes their salary account (owners are told, as with any bank change) |
+
+Names are compared ignoring case, order, titles and initials; below `verification.nameMatchMin` (80) a check is `mismatch` for the owner to accept or ask again. Staff can retry "not found" or a mismatch up to 5 times; provider errors are `failed` (try again). When every check has a result, owners get a push (`verification_done`).
+
 ### Leave
 | GET | /leaves | `?status&employeeId` (employee → own) | `Leave[]` |
 | POST | /leaves | `{type, from, to, halfDay?, reason?, employeeId?}` (employeeId only for owner applying on behalf) | `Leave` |

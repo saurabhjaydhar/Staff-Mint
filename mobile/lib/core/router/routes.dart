@@ -50,6 +50,7 @@ class Routes {
   // Employee shell.
   static const employeeConsent = '/employee/consent';
   static const employeeHome = '/employee/home';
+  static const employeeVerify = '/employee/home/verify';
   static const employeeAttendance = '/employee/attendance';
   static const employeeLeave = '/employee/leave';
   static const employeeSalary = '/employee/salary';

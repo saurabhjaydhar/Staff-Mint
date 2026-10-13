@@ -12,3 +12,4 @@ export 'profile.dart';
 export 'statutory.dart';
 export 'user.dart';
 export 'roster.dart';
+export 'verification.dart';

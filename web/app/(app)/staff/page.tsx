@@ -250,6 +250,16 @@ export default function StaffPage() {
                           {t("manager")}
                         </Badge>
                       )}
+                      {emp.verification === "verified" && (
+                        <Badge tone="mint" className="ml-1">
+                          {t("doc_verified")}
+                        </Badge>
+                      )}
+                      {emp.verification === "needs_attention" && (
+                        <Badge tone="amber" className="ml-1">
+                          {t("doc_needs_look")}
+                        </Badge>
+                      )}
                     </Td>
                     <Td className="text-right whitespace-nowrap">
                       {emp.hasDevice && !inactive && (
