@@ -1,7 +1,7 @@
 import { Schema, model } from 'mongoose';
 import { tenantFields, tenantPlugin } from './tenant.js';
 
-export const VERIFICATION_KINDS = ['aadhaar', 'pan', 'bank'] as const;
+export const VERIFICATION_KINDS = ['aadhaar', 'pan', 'bank', 'face'] as const;
 export type VerificationKind = (typeof VERIFICATION_KINDS)[number];
 
 /**
@@ -16,7 +16,15 @@ const verificationRequestSchema = new Schema(
     status: { type: String, enum: ['asked', 'in_progress', 'done', 'cancelled'], default: 'asked' },
     consent: {
       type: new Schema(
-        { textVersion: String, acceptedAt: Date, userId: { type: Schema.Types.ObjectId, ref: 'User' }, by: { type: String, enum: ['staff', 'owner_on_behalf'] } },
+        {
+          textVersion: String,
+          acceptedAt: Date,
+          userId: { type: Schema.Types.ObjectId, ref: 'User' },
+          by: { type: String, enum: ['staff', 'owner_on_behalf'] },
+          /** Owner did it for them: photo of the slip they signed (encrypted, like documents). */
+          slipKey: { type: String, default: null },
+          slipMime: { type: String, default: null },
+        },
         { _id: false },
       ),
       default: null,

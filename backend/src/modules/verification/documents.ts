@@ -64,7 +64,7 @@ function decodeFile(f: FileInput): Buffer {
 }
 
 /** Encrypts and stores one file; returns where it went. */
-async function store(companyId: Types.ObjectId, employeeId: Types.ObjectId, f: FileInput, tag: string) {
+export async function store(companyId: Types.ObjectId, employeeId: Types.ObjectId, f: FileInput, tag: string) {
   const buf = decodeFile(f);
   const key = `documents/${companyId}/${employeeId}/${tag}-${new Types.ObjectId()}.${MIMES[f.mime].ext}.enc`;
   await (await provider('storage')).put(key, encryptBuffer(buf), 'application/octet-stream');
@@ -210,7 +210,7 @@ export async function removeDocument(ctx: Ctx, id: string) {
 
 const sign = (payload: string) => hmacSha256Hex(env.FILE_URL_SECRET, `doc:${payload}`);
 
-function link(key: string, mime: string) {
+export function link(key: string, mime: string) {
   const payload = Buffer.from(JSON.stringify({ k: key, m: mime, e: Math.floor(Date.now() / 1000) + LINK_TTL_SEC })).toString('base64url');
   return `${env.PUBLIC_BASE_URL}/doc-files/${payload}.${sign(payload)}`;
 }
@@ -239,6 +239,19 @@ export async function readLinked(token: string) {
   if (!p.e || p.e < Date.now() / 1000 || !p.k.startsWith('documents/')) throw new AppError('FORBIDDEN', 'Link expired or invalid');
   const data = decryptBuffer(await (await provider('storage')).get(p.k));
   return { data, mime: MIMES[p.m] ? p.m : 'application/octet-stream' };
+}
+
+/** Kinds that carry the person's photo, for the selfie check. */
+export const PHOTO_ID_KINDS: DocumentKind[] = ['aadhaar', 'pan', 'dl', 'voter', 'passport'];
+
+/** The newest photo ID image they uploaded (decrypted), or null. PDFs don't count. */
+export async function idPhotoFor(companyId: Types.ObjectId, employeeId: Types.ObjectId) {
+  const d = await StaffDocument.findOne({ companyId, employeeId, kind: { $in: PHOTO_ID_KINDS }, 'files.mime': { $in: ['image/jpeg', 'image/png'] } })
+    .sort({ createdAt: -1 })
+    .lean();
+  const f = d?.files.find((x) => x.mime !== 'application/pdf');
+  if (!d || !f) return null;
+  return { kind: d.kind as DocumentKind, data: decryptBuffer(await (await provider('storage')).get(f.key)) };
 }
 
 // ---------------------------------------------------------------- staff

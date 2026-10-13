@@ -150,7 +150,7 @@ function diff(
   return out;
 }
 
-const DOC_KIND: Record<string, [string, string]> = { aadhaar: ['Aadhaar', 'आधार'], pan: ['PAN', 'PAN'], bank: ['bank account', 'बैंक खाता'] };
+const DOC_KIND: Record<string, [string, string]> = { aadhaar: ['Aadhaar', 'आधार'], pan: ['PAN', 'PAN'], bank: ['bank account', 'बैंक खाता'], face: ['selfie vs ID photo', 'सेल्फ़ी और पहचान पत्र की फ़ोटो'] };
 const FILE_KIND: Record<string, [string, string]> = {
   aadhaar: ['Aadhaar', 'आधार'],
   pan: ['PAN', 'PAN'],
@@ -334,10 +334,12 @@ export function describe(
     case 'verification.cancel':
       return r(t(`${emp}: document check cancelled`, `${emp}: दस्तावेज़ जाँच रद्द की`), 'staff');
     case 'verification.consent':
+      if (a.by === 'owner_on_behalf') return r(t(`${emp} agreed to the document check on paper (signed slip)`, `${emp} ने काग़ज़ पर दस्तावेज़ जाँच की अनुमति दी (साइन की हुई पर्ची)`), 'staff');
       return r(t(`${emp} agreed to the document check`, `${emp} ने दस्तावेज़ जाँच की अनुमति दी`), 'staff');
     case 'verification.check': {
       const kind = pick(DOC_KIND[a.kind] ?? [a.kind, a.kind], lang);
-      const result = pick(DOC_RESULT[a.status] ?? [a.status, a.status], lang);
+      const faceResult: Record<string, [string, string]> = { mismatch: ['don’t match', 'मेल नहीं खाती'], not_found: ['no face on the ID photo', 'पहचान पत्र की फ़ोटो में चेहरा नहीं'] };
+      const result = pick((a.kind === 'face' ? faceResult[a.status] : undefined) ?? DOC_RESULT[a.status] ?? [a.status, a.status], lang);
       return r(t(`${emp}: ${kind} ${result}`, `${emp}: ${kind} ${result}`), 'staff');
     }
     case 'verification.accept':

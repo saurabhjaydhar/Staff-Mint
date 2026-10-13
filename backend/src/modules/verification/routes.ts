@@ -43,6 +43,39 @@ verificationRouter.post('/mine/bank', ...staff, async (req, res) => {
   const b = body(req, z.object({ accountNumber: z.string().max(24).optional(), ifsc: z.string().max(14).optional() }));
   res.json({ data: await svc.verifyBank(ctxOf(req), b) });
 });
+verificationRouter.post('/mine/face', ...staff, async (req, res) => {
+  const b = body(req, z.object({ selfie: z.string().min(8) }));
+  res.json({ data: await svc.verifyFace(ctxOf(req), b.selfie) });
+});
+
+// Owner does the same steps with someone who has no smartphone. Responses are the staff view of the steps.
+const forStaff = async (req: any) => svc.onBehalf(ctxOf(req), param(req, 'id'));
+verificationRouter.get('/employees/:id/on-behalf', ...owner, async (req, res) => res.json({ data: await svc.myVerification(await forStaff(req)) }));
+verificationRouter.post('/employees/:id/on-behalf/consent', ...owner, async (req, res) => {
+  const b = body(req, z.object({ staffAgreed: z.literal(true), slip: z.object({ data: z.string().min(8), mime: z.string().max(40) }) }));
+  res.json({ data: await svc.consentOnBehalf(ctxOf(req), param(req, 'id'), b.slip) });
+});
+verificationRouter.post('/employees/:id/on-behalf/aadhaar/otp', ...owner, async (req, res) => {
+  const b = body(req, z.object({ aadhaar: z.string().min(12).max(20) }));
+  res.json({ data: await svc.aadhaarSendOtp(await forStaff(req), b.aadhaar) });
+});
+verificationRouter.post('/employees/:id/on-behalf/aadhaar/verify', ...owner, async (req, res) => {
+  const b = body(req, z.object({ otp: z.string().regex(/^\d{4,8}$/) }));
+  res.json({ data: await svc.aadhaarVerifyOtp(await forStaff(req), b.otp) });
+});
+verificationRouter.post('/employees/:id/on-behalf/pan', ...owner, async (req, res) => {
+  const b = body(req, z.object({ pan: z.string().min(10).max(14) }));
+  res.json({ data: await svc.verifyPan(await forStaff(req), b.pan) });
+});
+verificationRouter.post('/employees/:id/on-behalf/bank', ...owner, async (req, res) => {
+  const b = body(req, z.object({ accountNumber: z.string().max(24).optional(), ifsc: z.string().max(14).optional() }));
+  res.json({ data: await svc.verifyBank(await forStaff(req), b) });
+});
+verificationRouter.post('/employees/:id/on-behalf/face', ...owner, async (req, res) => {
+  const b = body(req, z.object({ selfie: z.string().min(8) }));
+  res.json({ data: await svc.verifyFace(await forStaff(req), b.selfie) });
+});
+verificationRouter.post('/employees/:id/slip/open', ...owner, async (req, res) => res.json({ data: await svc.openSlip(ctxOf(req), param(req, 'id')) }));
 
 // Documents (photos and PDFs, encrypted). Owners see everyone's; staff see and add their own.
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);

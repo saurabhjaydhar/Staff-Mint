@@ -2,6 +2,7 @@ import { Types } from 'mongoose';
 import { DateTime } from 'luxon';
 import { Attendance, Company, Employee, RosterRepeat, VerificationCheck, VerificationRequest } from '../models/index.js';
 import { purgeDocuments, remindExpiring } from '../modules/verification/documents.js';
+import { purgeVerification } from '../modules/verification/service.js';
 import { getConfig } from '../modules/config/service.js';
 import { logger } from '../lib/logger.js';
 import { previousMonth, todayIn, addDays } from '../lib/dates.js';
@@ -72,8 +73,7 @@ export async function purgeRetention(company: any, now: Date) {
   const gone = await Employee.find({ companyId: company._id, exitDate: { $ne: null, $lt: leftBefore }, 'verification.status': { $ne: 'none' } }).select('_id').lean();
   if (gone.length) {
     const ids = gone.map((e) => e._id);
-    await VerificationCheck.deleteMany({ companyId: company._id, employeeId: { $in: ids } });
-    await VerificationRequest.deleteMany({ companyId: company._id, employeeId: { $in: ids } });
+    await purgeVerification(company._id, ids);
     await Employee.updateMany({ companyId: company._id, _id: { $in: ids } }, { $set: { verification: { status: 'none', at: now } } });
   }
   return removed;

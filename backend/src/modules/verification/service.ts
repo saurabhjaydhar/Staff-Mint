@@ -13,6 +13,8 @@ import { notifyEmployee, notifyOwners } from '../notifications/service.js';
 import { companyPlan } from '../billing/plans.js';
 import { getConfig } from '../config/service.js';
 import { setBank } from '../profile/service.js';
+import { classify } from '../face/service.js';
+import { idPhotoFor, link, store, type FileInput } from './documents.js';
 
 /** Bumped when the consent wording changes; each request records which version the person agreed to. */
 export const CONSENT_VERSION = '2026-10';
@@ -23,6 +25,7 @@ export const CONSENT_TEXT = {
     'Aadhaar: your name and date of birth, with an OTP sent to your Aadhaar mobile. We never save your full Aadhaar number, only the last 4 digits.',
     'PAN: that it is valid and the name on it.',
     'Bank account: we send ₹1 to check the account is yours. Your salary goes here.',
+    'Selfie: matched with the photo on your ID. The selfie is not kept.',
     'Only the owner sees the results. They are deleted 180 days after you leave.',
   ],
   hi: [
@@ -30,11 +33,18 @@ export const CONSENT_TEXT = {
     'आधार: आपका नाम और जन्म तारीख़, आधार वाले मोबाइल पर OTP से। पूरा आधार नंबर कभी सेव नहीं होता, सिर्फ़ आख़िरी 4 अंक।',
     'PAN: कि वह सही है और उस पर किसका नाम है।',
     'बैंक खाता: खाता आपका है यह जाँचने के लिए ₹1 भेजते हैं। सैलरी इसी में आएगी।',
+    'सेल्फ़ी: आपके पहचान पत्र की फ़ोटो से मिलाई जाती है। सेल्फ़ी रखी नहीं जाती।',
     'नतीजे सिर्फ़ मालिक देखते हैं। काम छोड़ने के 180 दिन बाद हटा दिए जाते हैं।',
   ],
 };
 
 const OPEN = ['asked', 'in_progress'] as const;
+const STEP_NAME: Record<VerificationKind, [string, string]> = {
+  aadhaar: ['Aadhaar OTP', 'आधार OTP'],
+  pan: ['PAN', 'PAN'],
+  bank: ['bank account', 'बैंक खाता'],
+  face: ['a selfie', 'एक सेल्फ़ी'],
+};
 const MAX_ATTEMPTS = 5;
 
 // ---------------------------------------------------------------- names
@@ -98,6 +108,9 @@ function requestView(r: any) {
     status: r.status as string,
     consented: !!r.consent?.acceptedAt,
     consentAt: r.consent?.acceptedAt ?? null,
+    /** staff (in the app) or owner_on_behalf (on paper, with a signed slip). */
+    consentBy: r.consent?.by ?? null,
+    hasSlip: !!r.consent?.slipKey,
     createdAt: r.createdAt,
     doneAt: r.doneAt ?? null,
   };
@@ -131,10 +144,12 @@ export async function ownerView(ctx: Ctx, employeeId: string) {
     request: r ? requestView(r) : null,
     checks: order(checks).map((c) => checkView(c, true)),
     quota: await quota(ctx),
+    /** Staff without the app: the owner can do the steps with them. */
+    hasApp: !!emp.userId,
   };
 }
 
-const KIND_ORDER: VerificationKind[] = ['aadhaar', 'pan', 'bank'];
+const KIND_ORDER: VerificationKind[] = ['aadhaar', 'pan', 'bank', 'face'];
 const order = <T extends { kind: string }>(list: T[]) => [...list].sort((a, b) => KIND_ORDER.indexOf(a.kind as VerificationKind) - KIND_ORDER.indexOf(b.kind as VerificationKind));
 
 /** Ask a staff member to verify their documents. Counts against the month's allowance. */
@@ -164,8 +179,8 @@ export async function requestVerification(ctx: Ctx, employeeId: string, kinds: V
       template: 'verification_request',
       title: `${company.name} asked you to verify your documents`,
       titleHi: `${company.name} ने आपके दस्तावेज़ जाँचने को कहा है`,
-      body: 'It takes about 3 minutes in the app: Aadhaar OTP, PAN and bank account.',
-      bodyHi: 'ऐप में लगभग 3 मिनट लगेंगे: आधार OTP, PAN और बैंक खाता।',
+      body: `It takes about 3 minutes in the app: ${r.kinds.map((k) => STEP_NAME[k][0]).join(', ')}.`,
+      bodyHi: `ऐप में लगभग 3 मिनट लगेंगे: ${r.kinds.map((k) => STEP_NAME[k][1]).join(', ')}।`,
       data: { type: 'verification' },
       whatsapp: { template: 'verification_request', params: [emp.name, company.name] },
     },
@@ -215,11 +230,11 @@ export async function askAgain(ctx: Ctx, checkId: string) {
   await c.save();
   await VerificationRequest.updateOne({ _id: c.requestId, companyId: ctx.companyId }, { $set: { status: 'in_progress', doneAt: null } });
   await refresh(ctx.companyId, c.requestId, { notify: false });
-  const label = { aadhaar: ['Aadhaar', 'आधार'], pan: ['PAN', 'PAN'], bank: ['bank account', 'बैंक खाता'] }[c.kind as VerificationKind];
+  const label = ({ aadhaar: ['Aadhaar', 'आधार'], pan: ['PAN', 'PAN'], bank: ['bank account', 'बैंक खाता'], face: ['selfie', 'सेल्फ़ी'] } as const)[c.kind as VerificationKind];
   await notifyEmployee(ctx.companyId, c.employeeId, {
     template: 'verification_again',
-    title: `Please check your ${label[0]} again`,
-    titleHi: `कृपया अपना ${label[1]} फिर से जाँचें`,
+    title: `Please do the ${label[0]} step again`,
+    titleHi: `कृपया ${label[1]} वाला क़दम फिर से करें`,
     body: 'Your employer asked you to do this step again in the app.',
     bodyHi: 'आपके मालिक ने ऐप में यह क़दम फिर से करने को कहा है।',
     data: { type: 'verification' },
@@ -250,8 +265,8 @@ async function refresh(companyId: Types.ObjectId, requestId: Types.ObjectId, opt
         template: 'verification_done',
         title: attention ? `${emp.name}'s documents: ${attention} need a look` : `${emp.name}'s documents are verified`,
         titleHi: attention ? `${emp.name} के दस्तावेज़: ${attention} पर ध्यान दें` : `${emp.name} के दस्तावेज़ सही निकले`,
-        body: attention ? 'Open their profile to see what didn’t match.' : 'Aadhaar, PAN and bank account checked against government records.',
-        bodyHi: attention ? 'क्या नहीं मिला, उनकी प्रोफ़ाइल में देखें।' : 'आधार, PAN और बैंक खाता सरकारी रिकॉर्ड से जाँचे गए।',
+        body: attention ? 'Open their profile to see what didn’t match.' : 'Everything you asked for checked out.',
+        bodyHi: attention ? 'क्या नहीं मिला, उनकी प्रोफ़ाइल में देखें।' : 'आपने जो जाँचने को कहा, सब सही निकला।',
         data: { type: 'verification', employeeId: String(r.employeeId) },
       },
       { includeManagers: false },
@@ -290,6 +305,8 @@ export async function myVerification(ctx: Ctx) {
     checks: order(checks).map((c) => checkView(c, false)),
     consentText: CONSENT_TEXT,
     savedBank,
+    /** They have a photo ID uploaded (needed for the selfie check). */
+    idPhoto: !!(await idPhotoFor(ctx.companyId, ctx.employeeId)),
   };
 }
 
@@ -427,4 +444,80 @@ export async function verifyBank(ctx: Ctx, input: { accountNumber?: string; ifsc
     await failed(ctx, c, err);
   }
   return myVerification(ctx);
+}
+
+// ---------------------------------------------------------------- selfie vs ID photo
+
+/** Selfie matched with the photo on their newest photo ID (Aadhaar, PAN, licence, voter ID, passport). The selfie isn't kept. */
+export async function verifyFace(ctx: Ctx, selfieBase64: string) {
+  const c = await myCheck(ctx, 'face');
+  const selfie = Buffer.from(selfieBase64.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+  if (!selfie.length || selfie.length > 2_000_000) throw new AppError('VALIDATION_ERROR', 'Take the selfie again (max 2 MB)');
+  const id = await idPhotoFor(ctx.companyId, ctx.employeeId!);
+  if (!id) throw new AppError('CONFLICT', 'Add a photo of your Aadhaar, PAN or licence first', { reason: 'no_id_photo' });
+  const face = await provider('face');
+  try {
+    // One clear face in the selfie first, so a bad selfie is just "try again" and not a result.
+    const own = await face.compare(selfie, selfie);
+    const clear = classify(own.similarity, own.faces);
+    if (clear === 'no_face' || clear === 'many_faces') {
+      throw new AppError('FACE_NOT_CLEAR', clear === 'no_face' ? 'No face found. Face the camera in good light.' : 'More than one face. Only you should be in the photo.', { reason: clear });
+    }
+    c.attempts = (c.attempts ?? 0) + 1;
+    const r = await face.compare(id.data, selfie);
+    const min = await getConfig<number>('verification.faceMatchMin', ctx.companyId);
+    // No face on the ID photo: "not found", so they can add a clearer one and try again.
+    c.status = r.similarity === null ? 'not_found' : r.similarity >= min ? 'verified' : 'mismatch';
+    Object.assign(c, { matchScore: r.similarity === null ? null : Math.round(r.similarity), nameOnRecord: null, provider: face.name, checkedAt: new Date(), detailsEnc: encryptField(JSON.stringify({ idKind: id.kind })) });
+    await c.save();
+    await audit(ctx, { action: 'verification.check', entity: 'employee', entityId: c.employeeId, after: { kind: 'face', status: c.status, score: c.matchScore } });
+    await refresh(ctx.companyId, c.requestId, { notify: true });
+  } catch (err) {
+    if (err instanceof AppError) throw err;
+    await failed(ctx, c, err);
+  }
+  return myVerification(ctx);
+}
+
+// ---------------------------------------------------------------- owner does the steps with them
+
+/** The same steps, done by the owner for someone without a smartphone (OTP from their Aadhaar mobile, photo taken by the owner). */
+export async function onBehalf(ctx: Ctx, employeeId: string): Promise<Ctx> {
+  const emp = await assertEmployeeInScope(ctx, employeeId);
+  return { ...ctx, employeeId: emp._id };
+}
+
+/** They agreed on paper: the owner ticks it and adds a photo of the slip they signed. */
+export async function consentOnBehalf(ctx: Ctx, employeeId: string, slip: FileInput) {
+  const staffCtx = await onBehalf(ctx, employeeId);
+  const r = await myOpen(staffCtx);
+  if (!OPEN.includes(r.status as (typeof OPEN)[number])) throw new AppError('CONFLICT', 'Nothing to agree to');
+  if (!r.consent?.acceptedAt) {
+    if (!slip.mime.startsWith('image/')) throw new AppError('VALIDATION_ERROR', 'Add a photo of the signed slip');
+    const saved = await store(ctx.companyId, r.employeeId, slip, 'check-consent-slip');
+    r.consent = { textVersion: CONSENT_VERSION, acceptedAt: new Date(), userId: ctx.userId ?? undefined, by: 'owner_on_behalf', slipKey: saved.key, slipMime: saved.mime };
+    await r.save();
+    await audit(ctx, { action: 'verification.consent', entity: 'employee', entityId: r.employeeId, after: { version: CONSENT_VERSION, by: 'owner_on_behalf', slip: true } });
+  }
+  await refresh(ctx.companyId, r._id, { notify: false });
+  return myVerification(staffCtx);
+}
+
+/** A short link to the signed slip (written to History). */
+export async function openSlip(ctx: Ctx, employeeId: string) {
+  const emp = await assertEmployeeInScope(ctx, employeeId);
+  const r = await VerificationRequest.findOne({ companyId: ctx.companyId, employeeId: emp._id, 'consent.slipKey': { $ne: null } }).sort({ createdAt: -1 }).lean();
+  if (!r?.consent?.slipKey) throw notFound('Slip');
+  await audit(ctx, { action: 'document.view', entity: 'employee', entityId: emp._id, after: { kind: 'other', label: 'Consent slip' } });
+  return { url: link(r.consent.slipKey, r.consent.slipMime ?? 'image/jpeg'), mime: r.consent.slipMime ?? 'image/jpeg' };
+}
+
+/** Retention: requests, checks and signed slips of people who left long enough ago. */
+export async function purgeVerification(companyId: Types.ObjectId, employeeIds: Types.ObjectId[]) {
+  if (!employeeIds.length) return;
+  const slips = await VerificationRequest.find({ companyId, employeeId: { $in: employeeIds }, 'consent.slipKey': { $ne: null } }).select('consent').lean();
+  const storage = await provider('storage');
+  for (const r of slips) await storage.delete(r.consent!.slipKey!).catch(() => undefined);
+  await VerificationCheck.deleteMany({ companyId, employeeId: { $in: employeeIds } });
+  await VerificationRequest.deleteMany({ companyId, employeeId: { $in: employeeIds } });
 }
