@@ -11,7 +11,7 @@ import type { DocumentKind, Employee, OpenedDoc, OwnerVerification, StaffDoc, St
 
 const DOC_KINDS: DocumentKind[] = ["aadhaar", "pan", "dl", "voter", "passport", "bank_proof", "address", "police", "experience", "other"];
 const EXPIRING = new Set<DocumentKind>(["dl", "passport", "police"]);
-const VERIFY_KINDS: VerifyKind[] = ["aadhaar", "pan", "bank"];
+const VERIFY_KINDS: VerifyKind[] = ["aadhaar", "pan", "bank", "face"];
 const MIMES = ["image/jpeg", "image/png", "application/pdf"];
 
 /** Owner: one person's documents check (results) and their documents (upload, open, remove). */
@@ -39,7 +39,13 @@ function CheckPanel({ employee, onChanged }: { employee: Employee; onChanged: ()
   const [kinds, setKinds] = useState<VerifyKind[]>(VERIFY_KINDS);
   const [accepting, setAccepting] = useState<VerifyCheck | null>(null);
   const [reason, setReason] = useState("");
+  const [slipUrl, setSlipUrl] = useState<string | null>(null);
   const v = data.data;
+
+  async function openSlip() {
+    const res = await action.run("slip", () => api.post<{ url: string }>(`/verification/employees/${employee.id}/slip/open`));
+    if (res.ok) setSlipUrl(res.value.url);
+  }
 
   async function run(key: string, fn: () => Promise<OwnerVerification>, done?: string) {
     const res = await action.run(key, fn);
@@ -96,6 +102,23 @@ function CheckPanel({ employee, onChanged }: { employee: Employee; onChanged: ()
         <div className="mt-2 space-y-2">
           {r.status === "asked" && <p className="text-sm text-slate-600">{fill(t("vcheck_asked"), { name: employee.name })}</p>}
           {r.status === "in_progress" && <p className="text-sm text-slate-600">{fill(t("vcheck_in_progress"), { name: employee.name })}</p>}
+          {r.consentBy === "owner_on_behalf" && (
+            <p className="text-sm text-slate-600">
+              {t("vcheck_on_paper")}
+              {r.hasSlip && (
+                <Button size="sm" variant="ghost" className="ml-2" loading={action.busy === "slip"} onClick={openSlip}>
+                  {t("docs_slip_link")}
+                </Button>
+              )}
+            </p>
+          )}
+          {slipUrl && (
+            <a href={slipUrl} target="_blank" rel="noreferrer" className="block w-fit">
+              {/* eslint-disable-next-line @next/next/no-img-element -- short-lived signed link, not optimisable */}
+              <img src={slipUrl} alt={t("docs_slip_link")} className="h-40 rounded-md object-contain ring-1 ring-slate-200" />
+            </a>
+          )}
+          {(r.status === "asked" || r.status === "in_progress") && v.hasApp === false && <p className="text-sm text-slate-500">{t("vcheck_do_in_app")}</p>}
           <ul className="divide-y divide-slate-100 rounded-lg ring-1 ring-slate-200">
             {v.checks.map((c) => (
               <li key={c.id} className="flex flex-wrap items-center gap-2 px-3 py-2" data-check={c.kind}>
@@ -158,7 +181,11 @@ function CheckPanel({ employee, onChanged }: { employee: Employee; onChanged: ()
 function checkLine(c: VerifyCheck, t: (k: DictKey) => string) {
   const parts: string[] = [];
   if (c.status === "mismatch" && c.override) parts.push(fill(t("vs_accepted"), { reason: c.override.reason }));
+  else if (c.kind === "face" && c.status === "mismatch") parts.push(t("vs_face_mismatch"));
+  else if (c.kind === "face" && c.status === "not_found") parts.push(t("vs_face_no_face"));
   else parts.push(t(`vs_${c.status}` as DictKey));
+  if (c.kind === "face" && c.matchScore !== null) parts.push(fill(t("v_face_match"), { n: c.matchScore }));
+  if (c.kind === "face" && c.details?.idKind) parts.push(fill(t("v_face_id"), { id: t(`dk_${c.details.idKind}` as DictKey) }));
   if (c.nameOnRecord && c.status !== "verified") parts.push(fill(t("v_on_record"), { name: c.nameOnRecord }));
   if (c.last4) parts.push(fill(t("v_ending"), { last4: c.last4 }));
   if (c.details?.dob) parts.push(fill(t("v_born"), { date: formatDate(c.details.dob) }));

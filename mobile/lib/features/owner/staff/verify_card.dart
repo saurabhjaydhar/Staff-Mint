@@ -12,7 +12,10 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/dates.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/common.dart';
+import '../../employee/verify/verify_screen.dart';
 import '../providers/owner_providers.dart';
+
+const verifyKinds = ['aadhaar', 'pan', 'bank', 'face'];
 
 final ownerVerificationProvider = FutureProvider.autoDispose.family<OwnerVerification, String>(
   (ref, employeeId) => ref.watch(verificationApiProvider).forEmployee(employeeId),
@@ -97,11 +100,52 @@ class VerifyCard extends ConsumerWidget {
                   padding: const EdgeInsets.only(top: 6),
                   child: Text(s.docInProgress(employee.name), style: const TextStyle(color: AppColors.muted)),
                 ),
+              if (r.onPaper)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.draw_rounded, size: 18, color: AppColors.muted),
+                      const SizedBox(width: 6),
+                      Text(s.agreedOnPaper, style: const TextStyle(color: AppColors.muted)),
+                      if (r.hasSlip)
+                        TextButton(
+                          key: const Key('verifySeeSlip'),
+                          onPressed: () => _showSlip(context, ref, employee),
+                          child: Text(s.seeSlip),
+                        ),
+                    ],
+                  ),
+                ),
               for (final c in v.checks)
                 _CheckRow(
                   check: c,
                   onAccept: () => accept(c),
                   onAskAgain: () => run(() => ref.read(verificationApiProvider).askAgain(c.id), s.askedAgain),
+                ),
+              if (r.open && !v.hasApp)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(s.doWithThemHint, style: const TextStyle(color: AppColors.muted)),
+                      const SizedBox(height: 6),
+                      FilledButton.icon(
+                        key: const Key('verifyDoWithThem'),
+                        onPressed: () async {
+                          await Navigator.of(
+                            context,
+                            rootNavigator: true,
+                          ).push(MaterialPageRoute<void>(builder: (_) => VerifyScreen(employee: employee)));
+                          ref.invalidate(ownerVerificationProvider(employee.id));
+                          ref.invalidate(employeesProvider);
+                        },
+                        icon: const Icon(Icons.handshake_rounded),
+                        label: Text(s.doWithThem),
+                      ),
+                    ],
+                  ),
                 ),
               if (r.open)
                 Align(
@@ -139,6 +183,9 @@ class _CheckRow extends StatelessWidget {
         : (Icons.radio_button_unchecked_rounded, AppColors.line);
     final lines = <String>[
       switch (c.status) {
+        'verified' when c.kind == 'face' => s.resVerified,
+        'mismatch' when c.kind == 'face' && !c.accepted => s.resMismatchFace,
+        'not_found' when c.kind == 'face' => s.faceNoFaceOnId,
         'verified' => [s.resVerified, ?c.nameOnRecord].join(' · '),
         'mismatch' => c.accepted ? s.resAccepted(c.overrideReason!) : s.resMismatch(c.nameOnRecord ?? '—'),
         'not_found' => s.resNotFound,
@@ -147,6 +194,8 @@ class _CheckRow extends StatelessWidget {
         _ => s.resWaiting,
       },
       if (c.accepted && c.nameOnRecord != null) s.resMismatch(c.nameOnRecord!),
+      if (c.kind == 'face' && c.matchScore != null) s.faceMatch(c.matchScore!),
+      if (c.kind == 'face' && c.details['idKind'] != null) s.faceWithId(s.fileKind(c.details['idKind']!)),
       if (c.last4 != null && c.status != 'waiting') s.endingIn(c.last4!),
       if (c.details['dob'] != null) s.docBorn(_dob(c.details['dob']!, s.languageCode)),
     ];
@@ -184,6 +233,20 @@ class _CheckRow extends StatelessWidget {
       ),
     );
   }
+}
+
+Future<void> _showSlip(BuildContext context, WidgetRef ref, Employee e) async {
+  String? url;
+  final ok = await runGuarded(context, () async => url = await ref.read(verificationApiProvider).slipUrl(e.id));
+  if (!ok || url == null || !context.mounted) return;
+  await showDialog<void>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(ctx.s.signedSlip),
+      content: Image.network(url!, errorBuilder: (_, _, _) => Text(ctx.s.couldNotLoadFile)),
+      actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: Text(ctx.s.close))],
+    ),
+  );
 }
 
 /// "1995-04-12" or "12-04-1995" (as Aadhaar records come) → "12 Apr 1995".
@@ -240,7 +303,7 @@ class _CheckSheet extends ConsumerStatefulWidget {
 }
 
 class _CheckSheetState extends ConsumerState<_CheckSheet> {
-  final _kinds = {'aadhaar', 'pan', 'bank'};
+  final _kinds = {'aadhaar', 'pan', 'bank', 'face'};
   bool _busy = false;
 
   Future<void> _send() async {
@@ -248,7 +311,7 @@ class _CheckSheetState extends ConsumerState<_CheckSheet> {
     final ok = await runGuarded(
       context,
       () => ref.read(verificationApiProvider).request(widget.employee.id, [
-        for (final k in ['aadhaar', 'pan', 'bank'])
+        for (final k in verifyKinds)
           if (_kinds.contains(k)) k,
       ]),
     );
@@ -274,7 +337,7 @@ class _CheckSheetState extends ConsumerState<_CheckSheet> {
           ),
           Text(s.checkSheetHint, style: const TextStyle(color: AppColors.muted)),
           const SizedBox(height: 10),
-          for (final k in ['aadhaar', 'pan', 'bank'])
+          for (final k in verifyKinds)
             CheckboxListTile(
               key: Key('verifyKind_$k'),
               contentPadding: EdgeInsets.zero,

@@ -9,6 +9,19 @@ import 'package:staffmint/core/models/models.dart';
 import 'package:staffmint/core/storage/providers.dart';
 import 'package:staffmint/features/employee/verify/verify_screen.dart';
 import 'package:staffmint/features/owner/staff/verify_card.dart';
+import 'package:staffmint/features/documents/documents.dart';
+import 'package:staffmint/features/profile/profile_screen.dart';
+import 'package:image_picker/image_picker.dart';
+
+class _FakePhoto implements PhotoPicker {
+  @override
+  Future<String?> pick(ImageSource source) async => 'selfie64';
+}
+
+class _FakeDocPicker implements DocPicker {
+  @override
+  Future<DocFile?> pick(ImageSource source) async => const DocFile(data: 'slip64', mime: 'image/jpeg');
+}
 
 const _raju = Employee(id: 'e1', name: 'Raju', phone: '9876543210');
 
@@ -35,19 +48,16 @@ class _FakeApi implements VerificationApi {
 
   // Staff side: a tiny state machine like the server's.
   bool consented = false;
-  final status = {'aadhaar': 'waiting', 'pan': 'waiting', 'bank': 'waiting'};
+  bool onPaper = false;
+  bool idPhoto = true;
+  List<String> kinds = const ['aadhaar', 'pan', 'bank'];
+  final status = {'aadhaar': 'waiting', 'pan': 'waiting', 'bank': 'waiting', 'face': 'waiting'};
 
   MyVerification get me => MyVerification(
     businessName: 'Sharma Medical',
-    request: VerifyRequest(
-      id: 'r1',
-      kinds: const ['aadhaar', 'pan', 'bank'],
-      status: 'in_progress',
-      consented: consented,
-    ),
-    checks: [
-      for (final k in ['aadhaar', 'pan', 'bank']) _c(k, status[k]!),
-    ],
+    request: VerifyRequest(id: 'r1', kinds: kinds, status: 'in_progress', consented: consented, onPaper: onPaper),
+    checks: [for (final k in kinds) _c(k, status[k]!)],
+    idPhoto: idPhoto,
     consentEn: const [
       'Your employer will check your documents against government records.',
       'We never save your full Aadhaar number.',
@@ -85,7 +95,26 @@ class _FakeApi implements VerificationApi {
   }
 
   @override
-  Future<MyVerification> mine() async => me;
+  Future<MyVerification> mine({String? employeeId}) async {
+    if (employeeId != null) calls.add('mine:$employeeId');
+    return me;
+  }
+
+  @override
+  Future<MyVerification> consentOnPaper(String employeeId, DocFile slip) async {
+    calls.add('paper:$employeeId:${slip.data}');
+    consented = true;
+    onPaper = true;
+    return me;
+  }
+
+  @override
+  Future<MyVerification> face(String selfie, {String? employeeId}) async {
+    calls.add('face:${employeeId ?? 'me'}:$selfie');
+    status['face'] = 'verified';
+    return me;
+  }
+
   @override
   Future<MyVerification> consent() async {
     consented = true;
@@ -93,28 +122,28 @@ class _FakeApi implements VerificationApi {
   }
 
   @override
-  Future<MyVerification> aadhaarOtp(String aadhaar) async {
+  Future<MyVerification> aadhaarOtp(String aadhaar, {String? employeeId}) async {
     calls.add('otp:$aadhaar');
     status['aadhaar'] = 'otp_sent';
     return me;
   }
 
   @override
-  Future<MyVerification> aadhaarVerify(String otp) async {
+  Future<MyVerification> aadhaarVerify(String otp, {String? employeeId}) async {
     calls.add('verify:$otp');
     status['aadhaar'] = 'verified';
     return me;
   }
 
   @override
-  Future<MyVerification> pan(String pan) async {
+  Future<MyVerification> pan(String pan, {String? employeeId}) async {
     calls.add('pan:$pan');
     status['pan'] = 'verified';
     return me;
   }
 
   @override
-  Future<MyVerification> bank({String? accountNumber, String? ifsc}) async {
+  Future<MyVerification> bank({String? accountNumber, String? ifsc, String? employeeId}) async {
     calls.add('bank:${accountNumber ?? 'saved'}');
     status['bank'] = 'verified';
     return me;
@@ -133,7 +162,12 @@ Future<void> _pump(WidgetTester tester, _FakeApi api, Widget child, {String lang
   await tester.pumpWidget(
     ProviderScope(
       retry: (_, _) => null,
-      overrides: [sharedPreferencesProvider.overrideWithValue(prefs), verificationApiProvider.overrideWithValue(api)],
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        verificationApiProvider.overrideWithValue(api),
+        photoPickerProvider.overrideWithValue(_FakePhoto()),
+        docPickerProvider.overrideWithValue(_FakeDocPicker()),
+      ],
       child: MaterialApp(
         locale: Locale(lang),
         supportedLocales: const [Locale('en'), Locale('hi')],
@@ -160,7 +194,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('verifySend')));
     await tester.pumpAndSettle();
-    expect(api.calls, ['request:aadhaar,bank']);
+    expect(api.calls, ['request:aadhaar,bank,face']);
     expect(find.text('Sent to Raju. We’ll tell you when it’s done.'), findsOneWidget);
     expect(find.text('Waiting for Raju to agree'), findsOneWidget);
   });
@@ -233,5 +267,80 @@ void main() {
     expect(find.text('शुरू करने से पहले'), findsOneWidget);
     expect(find.text('आपके मालिक आपके दस्तावेज़ सरकारी रिकॉर्ड से जाँचेंगे।'), findsOneWidget);
     expect(find.text('अनुमति दें, शुरू करें'), findsOneWidget);
+  });
+
+  testWidgets('staff: the selfie step asks for an ID photo first, then takes a selfie', (tester) async {
+    final api = _FakeApi()
+      ..consented = true
+      ..kinds = const ['face']
+      ..idPhoto = false;
+    await _pump(tester, api, const SizedBox(height: 1200, child: VerifyScreen()));
+    expect(find.text('Selfie'), findsOneWidget);
+    expect(find.textContaining('First add a photo of your Aadhaar'), findsOneWidget);
+    expect(find.byKey(const Key('verifyAddId')), findsOneWidget);
+
+    api.idPhoto = true;
+    await tester.pumpWidget(const SizedBox());
+    await _pump(tester, api, const SizedBox(height: 1200, child: VerifyScreen()));
+    await tester.tap(find.byKey(const Key('verifySelfie')));
+    await tester.pumpAndSettle();
+    expect(api.calls, ['face:me:selfie64']);
+    expect(find.text('All done. Your employer can see the results.'), findsOneWidget);
+  });
+
+  testWidgets('owner: "Do it with them" for staff without the app; they agree on paper with a signed slip', (
+    tester,
+  ) async {
+    final api = _FakeApi()
+      ..owner = const OwnerVerification(
+        hasApp: false,
+        request: VerifyRequest(id: 'r1', kinds: ['aadhaar', 'pan', 'bank', 'face'], status: 'asked'),
+        used: 1,
+        limit: 3,
+      );
+    await _pump(tester, api, const VerifyCard(employee: _raju));
+    expect(find.text('No smartphone? Do the steps together on your phone.'), findsOneWidget);
+
+    await _pump(tester, api, const SizedBox(height: 1200, child: VerifyScreen(employee: _raju)));
+    expect(find.text('With Raju'), findsOneWidget);
+    expect(find.text('Read this to Raju'), findsOneWidget);
+    final go = find.byKey(const Key('verifyPaperGo'));
+    expect(tester.widget<FilledButton>(go).onPressed, isNull);
+    await tester.tap(find.byKey(const Key('verifyPaperAgreed')));
+    await tester.tap(find.byKey(const Key('verifySlipPhoto')));
+    await tester.pumpAndSettle();
+    await tester.tap(go);
+    await tester.pumpAndSettle();
+    expect(api.calls, ['mine:e1', 'paper:e1:slip64', 'mine:e1']);
+    expect(find.text('Step 1 of 3'), findsOneWidget);
+    expect(find.text('The OTP goes to Raju’s Aadhaar mobile. Ask them for it.'), findsNothing);
+    await tester.enterText(find.byKey(const Key('verifyAadhaar')), '234567891234');
+    await tester.tap(find.byKey(const Key('verifySendOtp')));
+    await tester.pumpAndSettle();
+    expect(find.text('The OTP goes to Raju’s Aadhaar mobile. Ask them for it.'), findsOneWidget);
+  });
+
+  testWidgets('owner: selfie result with the match and which ID; agreed on paper', (tester) async {
+    final api = _FakeApi()
+      ..owner = OwnerVerification(
+        badge: 'verified',
+        request: const VerifyRequest(
+          id: 'r1',
+          kinds: ['face'],
+          status: 'done',
+          consented: true,
+          onPaper: true,
+          hasSlip: true,
+        ),
+        checks: [
+          const VerifyCheck(id: 'c_face', kind: 'face', status: 'verified', matchScore: 97, details: {'idKind': 'pan'}),
+        ],
+        used: 1,
+        limit: 3,
+      );
+    await _pump(tester, api, const VerifyCard(employee: _raju));
+    expect(find.text('Verified · Match 97% · photo on PAN'), findsOneWidget);
+    expect(find.text('Agreed on paper'), findsOneWidget);
+    expect(find.byKey(const Key('verifySeeSlip')), findsOneWidget);
   });
 }

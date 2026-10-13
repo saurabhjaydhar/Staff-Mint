@@ -778,7 +778,7 @@ export type ReportType = "attendance" | "salary" | "advances" | "late";
 export type ReportFormat = "pdf" | "xlsx";
 
 // ---------- Documents check and staff documents ----------
-export type VerifyKind = "aadhaar" | "pan" | "bank";
+export type VerifyKind = "aadhaar" | "pan" | "bank" | "face";
 
 export interface VerifyCheck {
   id: string;
@@ -794,9 +794,18 @@ export interface VerifyCheck {
 
 export interface OwnerVerification {
   badge: NonNullable<Employee["verification"]>;
-  request: { id: string; kinds: VerifyKind[]; status: "asked" | "in_progress" | "done" | "cancelled"; consented: boolean } | null;
+  request: {
+    id: string;
+    kinds: VerifyKind[];
+    status: "asked" | "in_progress" | "done" | "cancelled";
+    consented: boolean;
+    consentBy: "staff" | "owner_on_behalf" | null;
+    hasSlip: boolean;
+  } | null;
   checks: VerifyCheck[];
   quota: { used: number; limit: number; extraPricePaise: number };
+  /** Staff without the app: the owner can do the steps with them in the app. */
+  hasApp: boolean;
 }
 
 export type DocumentKind = "aadhaar" | "pan" | "dl" | "voter" | "passport" | "bank_proof" | "address" | "police" | "experience" | "other";

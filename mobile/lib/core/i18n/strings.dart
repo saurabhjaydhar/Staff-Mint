@@ -2316,11 +2316,13 @@ class S {
   String docKind(String kind) => switch (kind) {
     'aadhaar' => _t('Aadhaar', 'आधार'),
     'pan' => _t('PAN', 'PAN'),
+    'face' => _t('Selfie', 'सेल्फ़ी'),
     _ => _t('Bank account', 'बैंक खाता'),
   };
   String docKindHint(String kind) => switch (kind) {
     'aadhaar' => _t('Name and date of birth, with an OTP', 'नाम और जन्म तारीख़, OTP से'),
     'pan' => _t('Valid PAN and the name on it', 'सही PAN और उस पर नाम'),
+    'face' => _t('Matched with the photo on their ID', 'पहचान पत्र की फ़ोटो से मिलान'),
     _ => _t('₹1 test to their salary account', 'सैलरी खाते में ₹1 टेस्ट'),
   };
   String checkSheetTitle(String name) => _t('Check $name’s documents', '$name के दस्तावेज़ जाँचें');
@@ -2379,6 +2381,53 @@ class S {
   String get staffFailed => _t('Couldn’t check right now. Try again.', 'अभी जाँच नहीं हो पाई। फिर से कोशिश करें।');
   String get allDone => _t('All done. Your employer can see the results.', 'सब हो गया। मालिक नतीजे देख सकते हैं।');
   String get changedTag => _t('Changed', 'बदला');
+  String faceMatch(int pct) => _t('Match $pct%', 'मिलान $pct%');
+  String faceWithId(String id) => _t('photo on $id', '$id की फ़ोटो से');
+  String get resMismatchFace => _t('Doesn’t look like the ID photo', 'पहचान पत्र की फ़ोटो जैसा नहीं दिखता');
+  String get faceNoFaceOnId => _t('No face on the ID photo', 'पहचान पत्र की फ़ोटो में चेहरा नहीं');
+  String get faceNeedsId => _t(
+    'First add a photo of your Aadhaar, PAN or licence. Your selfie is matched with it.',
+    'पहले आधार, PAN या लाइसेंस की फ़ोटो जोड़ें। सेल्फ़ी उसी से मिलाई जाएगी।',
+  );
+  String get faceNeedsIdOwner => _t(
+    'First add a photo of their Aadhaar, PAN or licence. The photo is matched with it.',
+    'पहले उनके आधार, PAN या लाइसेंस की फ़ोटो जोड़ें। फ़ोटो उसी से मिलाई जाएगी।',
+  );
+  String get addIdPhoto => _t('Add ID photo', 'पहचान पत्र की फ़ोटो जोड़ें');
+  String get takeSelfie => _t('Take a selfie', 'सेल्फ़ी लें');
+  String get takeTheirPhoto => _t('Take their photo', 'उनकी फ़ोटो लें');
+  String get faceTheirHint => _t(
+    'Take a clear photo of their face in good light. The photo is not kept.',
+    'अच्छी रोशनी में उनके चेहरे की साफ़ फ़ोटो लें। फ़ोटो रखी नहीं जाती।',
+  );
+  String get slipAdded => _t('Slip photo added', 'पर्ची की फ़ोटो लग गई');
+  String get faceSelfieHint => _t(
+    'Face the camera in good light. The photo is not kept.',
+    'अच्छी रोशनी में कैमरे की ओर देखें। फ़ोटो रखी नहीं जाती।',
+  );
+  String get staffFaceMismatch => _t(
+    'Didn’t match the ID photo. Your employer will look at it.',
+    'पहचान पत्र की फ़ोटो से मेल नहीं खाई। मालिक देख लेंगे।',
+  );
+  String get staffFaceNoFace => _t(
+    'No face found on your ID photo. Add a clearer one in My documents.',
+    'पहचान पत्र की फ़ोटो में चेहरा नहीं मिला। मेरे दस्तावेज़ में साफ़ फ़ोटो जोड़ें।',
+  );
+  String get doWithThem => _t('Do it with them', 'उनके साथ करें');
+  String get doWithThemHint =>
+      _t('No smartphone? Do the steps together on your phone.', 'स्मार्टफ़ोन नहीं है? आपके फ़ोन पर साथ में करें।');
+  String doingFor(String name) => _t('With $name', '$name के साथ');
+  String readThisTo(String name) => _t('Read this to $name', '$name को यह पढ़कर सुनाएँ');
+  String theyAgreedSigned(String name) =>
+      _t('$name agreed and signed a slip', '$name ने हाँ कहा और पर्ची पर साइन किया');
+  String get slipPhotoNeeded => _t('Photo of the signed slip', 'साइन की हुई पर्ची की फ़ोटो');
+  String get continueBtn => _t('Continue', 'आगे बढ़ें');
+  String otpToTheirPhone(String name) => _t(
+    'The OTP goes to $name’s Aadhaar mobile. Ask them for it.',
+    'OTP $name के आधार वाले मोबाइल पर आएगा। उनसे पूछें।',
+  );
+  String get agreedOnPaper => _t('Agreed on paper', 'काग़ज़ पर सहमति');
+  String get seeSlip => _t('See slip', 'पर्ची देखें');
 
   // ---------------------------------------------------------------- Staff documents
   String get documentsTitle => _t('Documents', 'दस्तावेज़');

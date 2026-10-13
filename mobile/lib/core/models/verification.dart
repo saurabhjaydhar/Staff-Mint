@@ -47,13 +47,24 @@ class VerifyCheck {
 }
 
 class VerifyRequest {
-  const VerifyRequest({required this.id, required this.kinds, required this.status, this.consented = false});
+  const VerifyRequest({
+    required this.id,
+    required this.kinds,
+    required this.status,
+    this.consented = false,
+    this.onPaper = false,
+    this.hasSlip = false,
+  });
   final String id;
   final List<String> kinds;
 
   /// asked · in_progress · done · cancelled
   final String status;
   final bool consented;
+
+  /// The owner did it with them: they agreed on paper (signed slip).
+  final bool onPaper;
+  final bool hasSlip;
 
   bool get open => status == 'asked' || status == 'in_progress';
 
@@ -65,6 +76,8 @@ class VerifyRequest {
       kinds: [for (final k in (j['kinds'] as List? ?? const [])) '$k'],
       status: asString(j['status']),
       consented: asBool(j['consented']),
+      onPaper: asString(j['consentBy']) == 'owner_on_behalf',
+      hasSlip: asBool(j['hasSlip']),
     );
   }
 }
@@ -78,8 +91,12 @@ class OwnerVerification {
     this.used = 0,
     this.limit = 0,
     this.extraPricePaise = 0,
+    this.hasApp = true,
   });
   final String badge;
+
+  /// Staff without the app: the owner can do the steps with them.
+  final bool hasApp;
   final VerifyRequest? request;
   final List<VerifyCheck> checks;
   final int used;
@@ -97,6 +114,7 @@ class OwnerVerification {
       used: asInt(q['used']),
       limit: asInt(q['limit']),
       extraPricePaise: asInt(q['extraPricePaise']),
+      hasApp: asBool(j['hasApp'], true),
     );
   }
 }
@@ -111,8 +129,12 @@ class MyVerification {
     this.consentHi = const [],
     this.savedBankLast4,
     this.savedBankIfsc,
+    this.idPhoto = false,
   });
   final String businessName;
+
+  /// A photo ID is uploaded (the selfie is matched with it).
+  final bool idPhoto;
   final VerifyRequest? request;
   final List<VerifyCheck> checks;
   final List<String> consentEn;
@@ -143,6 +165,7 @@ class MyVerification {
       consentHi: [for (final x in (t['hi'] as List? ?? const [])) '$x'],
       savedBankLast4: asStringOrNull(bank?['last4']),
       savedBankIfsc: asStringOrNull(bank?['ifsc']),
+      idPhoto: asBool(j['idPhoto']),
     );
   }
 }

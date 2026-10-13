@@ -181,17 +181,22 @@ Owner only for results (they include names on records and date of birth). Featur
 
 | Method | Path | Body / query | Response |
 |---|---|---|---|
-| GET | /verification/employees/:id | (owner) | `{badge, request: {id, kinds, status:'asked'\|'in_progress'\|'done', consented, …}\|null, checks: Check[], quota: {used, limit, extraPricePaise}}`. `Check`: `{id, kind:'aadhaar'\|'pan'\|'bank', status:'waiting'\|'otp_sent'\|'verified'\|'mismatch'\|'not_found'\|'failed', last4, nameOnRecord, matchScore, override: {reason, at}\|null, details (owner only, e.g. dob), attempts}` |
+| GET | /verification/employees/:id | (owner) | `{badge, request: {id, kinds, status:'asked'\|'in_progress'\|'done', consented, consentBy:'staff'\|'owner_on_behalf'\|null, hasSlip, …}\|null, checks: Check[], quota: {used, limit, extraPricePaise}, hasApp}`. `Check`: `{id, kind:'aadhaar'\|'pan'\|'bank'\|'face', status:'waiting'\|'otp_sent'\|'verified'\|'mismatch'\|'not_found'\|'failed', last4, nameOnRecord, matchScore, override: {reason, at}\|null, details (owner only, e.g. dob), attempts}` |
 | POST | /verification/employees/:id | `{kinds}` (owner; `verification`) | View. One open request per person; `PLAN_LIMIT` (402, with `used`, `limit`, `extraPricePaise`) when the month's checks are used. Staff get a push, or WhatsApp `verification_request` if they haven't joined the app |
 | DELETE | /verification/employees/:id | (owner) | View. Cancels an open request; it no longer counts for the month |
 | POST | /verification/checks/:id/accept | `{reason}` (owner) | View. Accepts a name mismatch ("Rajesh" vs "Rajesh Kumar") |
 | POST | /verification/checks/:id/ask-again | (owner) | View. Sends one check back to the staff member |
-| GET | /verification/mine | (staff) | `{businessName, request, checks, consentText: {en: string[], hi: string[]}, savedBank: {last4, ifsc}\|null}` |
+| GET | /verification/mine | (staff) | `{businessName, request, checks, consentText: {en: string[], hi: string[]}, savedBank: {last4, ifsc}\|null, idPhoto}` (`idPhoto`: a photo ID is uploaded, needed for the selfie) |
 | POST | /verification/mine/consent | (staff) | Mine. Records the consent version and time |
 | POST | /verification/mine/aadhaar/otp | `{aadhaar}` (staff) | Mine. OTP to the Aadhaar-linked mobile |
 | POST | /verification/mine/aadhaar/verify | `{otp}` (staff) | Mine. Wrong OTP → `OTP_INVALID` |
 | POST | /verification/mine/pan | `{pan}` (staff) | Mine. A verified PAN fills the profile's PAN if it was empty |
 | POST | /verification/mine/bank | `{accountNumber?, ifsc?}` (staff) | Mine. ₹1 test; no account given = the salary account on file. A verified new account becomes their salary account (owners are told, as with any bank change) |
+| POST | /verification/mine/face | `{selfie}` (base64 JPEG, staff) | Mine. Matched with the photo on their newest photo ID document (Aadhaar, PAN, licence, voter ID, passport) using the face provider. No photo ID → `CONFLICT` with `details.reason: 'no_id_photo'`; no clear face in the selfie → `FACE_NOT_CLEAR` (not counted as a try). `verified` at `verification.faceMatchMin` (80) or above, else `mismatch` for the owner; no face on the ID photo → `not_found`. `matchScore` is the similarity; `details.idKind` says which ID (owner only). The selfie is not stored |
+| GET | /verification/employees/:id/on-behalf | (owner) | Mine-shaped view of that person's steps, for doing them together (staff without a smartphone) |
+| POST | /verification/employees/:id/on-behalf/consent | `{staffAgreed: true, slip: {data, mime}}` (owner) | Mine. They agreed on paper: records `consentBy: 'owner_on_behalf'` and keeps the photo of the signed slip (encrypted, like documents) |
+| POST | /verification/employees/:id/on-behalf/aadhaar/otp \| aadhaar/verify \| pan \| bank \| face | same bodies as the `mine` steps (owner) | Mine. The same steps done by the owner; the Aadhaar OTP still goes to the person's Aadhaar mobile |
+| POST | /verification/employees/:id/slip/open | (owner) | `{url, mime}`: 5-minute link to the signed slip. Audited (`document.view`) |
 
 Names are compared ignoring case, order, titles and initials; below `verification.nameMatchMin` (80) a check is `mismatch` for the owner to accept or ask again. Staff can retry "not found" or a mismatch up to 5 times; provider errors are `failed` (try again). When every check has a result, owners get a push (`verification_done`).
 
