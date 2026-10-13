@@ -17,6 +17,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/staff", label: "nav_staff", roles: ["owner", "manager"], icon: "☺" },
   { href: "/attendance", label: "nav_attendance", roles: ["owner", "manager"], icon: "✓" },
   { href: "/roster", label: "nav_roster", roles: ["owner", "manager"], icon: "▥" },
+  { href: "/field-staff", label: "nav_field", roles: ["owner", "manager"], icon: "⌖" },
   { href: "/payroll", label: "nav_payroll", roles: ["owner", "ca"], icon: "₹" },
   { href: "/leaves", label: "nav_leaves", roles: ["owner", "manager"], icon: "☂" },
   { href: "/advances", label: "nav_advances", roles: ["owner"], icon: "⇄" },

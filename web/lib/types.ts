@@ -834,3 +834,26 @@ export interface OpenedDoc {
   files: { url: string; mime: string }[];
   slip: { url: string; mime: string } | null;
 }
+
+// ---------- Field staff location ----------
+export interface LiveStaff {
+  employeeId: string;
+  name: string;
+  status: "waiting_consent" | "not_started" | "live" | "recent" | "stale" | "ended";
+  lastPingAt: string | null;
+  lat: number | null;
+  lng: number | null;
+  battery: number | null;
+  distanceM: number;
+  near: string | null;
+}
+
+export interface TrackDay {
+  employeeId: string;
+  name: string;
+  date: string;
+  distanceM: number;
+  route: { at: string; lat: number; lng: number }[];
+  stops: { lat: number; lng: number; from: string; to: string; minutes: number; place: string | null }[];
+  punches: { type: "in" | "out"; at: string; lat: number; lng: number }[];
+}
