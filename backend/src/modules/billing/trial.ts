@@ -23,6 +23,7 @@ const FEATURE_LABELS: Record<string, { en: string; hi: string }> = {
   roster_repeat: { en: 'repeating the roster', hi: 'रोस्टर दोहराना' },
   roster_swaps: { en: 'shift swaps', hi: 'शिफ़्ट अदला-बदली' },
   verification: { en: 'background checks', hi: 'बैकग्राउंड जाँच' },
+  documents: { en: 'staff documents', hi: 'स्टाफ़ के दस्तावेज़' },
   branches: { en: 'more branches', hi: 'ज़्यादा ब्रांच' },
   whatsapp_payslips: { en: 'payslips on WhatsApp', hi: 'WhatsApp पर सैलरी स्लिप' },
   whatsapp_assistant: { en: 'the WhatsApp assistant', hi: 'WhatsApp असिस्टेंट' },

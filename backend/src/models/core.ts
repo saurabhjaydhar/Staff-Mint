@@ -77,6 +77,10 @@ const companySchema = new Schema(
       lastDraftMonth: String,
       /** "<trialEndsAt ISO>|3", "|1" or "|ended": the last trial message sent. */
       lastTrialNotice: String,
+      /** Monday of the last roster week filled from "Repeat every week". */
+      lastRosterWeek: String,
+      /** Last day document expiry reminders ran. */
+      lastDocExpiryDate: String,
     },
     cancelledAt: { type: Date, default: null },
     exportAvailableUntil: { type: Date, default: null },

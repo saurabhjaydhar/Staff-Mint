@@ -39,6 +39,7 @@ export type PlanFeature =
   | "roster_repeat"
   | "roster_swaps"
   | "verification"
+  | "documents"
   | "whatsapp_payslips"
   | "ca_access"
   | "priority_support";

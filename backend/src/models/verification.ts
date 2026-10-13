@@ -64,3 +64,43 @@ const verificationCheckSchema = new Schema(
 verificationCheckSchema.plugin(tenantPlugin);
 verificationCheckSchema.index({ companyId: 1, requestId: 1 });
 export const VerificationCheck = model('VerificationCheck', verificationCheckSchema);
+
+export const DOCUMENT_KINDS = ['aadhaar', 'pan', 'dl', 'voter', 'passport', 'bank_proof', 'address', 'police', 'experience', 'other'] as const;
+export type DocumentKind = (typeof DOCUMENT_KINDS)[number];
+
+/**
+ * A staff member's document (photo or PDF). Files are encrypted before they are stored and only opened
+ * through short-lived links; every view is in History. Only the last 4 characters of the number are kept.
+ */
+const staffDocumentSchema = new Schema(
+  {
+    ...tenantFields,
+    employeeId: { type: Schema.Types.ObjectId, ref: 'Employee', required: true },
+    kind: { type: String, enum: DOCUMENT_KINDS, required: true },
+    /** Name for "other" ("Gas connection", "10th marksheet"). */
+    label: { type: String, default: null },
+    numberLast4: { type: String, default: null },
+    files: {
+      type: [new Schema({ key: { type: String, required: true }, mime: { type: String, required: true }, size: Number }, { _id: false })],
+      default: [],
+    },
+    /** Company-local date it stops being valid ("2027-03-31"), for licences, passports, police certificates. */
+    expiresOn: { type: String, default: null },
+    /** The expiry date a reminder was already sent for, so each date reminds once. */
+    remindedFor: { type: String, default: null },
+    uploadedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    /** Staff uploaded it themselves, or the owner did with the staff member's agreement (signed slip photo). */
+    consent: {
+      type: new Schema(
+        { by: { type: String, enum: ['staff', 'owner_on_behalf'], required: true }, at: Date, slipKey: { type: String, default: null }, slipMime: { type: String, default: null } },
+        { _id: false },
+      ),
+      required: true,
+    },
+  },
+  { timestamps: true },
+);
+staffDocumentSchema.plugin(tenantPlugin);
+staffDocumentSchema.index({ companyId: 1, employeeId: 1, createdAt: -1 });
+staffDocumentSchema.index({ companyId: 1, expiresOn: 1 });
+export const StaffDocument = model('StaffDocument', staffDocumentSchema);

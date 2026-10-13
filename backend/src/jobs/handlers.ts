@@ -1,6 +1,7 @@
 import { Types } from 'mongoose';
 import { DateTime } from 'luxon';
 import { Attendance, Company, Employee, RosterRepeat, VerificationCheck, VerificationRequest } from '../models/index.js';
+import { purgeDocuments, remindExpiring } from '../modules/verification/documents.js';
 import { getConfig } from '../modules/config/service.js';
 import { logger } from '../lib/logger.js';
 import { previousMonth, todayIn, addDays } from '../lib/dates.js';
@@ -64,8 +65,10 @@ export async function purgeRetention(company: any, now: Date) {
   }
   const geoCutoff = DateTime.fromJSDate(now).minus({ months: company.settings?.locationRetentionMonths ?? 12 }).toISODate()!;
   await Attendance.updateMany({ companyId: company._id, date: { $lt: geoCutoff }, 'punches.geo.lat': { $exists: true } }, { $unset: { 'punches.$[].geo': '' } });
-  // Background checks: gone 180 days after the person leaves (DPDP).
+  // Background checks and documents: gone 180 days after the person leaves (DPDP).
   const leftBefore = DateTime.fromJSDate(now).minus({ days: await getConfig<number>('verification.retentionDays', company._id) }).toISODate()!;
+  const leftIds = (await Employee.find({ companyId: company._id, exitDate: { $ne: null, $lt: leftBefore } }).select('_id').lean()).map((e) => e._id);
+  await purgeDocuments(company._id, leftIds);
   const gone = await Employee.find({ companyId: company._id, exitDate: { $ne: null, $lt: leftBefore }, 'verification.status': { $ne: 'none' } }).select('_id').lean();
   if (gone.length) {
     const ids = gone.map((e) => e._id);
@@ -157,6 +160,12 @@ export async function schedulerTick(now = new Date()) {
       // Roster "Repeat every week": on Thursday morning fill next week, then send it or remind the owner.
       const rosterWeek = await prepareNextRosterWeek(c, local, state.lastRosterWeek);
       if (rosterWeek) updates['jobState.lastRosterWeek'] = rosterWeek;
+
+      // Documents running out within 30 days: remind once a day from 10 AM.
+      if (local.hour >= 10 && state.lastDocExpiryDate !== today) {
+        await remindExpiring(c, now);
+        updates['jobState.lastDocExpiryDate'] = today;
+      }
 
       // Retention purge at ~3 AM.
       if (local.hour === 3 && local.minute < 15) await purgeRetention(c, now);

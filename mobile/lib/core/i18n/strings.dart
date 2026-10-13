@@ -669,6 +669,8 @@ class S {
         return _t('Shift swaps', 'शिफ़्ट अदला-बदली');
       case 'verification':
         return _t('Documents check', 'दस्तावेज़ जाँच');
+      case 'documents':
+        return _t('Staff documents', 'स्टाफ़ के दस्तावेज़');
       case 'whatsapp_payslips':
         return _t('Salary slips on WhatsApp', 'WhatsApp पर सैलरी स्लिप');
       case 'whatsapp_assistant':

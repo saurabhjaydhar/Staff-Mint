@@ -40,6 +40,7 @@ const FEATURE_LABELS: Record<string, string> = {
   roster_repeat: "Roster repeats every week",
   roster_swaps: "Staff swap shifts (you approve)",
   verification: "Documents check (Aadhaar, PAN, bank)",
+  documents: "Staff documents (photos, PDFs, expiry reminders)",
   whatsapp_payslips: "Salary slips on WhatsApp",
   whatsapp_assistant: "WhatsApp assistant",
   face_match: "Face check",
