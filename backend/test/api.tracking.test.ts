@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Types } from 'mongoose';
 import { api, auth, V, createOwner, addEmployee, employeeSession, nextPhone, mocks, punchBody } from './helpers.js';
-import { AuditLog, Employee, LocationPing, Notification, Shift, TrackingSession } from '../src/models/index.js';
+import { Attendance, AuditLog, Employee, LocationPing, Notification, Shift, TrackingSession } from '../src/models/index.js';
 import { addEvents, addPings, trackingTick } from '../src/modules/tracking/service.js';
 import { cleanPoints, distanceOf, stopsOf } from '../src/modules/tracking/route.js';
 import { describe as describeLog } from '../src/modules/audit/describe.js';
@@ -180,5 +180,37 @@ describe('field staff location', () => {
     expect(await trackingTick(company, zonedInstant(today, '20:05', TZ))).toEqual({ ended: 1, alerts: 0 });
     expect((await TrackingSession.findOne({ _id: s._id, companyId: owner.companyId }).lean())!).toMatchObject({ endReason: 'shift_end' });
     void staff;
+  });
+});
+
+describe('field staff check-in and place names', () => {
+  it('field staff check in away from the shop without approval; others still need it', async () => {
+    const { owner, emp, staff } = await setup();
+    const far = { geo: { lat: 28.6514, lng: 77.1907, accuracyM: 10 } };
+    // Not field staff yet: away from the shop needs the owner's approval.
+    const before = await api().post(`${V}/attendance/check-in`).set(auth(staff.token)).send(punchBody(staff.deviceId, far));
+    expect([201, 422]).toContain(before.status);
+    if (before.status === 201) expect(before.body.data.punch.approval).toBe('pending');
+    await api().post(`${V}/attendance/check-out`).set(auth(staff.token)).send(punchBody(staff.deviceId, far));
+
+    await api().put(`${V}/tracking/employees/${emp.id}`).set(auth(owner.token)).send({ enabled: true }).expect(200);
+    await api().post(`${V}/tracking/me/consent`).set(auth(staff.token)).expect(200);
+    const today = (await api().get(`${V}/attendance/today`).set(auth(staff.token)).expect(200)).body.data;
+    expect(today.fieldStaff).toBe(true);
+    const r = await api().post(`${V}/attendance/check-in`).set(auth(staff.token)).send(punchBody(staff.deviceId, far)).expect(201);
+    expect(r.body.data.punch).toMatchObject({ approval: 'not_required', insideGeofence: null });
+
+    // Checked in 40 minutes ago; a point from before that is left out.
+    await Attendance.updateOne({ companyId: owner.companyId, employeeId: emp.id, 'punches.type': 'in' }, { $set: { 'punches.$[].clientTime': new Date(Date.now() - 40 * 60_000) } });
+    const early = await send(staff.token, [{ at: new Date(Date.now() - 60 * 60_000).toISOString(), lat: 28.6, lng: 77.2 }]).expect(200);
+    expect(early.body.data.accepted).toBe(0);
+    // A stop at Karol Bagh gets its place name, and so does the live list.
+    const base = Date.now() - 30 * 60_000;
+    const pts = Array.from({ length: 8 }, (_, i) => ({ at: new Date(base + i * 2 * 60_000).toISOString(), lat: 28.6514 + i * 0.00002, lng: 77.1907, accuracyM: 10 }));
+    await send(staff.token, pts).expect(200);
+    const live = (await api().get(`${V}/tracking/live`).set(auth(owner.token)).expect(200)).body.data;
+    expect(live[0].near).toBe('Ajmal Khan Road, Karol Bagh');
+    const day = (await api().get(`${V}/tracking/day?employeeId=${emp.id}&date=${todayIn(TZ)}`).set(auth(owner.token)).expect(200)).body.data;
+    expect(day.stops).toEqual([expect.objectContaining({ minutes: 14, place: 'Ajmal Khan Road, Karol Bagh' })]);
   });
 });

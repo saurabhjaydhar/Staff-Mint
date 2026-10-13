@@ -222,12 +222,14 @@ Feature `tracking` (Pro) to turn it on. The owner (or a manager, for their branc
 | Method | Path | Body / query | Response |
 |---|---|---|---|
 | PUT | /tracking/employees/:id | `{enabled}` (owner/manager; `tracking` to turn on) | `{enabled, consented}`. Turning on asks the person (push `tracking_request`); turning off ends today's sharing. Audited |
-| GET | /tracking/live | (owner/manager) | `[{employeeId, name, status:'waiting_consent'\|'not_started'\|'live'\|'recent'\|'stale'\|'ended', lastPingAt, lat, lng, battery, distanceM, endReason, lastEvent}]` for each field staff member (live < 5 min, recent < 15, stale older) |
-| GET | /tracking/day | `?employeeId&date` (owner/manager; staff: their own, without `employeeId`) | `{name, date, distanceM, route: {at, lat, lng}[], stops: {lat, lng, from, to, minutes}[], punches, sessions: {startedAt, endedAt, endReason, events}[]}`. Distance and stops skip points worse than 100 m and GPS jumps (faster than 150 km/h); a stop is 10+ minutes within 100 m |
+| GET | /tracking/live | (owner/manager) | `[{employeeId, name, status:'waiting_consent'\|'not_started'\|'live'\|'recent'\|'stale'\|'ended', lastPingAt, lat, lng, battery, distanceM, endReason, lastEvent}]` for each field staff member (live < 5 min, recent < 15, stale older), plus `near`: a short place name for the last point |
+| GET | /tracking/day | `?employeeId&date` (owner/manager; staff: their own, without `employeeId`) | `{name, date, distanceM, route: {at, lat, lng}[], stops: {lat, lng, from, to, minutes, place}[], punches, sessions: {startedAt, endedAt, endReason, events}[]}`. Distance and stops skip points worse than 100 m and GPS jumps (faster than 150 km/h); a stop is 10+ minutes within 100 m |
 | GET | /tracking/me | (staff) | `{businessName, enabled, consented, shouldShare, sharing, endsBy, distanceM, intervalSec, minDistanceM, consentText: {en, hi}}` |
 | POST / DELETE | /tracking/me/consent | (staff) | Me. Agree, or withdraw: today's sharing ends and owners are told |
 | POST | /tracking/pings | `{points: {at, lat, lng, accuracyM?, speed?, battery?, mock?}[]}` (staff, up to 500, also from offline) | `{accepted, stop, reason}`. `stop: true` with `reason` `no_consent`, `turned_off`, `checked_out`, `shift_end` or `midnight` tells the phone to stop |
 | POST | /tracking/events | `{events: {at, type:'location_off'\|'location_on'\|'permission_removed'\|'mock_location'\|'low_battery'\|'stopped'}[]}` (staff) | `{ok}`. Location off, permission removed and fake location tell owners once per day (daytime only) |
+
+Field staff check in from anywhere: the distance from the shop is kept on the punch, but the shop area doesn't apply to them (no approval; a fake-location app still needs it). `GET /attendance/today` returns `fieldStaff`. Points from before that day's check-in (more than 5 minutes) are left out. Place names come from the geo provider, cached by ~100 m.
 
 The scheduler closes sessions past their end and tells owners once when someone's location hasn't updated for `tracking.staleMinutes` (7 AM–10 PM only). Check-out ends the session at the punch time.
 

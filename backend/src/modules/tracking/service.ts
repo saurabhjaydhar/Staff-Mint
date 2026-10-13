@@ -11,6 +11,27 @@ import { notifyEmployee, notifyOwners } from '../notifications/service.js';
 import { rosterShiftOn } from '../attendance/service.js';
 import { companyPlan } from '../billing/plans.js';
 import { distanceOf, simplify, stopsOf } from './route.js';
+import { provider } from '../../providers/registry.js';
+import { logger } from '../../lib/logger.js';
+
+/** Short place names ("Ajmal Khan Road, Karol Bagh") for points, cached by ~100 m so each place is looked up once. */
+const placeCache = new Map<string, string | null>();
+export async function placeName(lat: number, lng: number, lang: 'en' | 'hi' = 'en') {
+  const key = `${lat.toFixed(3)},${lng.toFixed(3)},${lang}`;
+  if (placeCache.has(key)) return placeCache.get(key)!;
+  let name: string | null;
+  try {
+    const { address } = await (await provider('geo')).reverseGeocode(lat, lng, lang);
+    // No real place, just coordinates back: show nothing rather than numbers.
+    name = address && !/^-?\d+\.\d+,\s*-?\d+\.\d+$/.test(address.trim()) ? address.split(',').slice(0, 2).join(',').trim() : null;
+  } catch (err) {
+    logger.warn({ err }, 'reverse geocode failed');
+    return null;
+  }
+  if (placeCache.size > 5000) placeCache.clear();
+  placeCache.set(key, name);
+  return name;
+}
 
 /** Bumped when the consent wording changes; the person's agreement records which version they saw. */
 export const CONSENT_VERSION = '2026-10';
@@ -64,12 +85,14 @@ async function endsByFor(company: { _id: Types.ObjectId; timezone: string }, emp
   return by < midnight ? { at: by, reason: 'shift_end' as const } : { at: midnight, reason: 'midnight' as const };
 }
 
-/** Last check-in/out today, ignoring rejected ones. */
-async function checkedIn(companyId: Types.ObjectId, employeeId: Types.ObjectId, date: string) {
+/** When they checked in, if their last check-in/out today (ignoring rejected ones) is a check-in; else null. */
+async function checkedInAt(companyId: Types.ObjectId, employeeId: Types.ObjectId, date: string): Promise<Date | null> {
   const a = await Attendance.findOne({ companyId, employeeId, date }).lean();
   const punches = (a?.punches ?? []).filter((p: any) => p.approval !== 'rejected').sort((x: any, y: any) => +new Date(x.clientTime) - +new Date(y.clientTime));
-  return punches[punches.length - 1]?.type === 'in';
+  const last = punches[punches.length - 1];
+  return last?.type === 'in' ? new Date(last.clientTime) : null;
 }
+const checkedIn = async (companyId: Types.ObjectId, employeeId: Types.ObjectId, date: string) => !!(await checkedInAt(companyId, employeeId, date));
 
 async function openSession(companyId: Types.ObjectId, employeeId: Types.ObjectId) {
   return TrackingSession.findOne({ companyId, employeeId, endedAt: null }).sort({ startedAt: -1 });
@@ -120,7 +143,7 @@ export async function live(ctx: Ctx, now = new Date()) {
   if (ctx.role === 'manager' && ctx.branchIds.length) f.branchId = { $in: ctx.branchIds };
   const emps = await Employee.find(f).select('name tracking branchId').sort({ name: 1 }).lean();
   const sessions = await TrackingSession.find({ companyId: ctx.companyId, date: today, employeeId: { $in: emps.map((e) => e._id) } }).sort({ startedAt: 1 }).lean();
-  return emps.map((e) => {
+  const rows = emps.map((e) => {
     const mine = sessions.filter((s) => String(s.employeeId) === String(e._id));
     const s = mine[mine.length - 1];
     const ageMin = s?.lastPingAt ? (now.getTime() - s.lastPingAt.getTime()) / 60_000 : null;
@@ -146,8 +169,11 @@ export async function live(ctx: Ctx, now = new Date()) {
       distanceM: mine.reduce((n, x) => n + (x.distanceM ?? 0), 0),
       endReason: s?.endReason ?? null,
       lastEvent: s?.events?.length ? s.events[s.events.length - 1] : null,
+      near: null as string | null,
     };
   });
+  for (const r of rows) if (r.lat != null && r.lng != null) r.near = await placeName(r.lat, r.lng, ctx.language);
+  return rows;
 }
 
 /** One person's day: route, stops, distance, check-in/out and what happened. Staff may see their own. */
@@ -174,7 +200,7 @@ export async function day(ctx: Ctx, employeeId: string | null, date: string) {
     date,
     distanceM: distanceOf(pings),
     route: route.map((p) => ({ at: p.at, lat: p.lat, lng: p.lng })),
-    stops: stopsOf(pings),
+    stops: await Promise.all(stopsOf(pings).map(async (s) => ({ ...s, place: await placeName(s.lat, s.lng, ctx.language) }))),
     punches: (att?.punches ?? [])
       .filter((p: any) => p.approval !== 'rejected' && p.geo?.lat != null)
       .map((p: any) => ({ type: p.type, at: p.clientTime, lat: p.geo.lat, lng: p.geo.lng })),
@@ -278,7 +304,8 @@ export async function addPings(ctx: Ctx, input: PingInput[], now = new Date()) {
     await endOpenSession(ctx.companyId, employeeId, 'midnight', s.endsBy);
     s = null;
   }
-  if (!(await checkedIn(ctx.companyId, employeeId, today))) {
+  const inAt = await checkedInAt(ctx.companyId, employeeId, today);
+  if (!inAt) {
     if (s) await endOpenSession(ctx.companyId, employeeId, 'punch_out', now);
     return stop('checked_out');
   }
@@ -293,7 +320,8 @@ export async function addPings(ctx: Ctx, input: PingInput[], now = new Date()) {
     return stop(reason);
   }
   const cfg = await settings(ctx.companyId);
-  const dayStart = zonedInstant(today, '00:00', company.timezone);
+  // Nothing from before they checked in (a few minutes' leeway for the phone clock).
+  const dayStart = new Date(Math.max(zonedInstant(today, '00:00', company.timezone).getTime(), inAt.getTime() - 5 * 60_000));
   const pts = input
     .slice(0, MAX_BATCH)
     .map((p) => ({ ...p, atDate: new Date(p.at) }))

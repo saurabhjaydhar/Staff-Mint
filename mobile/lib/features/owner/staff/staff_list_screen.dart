@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../tracking/field_staff_screens.dart';
 import '../../../core/api/providers.dart';
 import '../../../core/i18n/strings.dart';
 import '../../../core/models/models.dart';
@@ -81,6 +82,21 @@ class _StaffListScreenState extends ConsumerState<StaffListScreen> {
                 onTap: () => context.push(Routes.ownerRoster),
               ),
             ),
+            if (all.any((e) => e.trackingEnabled))
+              Card(
+                margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: ListTile(
+                  key: const Key('fieldMapTile'),
+                  leading: const Icon(Icons.map_rounded, color: AppColors.mintDark),
+                  title: Text(s.fieldMapTitle, style: const TextStyle(fontWeight: FontWeight.w800)),
+                  subtitle: Text(s.fieldMapCard(all.where((e) => e.trackingEnabled).length)),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => Navigator.of(
+                    context,
+                    rootNavigator: true,
+                  ).push(MaterialPageRoute<void>(builder: (_) => const FieldStaffMapScreen())),
+                ),
+              ),
             if (isOwner)
               Card(
                 margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),

@@ -6,6 +6,7 @@ import '../../core/i18n/strings.dart';
 import '../../core/models/models.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/common.dart';
+import 'field_staff_screens.dart';
 import 'tracking_controller.dart';
 
 String _km(int m) => (m / 1000).toStringAsFixed(m < 10000 ? 1 : 0);
@@ -158,28 +159,43 @@ class TrackingProfileTile extends ConsumerWidget {
     return Card(
       key: const Key('trackProfile'),
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      child: ListTile(
-        leading: const Icon(Icons.share_location_rounded, color: AppColors.mintDark),
-        title: Text(s.trackConsentTitle, style: const TextStyle(fontWeight: FontWeight.w700)),
-        subtitle: Text(me.consented ? s.trackProfileOn : s.trackProfileAsk),
-        trailing: me.consented
-            ? TextButton(
-                key: const Key('trackStop'),
-                onPressed: () async {
-                  final yes = await confirmDialog(
-                    context,
-                    title: s.trackStop,
-                    message: s.trackStopConfirm,
-                    destructive: true,
-                  );
-                  if (!yes || !context.mounted) return;
-                  final ok = await runGuarded(context, () => ref.read(trackingControllerProvider.notifier).withdraw());
-                  if (ok && context.mounted) showSnack(context, s.trackStopped);
-                },
-                child: Text(s.trackStop),
-              )
-            : const Icon(Icons.chevron_right_rounded),
-        onTap: me.consented ? null : () => openTrackingConsent(context),
+      child: Column(
+        children: [
+          ListTile(
+            leading: const Icon(Icons.share_location_rounded, color: AppColors.mintDark),
+            title: Text(s.trackConsentTitle, style: const TextStyle(fontWeight: FontWeight.w700)),
+            subtitle: Text(me.consented ? s.trackProfileOn : s.trackProfileAsk),
+            trailing: me.consented
+                ? TextButton(
+                    key: const Key('trackStop'),
+                    onPressed: () async {
+                      final yes = await confirmDialog(
+                        context,
+                        title: s.trackStop,
+                        message: s.trackStopConfirm,
+                        destructive: true,
+                      );
+                      if (!yes || !context.mounted) return;
+                      final ok = await runGuarded(
+                        context,
+                        () => ref.read(trackingControllerProvider.notifier).withdraw(),
+                      );
+                      if (ok && context.mounted) showSnack(context, s.trackStopped);
+                    },
+                    child: Text(s.trackStop),
+                  )
+                : const Icon(Icons.chevron_right_rounded),
+            onTap: me.consented ? null : () => openTrackingConsent(context),
+          ),
+          if (me.consented)
+            ListTile(
+              key: const Key('myRoute'),
+              leading: const Icon(Icons.route_rounded, color: AppColors.mintDark),
+              title: Text(s.myRoute, style: const TextStyle(fontWeight: FontWeight.w700)),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () => openTrackDay(context, name: s.myRoute),
+            ),
+        ],
       ),
     );
   }
