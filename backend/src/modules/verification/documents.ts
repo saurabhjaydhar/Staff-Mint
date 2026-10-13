@@ -210,9 +210,28 @@ export async function removeDocument(ctx: Ctx, id: string) {
 
 const sign = (payload: string) => hmacSha256Hex(env.FILE_URL_SECRET, `doc:${payload}`);
 
+/** A signed token that works for 5 minutes. */
+export function signToken(p: Record<string, unknown>) {
+  const payload = Buffer.from(JSON.stringify({ ...p, e: Math.floor(Date.now() / 1000) + LINK_TTL_SEC })).toString('base64url');
+  return `${payload}.${sign(payload)}`;
+}
+
+/** The token's contents, or FORBIDDEN when it was changed or has run out. */
+export function readToken<T>(token: string): T {
+  const [payload, sig] = token.split('.');
+  if (!payload || !sig || !safeEqual(sig, sign(payload))) throw new AppError('FORBIDDEN', 'Link expired or invalid');
+  let p: T & { e?: number };
+  try {
+    p = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+  } catch {
+    throw new AppError('FORBIDDEN', 'Link expired or invalid');
+  }
+  if (!p.e || p.e < Date.now() / 1000) throw new AppError('FORBIDDEN', 'Link expired or invalid');
+  return p;
+}
+
 export function link(key: string, mime: string) {
-  const payload = Buffer.from(JSON.stringify({ k: key, m: mime, e: Math.floor(Date.now() / 1000) + LINK_TTL_SEC })).toString('base64url');
-  return `${env.PUBLIC_BASE_URL}/doc-files/${payload}.${sign(payload)}`;
+  return `${env.PUBLIC_BASE_URL}/doc-files/${signToken({ k: key, m: mime })}`;
 }
 
 /** Short-lived links to the files; the opening is written to History ("Rakesh opened Raju's PAN"). */
@@ -228,15 +247,8 @@ export async function openDocument(ctx: Ctx, id: string) {
 
 /** GET /doc-files/:token: checks the link, decrypts and sends the file. */
 export async function readLinked(token: string) {
-  const [payload, sig] = token.split('.');
-  if (!payload || !sig || !safeEqual(sig, sign(payload))) throw new AppError('FORBIDDEN', 'Link expired or invalid');
-  let p: { k: string; m: string; e: number };
-  try {
-    p = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
-  } catch {
-    throw new AppError('FORBIDDEN', 'Link expired or invalid');
-  }
-  if (!p.e || p.e < Date.now() / 1000 || !p.k.startsWith('documents/')) throw new AppError('FORBIDDEN', 'Link expired or invalid');
+  const p = readToken<{ k?: string; m: string }>(token);
+  if (!p.k?.startsWith('documents/')) throw new AppError('FORBIDDEN', 'Link expired or invalid');
   const data = decryptBuffer(await (await provider('storage')).get(p.k));
   return { data, mime: MIMES[p.m] ? p.m : 'application/octet-stream' };
 }

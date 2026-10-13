@@ -5,7 +5,7 @@ import { authenticate, ctxOf, requireFeature, requireRole } from '../../middlewa
 import { DOCUMENT_KINDS, VERIFICATION_KINDS } from '../../models/index.js';
 import * as svc from './service.js';
 import * as docs from './documents.js';
-import { reportPdf } from './report.js';
+import { reportLink, reportPdf } from './report.js';
 
 export const verificationRouter = Router();
 
@@ -29,6 +29,7 @@ verificationRouter.get('/employees/:id/report.pdf', ...owner, async (req, res) =
   res.setHeader('Content-Disposition', `attachment; filename="${file.filename}"`);
   res.send(file.data);
 });
+verificationRouter.post('/employees/:id/report/open', ...owner, async (req, res) => res.json({ data: await reportLink(ctxOf(req), param(req, 'id')) }));
 verificationRouter.post('/checks/:id/ask-again', ...owner, async (req, res) => res.json({ data: await svc.askAgain(ctxOf(req), param(req, 'id')) }));
 
 // Staff: agree, then Aadhaar (OTP), PAN and bank account.

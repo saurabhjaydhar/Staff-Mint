@@ -134,6 +134,21 @@ describe('documents check report', () => {
     expect(pdf).not.toMatch(/101234567891/);
 
     await api().get(`${V}/verification/employees/${emp.id}/report.pdf`).set(auth(staff.token)).expect(403);
+
+    // The app opens a 5-minute link in the phone's browser.
+    const { url } = (await api().post(`${V}/verification/employees/${emp.id}/report/open`).set(auth(owner.token)).expect(200)).body.data;
+    const path = new URL(url).pathname;
+    expect(path).toMatch(/^\/doc-files\/report\//);
+    const viaLink = await api().get(path).buffer(true).parse((r, cb) => {
+      const chunks: Buffer[] = [];
+      r.on('data', (c: Buffer) => chunks.push(c));
+      r.on('end', () => cb(null, Buffer.concat(chunks)));
+    });
+    expect(viaLink.status).toBe(200);
+    expect((viaLink.body as Buffer).toString('latin1')).toMatch(/Documents check report/);
+    await api().get(path.replace(/.$/, (c) => (c === 'a' ? 'b' : 'a'))).expect(403);
+    await api().post(`${V}/verification/employees/${emp.id}/report/open`).set(auth(staff.token)).expect(403);
+    expect(await AuditLog.countDocuments({ companyId: owner.companyId, action: 'verification.report' })).toBe(2);
     const log = (await AuditLog.findOne({ companyId: owner.companyId, action: 'verification.report' }).lean())!;
     expect(describeLog(log as any, 'en', look)!.text).toBe('Ramesh Kumar: documents check report downloaded');
   });

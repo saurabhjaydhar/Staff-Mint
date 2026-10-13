@@ -1,13 +1,15 @@
-import { notFound } from '../../lib/errors.js';
+import { AppError, notFound } from '../../lib/errors.js';
 import { DateTime } from 'luxon';
 import { localDateOf } from '../../lib/dates.js';
-import type { Ctx } from '../../lib/context.js';
+import { systemCtx, type Ctx } from '../../lib/context.js';
+import { env } from '../../config/env.js';
 import { Company, VerificationRequest } from '../../models/index.js';
 import { provider } from '../../providers/registry.js';
 import { BASE_CSS } from '../payslips/templates.js';
 import { audit } from '../audit/service.js';
 import { assertEmployeeInScope } from '../employees/service.js';
 import { ownerView } from './service.js';
+import { readToken, signToken } from './documents.js';
 
 type Lang = 'en' | 'hi';
 /** "12 Oct 2026" / "12 अक्टूबर 2026" */
@@ -71,8 +73,30 @@ const BADGE: Record<string, [string, string]> = {
 };
 const DOC: Record<string, [string, string]> = { aadhaar: ['Aadhaar', 'आधार'], pan: ['PAN', 'PAN'], dl: ['driving licence', 'ड्राइविंग लाइसेंस'], voter: ['voter ID', 'वोटर कार्ड'], passport: ['passport', 'पासपोर्ट'] };
 
-/** One page for the owner's records: who was checked, how they agreed, and each result. */
+/** One page for the owner's records: who was checked, how they agreed, and each result. Written to History. */
 export async function reportPdf(ctx: Ctx, employeeId: string) {
+  const file = await render(ctx, employeeId);
+  await audit(ctx, { action: 'verification.report', entity: 'employee', entityId: file.employeeId });
+  return file;
+}
+
+/** For the app: a 5-minute link to the report (opened in the phone's browser), written to History now. */
+export async function reportLink(ctx: Ctx, employeeId: string) {
+  const emp = await assertEmployeeInScope(ctx, employeeId);
+  if (!(await VerificationRequest.exists({ companyId: ctx.companyId, employeeId: emp._id, status: { $ne: 'cancelled' } }))) throw notFound('Documents check');
+  await audit(ctx, { action: 'verification.report', entity: 'employee', entityId: emp._id });
+  const token = signToken({ r: 'verification', c: String(ctx.companyId), x: String(emp._id), l: ctx.language });
+  return { url: `${env.PUBLIC_BASE_URL}/doc-files/report/${token}` };
+}
+
+/** GET /doc-files/report/:token */
+export async function readReport(token: string) {
+  const p = readToken<{ r?: string; c: string; x: string; l: 'en' | 'hi' }>(token);
+  if (p.r !== 'verification') throw new AppError('FORBIDDEN', 'Link expired or invalid');
+  return render(systemCtx(p.c, p.l === 'en' ? 'en' : 'hi'), p.x);
+}
+
+async function render(ctx: Ctx, employeeId: string) {
   const emp = await assertEmployeeInScope(ctx, employeeId);
   const view = await ownerView(ctx, employeeId);
   if (!view.request) throw notFound('Documents check');
@@ -121,7 +145,6 @@ export async function reportPdf(ctx: Ctx, employeeId: string) {
   </body></html>`;
 
   const data = await (await provider('pdf')).render(html);
-  await audit(ctx, { action: 'verification.report', entity: 'employee', entityId: emp._id });
   const slug = emp.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'staff';
-  return { filename: `documents-check-${slug}.pdf`, data };
+  return { filename: `documents-check-${slug}.pdf`, data, employeeId: emp._id };
 }
