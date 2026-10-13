@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../tracking/field_staff_screens.dart';
-import '../../../core/api/providers.dart';
+import 'invite_sheet.dart';
 import '../../../core/i18n/strings.dart';
 import '../../../core/models/models.dart';
 import '../../../core/router/routes.dart';
@@ -241,12 +241,7 @@ class _StaffTile extends ConsumerWidget {
               ].join(' · ').ifEmpty(Phones.display(e.phone)),
       ),
       trailing: notJoined
-          ? TextButton(
-              key: Key('remind_${e.id}'),
-              onPressed: () =>
-                  runGuarded(context, () => ref.read(accountsApiProvider).invite(e.id), success: s.inviteSent),
-              child: Text(s.remind),
-            )
+          ? TextButton(key: Key('remind_${e.id}'), onPressed: () => remindOne(context, ref, e), child: Text(s.remind))
           : e.isActive && status != null
           ? StatusPill(status: status)
           : const Icon(Icons.chevron_right_rounded),

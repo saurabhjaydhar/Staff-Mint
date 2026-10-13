@@ -1419,6 +1419,25 @@ class S {
     '$n स्टाफ़ ने ऐप इंस्टॉल नहीं किया',
   );
   String get remindAll => _t('Remind all', 'सबको याद दिलाएँ');
+  String get inviteSheetTitle => _t('App invites', 'ऐप का आमंत्रण');
+  String get inviteEveryoneJoined => _t('Everyone has joined the app.', 'सब ऐप पर आ गए हैं।');
+  String get inviteNotConnected => _t(
+    'StaffMint’s WhatsApp isn’t set up for your business yet, so the invite can’t reach them. Send it from your own WhatsApp:',
+    'आपके बिज़नेस के लिए StaffMint का WhatsApp अभी चालू नहीं है, इसलिए आमंत्रण उन तक नहीं पहुँचेगा। अपने WhatsApp से भेजें:',
+  );
+  String get inviteSomeFailed => _t(
+    'Some invites couldn’t be sent. Send those from your own WhatsApp:',
+    'कुछ आमंत्रण नहीं जा पाए। उन्हें अपने WhatsApp से भेजें:',
+  );
+  String get inviteOwnWhatsApp =>
+      _t('Didn’t get it? Send it from your own WhatsApp too.', 'नहीं मिला? अपने WhatsApp से भी भेज सकते हैं।');
+  String inviteStatus(String status) => switch (status) {
+    'recent' => _t('Sent a few minutes ago', 'कुछ मिनट पहले भेजा'),
+    'failed' => _t('Couldn’t send', 'नहीं भेज पाए'),
+    _ => _t('Sent on WhatsApp', 'WhatsApp पर भेजा'),
+  };
+  String get whatsappShort => _t('WhatsApp', 'WhatsApp');
+  String get rowNotOnApp => _t('not on the app yet', 'अभी ऐप पर नहीं');
   String get swipeTip => _t('Tip: you can also swipe a card.', 'सुझाव: कार्ड को खिसका भी सकते हैं।');
   String noLeavesLeft(String type, num days) => _t(
     'No $type leaves left. If you approve, these ${_num(days)} days are unpaid leave (salary is cut for ${_num(days)} days).',

@@ -19,6 +19,7 @@ import '../providers/owner_providers.dart';
 import 'home_header.dart';
 import 'home_tips.dart';
 import 'needs_you_card.dart';
+import '../staff/invite_sheet.dart';
 import 'setup_checklist.dart';
 import 'status_quick_sheet.dart';
 import 'trial_banner.dart';
@@ -331,7 +332,11 @@ class _Ledger extends StatelessWidget {
       case 'late':
         return (rec?.lateMinutes ?? 0) > 0 ? s.rowLateBy(rec!.lateMinutes) : null;
       case 'not_marked':
-        if (r.ownerMarks) return presentByDefault ? s.rowPresentByDefault : s.rowYouMark;
+        if (r.ownerMarks) {
+          // They don't check in, but still use the app to see attendance and salary.
+          final mark = presentByDefault ? s.rowPresentByDefault : s.rowYouMark;
+          return r.employee.linked ? mark : '$mark · ${s.rowNotOnApp}';
+        }
         if (!r.employee.linked) {
           return [s.rowNotInstalled, if (r.employee.invitedAt != null) s.rowInvited].join(' · ');
         }

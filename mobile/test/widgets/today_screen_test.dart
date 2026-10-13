@@ -418,4 +418,24 @@ void main() {
     await tester.pumpAndSettle();
     expect(api.calls.single, containsPair('employeeId', 'e7'));
   });
+
+  testWidgets('staff the owner marks who haven\'t got the app yet say so', (tester) async {
+    await pump(
+      tester,
+      rows: (date) => [
+        const DayRow(
+          employee: EmployeeRef(id: 'e8', name: 'Mazdoor Ek', linked: false),
+          displayStatus: 'not_marked',
+          ownerMarks: true,
+        ),
+        const DayRow(
+          employee: EmployeeRef(id: 'e9', name: 'Mazdoor Do', linked: true),
+          displayStatus: 'not_marked',
+          ownerMarks: true,
+        ),
+      ],
+    );
+    expect(find.text('You mark · tap to mark · not on the app yet'), findsOneWidget);
+    expect(find.text('You mark · tap to mark'), findsOneWidget);
+  });
 }

@@ -4,6 +4,7 @@ import type { Ctx, Role } from '../../lib/context.js';
 import { Company, DeviceRequest, Employee, Membership, User, type UserDoc } from '../../models/index.js';
 import { audit } from '../audit/service.js';
 import { getConfig } from '../config/service.js';
+import { provider } from '../../providers/registry.js';
 import { attachStaffMemberships, deviceAllowed, endMemberships, isStaffMembership, revokeMembershipSessions } from '../auth/memberships.js';
 import { currentOrDefault, openSession } from '../auth/service.js';
 import { notifyEmployee, notifyOwners, notifyUser, sendWhatsApp } from '../notifications/service.js';
@@ -223,36 +224,60 @@ const INVITE_GAP_MS = 10 * 60_000;
 export async function inviteStaff(ctx: Ctx, employeeId: string | Types.ObjectId, opts: { auto?: boolean } = {}) {
   const emp = await assertEmployeeInScope(ctx, employeeId);
   if (emp.status !== 'active') throw new AppError('CONFLICT', 'Reactivate this staff member before inviting them');
-  if (!opts.auto && emp.invitedAt && Date.now() - emp.invitedAt.getTime() < INVITE_GAP_MS) {
-    throw new AppError('RATE_LIMITED', 'Invite already sent. You can send it again in a few minutes.');
-  }
-  const company = await Company.findById(ctx.companyId).select('name').lean();
+  const company = await Company.findById(ctx.companyId).select('name messagingProvider').lean();
   const link = await getConfig<string>('app.downloadUrl', ctx.companyId);
-  await sendWhatsApp(ctx.companyId, emp.phone, { template: 'staff_invite', params: [emp.name, company?.name ?? '', emp.phone, link] }, { employeeId: emp._id, language: emp.language as 'en' | 'hi' });
+  const whatsappConnected = (await provider('messaging', company?.messagingProvider)).name !== 'mock';
+  if (!opts.auto && emp.invitedAt && Date.now() - emp.invitedAt.getTime() < INVITE_GAP_MS) {
+    // The owner can still send it from their own WhatsApp.
+    throw new AppError('RATE_LIMITED', 'Invite already sent. You can send it again in a few minutes.', { shareText: inviteText(emp, company?.name ?? '', link), whatsappConnected });
+  }
+  const n = await sendWhatsApp(ctx.companyId, emp.phone, { template: 'staff_invite', params: [emp.name, company?.name ?? '', emp.phone, link] }, { employeeId: emp._id, language: emp.language as 'en' | 'hi' });
   emp.invitedAt = new Date();
   await emp.save();
   const login = await User.findOne({ phone: emp.phone, deletedAt: null });
   if (login) await attachStaffMemberships(login, { force: [emp._id] });
   if (!opts.auto) await audit(ctx, { action: 'employee.invite', entity: 'employee', entityId: emp._id });
-  return { invitedAt: emp.invitedAt };
+  return { invitedAt: emp.invitedAt, delivered: n.status === 'sent', whatsappConnected, shareText: inviteText(emp, company?.name ?? '', link) };
+}
+
+/** The invite in words, for the owner to send from their own WhatsApp or SMS when the business WhatsApp can't. */
+function inviteText(emp: { name: string; phone: string; language?: string | null }, business: string, link: string) {
+  const phone = emp.phone.replace(/^\+91/, '');
+  return emp.language === 'en'
+    ? `Namaste ${emp.name}, ${business} has added you on StaffMint for attendance and salary. Download the app: ${link} and log in with your number ${phone}.`
+    : `नमस्ते ${emp.name}, ${business} ने आपको हाज़िरी और सैलरी के लिए StaffMint पर जोड़ा है। ऐप डाउनलोड करें: ${link} और अपने नंबर ${phone} से लॉग इन करें।`;
 }
 
 
-/** "Remind" on Home: re-sends the app invite to every active staff member who hasn't joined yet. */
+/**
+ * "Remind" on Home: re-sends the app invite to every active staff member who hasn't joined yet (also those the
+ * owner marks attendance for: they still use the app to see their attendance and salary). Says per person what
+ * happened, with the invite text so the owner can send it from their own WhatsApp when ours couldn't.
+ */
 export async function remindNotJoined(ctx: Ctx) {
-  const emps = await Employee.find({ ...employeeScope(ctx), status: 'active', userId: null }).select('_id invitedAt').lean();
+  const emps = await Employee.find({ ...employeeScope(ctx), status: 'active', userId: null }).select('_id name phone language invitedAt').sort({ name: 1 }).lean();
+  const company = await Company.findById(ctx.companyId).select('name messagingProvider').lean();
+  const link = await getConfig<string>('app.downloadUrl', ctx.companyId);
   let sent = 0;
   let skipped = 0;
+  let failed = 0;
+  const people: { employeeId: string; name: string; phone: string; status: 'sent' | 'recent' | 'failed'; shareText: string }[] = [];
   for (const e of emps) {
+    const base = { employeeId: String(e._id), name: e.name, phone: e.phone, shareText: inviteText(e, company?.name ?? '', link) };
     if (e.invitedAt && Date.now() - new Date(e.invitedAt).getTime() < INVITE_GAP_MS) {
       skipped++;
+      people.push({ ...base, status: 'recent' });
       continue;
     }
-    await inviteStaff(ctx, e._id, { auto: true });
-    sent++;
+    const r = await inviteStaff(ctx, e._id, { auto: true });
+    if (r.delivered) sent++;
+    else failed++;
+    people.push({ ...base, status: r.delivered ? 'sent' : 'failed' });
   }
-  if (sent) await audit(ctx, { action: 'employee.invite_all', entity: 'employee', after: { sent } });
-  return { sent, skipped };
+  if (sent || failed) await audit(ctx, { action: 'employee.invite_all', entity: 'employee', after: { sent, failed } });
+  // Not connected yet (development, or keys not set): nothing really reaches their phone, so the app says so.
+  const whatsappConnected = (await provider('messaging', company?.messagingProvider)).name !== 'mock';
+  return { sent, skipped, failed, people, whatsappConnected };
 }
 
 

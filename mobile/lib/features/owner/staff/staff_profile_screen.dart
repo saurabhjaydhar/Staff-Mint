@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../more/shifts_screen.dart';
+import 'invite_sheet.dart';
 import '../../../core/api/providers.dart';
 import '../../../core/i18n/strings.dart';
 import '../../../core/models/models.dart';
@@ -294,13 +295,8 @@ class StaffProfileScreen extends ConsumerWidget {
                         trailing: TextButton(
                           key: const Key('inviteButton'),
                           onPressed: () async {
-                            if (await runGuarded(
-                              context,
-                              () => ref.read(accountsApiProvider).invite(e.id),
-                              success: s.inviteSent,
-                            )) {
-                              invalidate();
-                            }
+                            await remindOne(context, ref, e);
+                            invalidate();
                           },
                           child: Text(e.invitedAt == null ? s.sendInvite : s.resendInvite),
                         ),

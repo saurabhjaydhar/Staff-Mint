@@ -27,10 +27,26 @@ describe('owner Home (redesign)', () => {
 
     // Invited moments ago → nothing re-sent; an old invite is re-sent.
     let r = await api().post(`${V}/employees/remind-invites`).set(auth(owner.token)).expect(200);
-    expect(r.body.data).toEqual({ sent: 0, skipped: 1 });
+    expect(r.body.data).toMatchObject({ sent: 0, skipped: 1, failed: 0, whatsappConnected: false });
+    // Each person, what happened, and the invite in words to send from the owner's own WhatsApp.
+    expect(r.body.data.people).toEqual([expect.objectContaining({ employeeId: b.id, status: 'recent' })]);
+    expect(r.body.data.people[0].shareText).toMatch(/StaffMint/);
     await Employee.updateOne({ _id: b.id }, { invitedAt: new Date(Date.now() - 3600_000) }).setOptions({ skipTenant: true });
     r = await api().post(`${V}/employees/remind-invites`).set(auth(owner.token)).expect(200);
-    expect(r.body.data).toEqual({ sent: 1, skipped: 0 });
+    expect(r.body.data).toMatchObject({ sent: 1, skipped: 0, failed: 0 });
+    expect(r.body.data.people[0].status).toBe('sent');
+    // The business WhatsApp fails: counted as not sent, so the owner can send it themselves.
+    await Employee.updateOne({ _id: b.id }, { invitedAt: new Date(Date.now() - 3600_000) }).setOptions({ skipTenant: true });
+    const { provider } = await import('../src/providers/registry.js');
+    const messaging = await provider('messaging');
+    const orig = messaging.sendTemplate.bind(messaging);
+    messaging.sendTemplate = async () => {
+      throw new Error('BSP down');
+    };
+    r = await api().post(`${V}/employees/remind-invites`).set(auth(owner.token)).expect(200);
+    messaging.sendTemplate = orig;
+    expect(r.body.data).toMatchObject({ sent: 0, failed: 1 });
+    expect(r.body.data.people[0].status).toBe('failed');
 
     // Setting the last salary ticks that step.
     await api().patch(`${V}/employees/${b.id}`).set(auth(owner.token)).send({ ratePaise: 900000 }).expect(200);
