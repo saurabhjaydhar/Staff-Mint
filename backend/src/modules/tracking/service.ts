@@ -429,3 +429,50 @@ export async function trackingTick(company: { _id: Types.ObjectId; timezone: str
   }
   return { ended, alerts };
 }
+
+// ---------------------------------------------------------------- reports
+
+/** Per person, per day for a month (or one day): check-in/out, km, stops; and every stop with its place. */
+export async function exportRows(ctx: Ctx, from: string, to: string) {
+  const f: Record<string, unknown> = { companyId: ctx.companyId };
+  if (ctx.role === 'manager' && ctx.branchIds.length) f.branchId = { $in: ctx.branchIds };
+  const emps = await Employee.find(f).select('name').lean();
+  const names = new Map(emps.map((e) => [String(e._id), e.name]));
+  const sessions = await TrackingSession.find({ companyId: ctx.companyId, date: { $gte: from, $lte: to }, employeeId: { $in: emps.map((e) => e._id) } })
+    .sort({ date: 1, startedAt: 1 })
+    .lean();
+  const company = (await Company.findById(ctx.companyId).select('timezone').lean())!;
+  const time = (d: Date | null | undefined) => (d ? DateTime.fromJSDate(d).setZone(company.timezone).toFormat('HH:mm') : '');
+  const byDay = new Map<string, typeof sessions>();
+  for (const s of sessions) {
+    const k = `${s.date}|${s.employeeId}`;
+    byDay.set(k, [...(byDay.get(k) ?? []), s]);
+  }
+  const days: (string | number)[][] = [];
+  const stops: (string | number)[][] = [];
+  for (const [k, list] of byDay) {
+    const [date, empId] = k.split('|');
+    const pings = await LocationPing.find({ companyId: ctx.companyId, sessionId: { $in: list.map((s) => s._id) } }).sort({ at: 1 }).select('at lat lng accuracyM').lean();
+    const st = stopsOf(pings);
+    const name = names.get(empId) ?? '';
+    days.push([date, name, time(list[0].startedAt), time(list[list.length - 1].endedAt), Number((distanceOf(pings) / 1000).toFixed(1)), st.length, pings.length]);
+    for (const x of st) stops.push([date, name, time(x.from), time(x.to), x.minutes, (await placeName(x.lat, x.lng, ctx.language)) ?? '', x.lat, x.lng]);
+  }
+  return { days, stops };
+}
+
+/** Yesterday's travel for the morning summary: "Raju 42 km, 6 stops". */
+export async function travelSummary(companyId: Types.ObjectId, date: string) {
+  const sessions = await TrackingSession.find({ companyId, date }).select('employeeId distanceM').lean();
+  if (!sessions.length) return [];
+  const total = new Map<string, number>();
+  for (const s of sessions) total.set(String(s.employeeId), (total.get(String(s.employeeId)) ?? 0) + (s.distanceM ?? 0));
+  const emps = await Employee.find({ companyId, _id: { $in: [...total.keys()].map((id) => new Types.ObjectId(id)) } }).select('name').lean();
+  const out = [];
+  for (const e of emps) {
+    const ids = sessions.filter((s) => String(s.employeeId) === String(e._id)).map((s) => s._id);
+    const pings = await LocationPing.find({ companyId, sessionId: { $in: ids } }).select('at lat lng accuracyM').lean();
+    out.push({ name: e.name, km: Number(((total.get(String(e._id)) ?? 0) / 1000).toFixed(1)), stops: stopsOf(pings).length });
+  }
+  return out.sort((a, b) => b.km - a.km);
+}
