@@ -370,6 +370,8 @@ export function describe(
       return r(t(`${emp}: location sharing turned off`, `${emp}: लोकेशन शेयर करना बंद किया`), 'staff');
     case 'tracking.consent':
       return r(t(`${emp} agreed to share location during shifts`, `${emp} ने शिफ़्ट में लोकेशन शेयर करने की सहमति दी`), 'staff');
+    case 'tracking.export':
+      return r(t(`Field staff locations downloaded (${a.from} to ${a.to})`, `फ़ील्ड स्टाफ़ की लोकेशन डाउनलोड की (${a.from} से ${a.to})`), 'staff');
     case 'tracking.withdraw':
       return r(t(`${emp} stopped sharing location`, `${emp} ने लोकेशन शेयर करना बंद किया`), 'staff');
     case 'employee.bank.remove':

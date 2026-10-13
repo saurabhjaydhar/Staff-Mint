@@ -162,6 +162,7 @@ Set `PAYMENT_PROVIDER=razorpay`.
 |---|---|
 | `API_BASE_URL` in `mobile/config/*.json` | Passed with `--dart-define-from-file`; no default, the app stops at startup if missing. `local.json` = emulator → laptop, `production.json` = live server |
 | `"GOOGLE_MAPS": true` (already set in `mobile/config/production.json`) | 🟡 Turns on real Google Maps in the shop location picker (Android/iOS). Builds with `production.json` therefore **need `MAPS_API_KEY`** below, or the map is blank. `local.json`, web and tests keep it off and use the OpenStreetMap-style map |
+| `NEXT_PUBLIC_MAP_TILE_URL` (web, build-time) | 🟡 Map tiles for the website's Field staff map, e.g. `https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=...`. Without it the website uses OpenStreetMap's public tiles, which are for development only |
 | `MAPS_API_KEY` (Android: `-PMAPS_API_KEY=...` or env; iOS: `ios/Flutter/Maps.xcconfig` with `MAPS_API_KEY = ...`, gitignored) | 🟡 App key for the map itself. In Google Cloud enable **Maps SDK for Android** and **Maps SDK for iOS**, restrict it to package `com.staffmint.app` + your SHA-1 and the iOS bundle id. Showing the map in the mobile apps is free; the builds use `FAKE_MAPS_API_KEY` until you add it |
 | `--dart-define=MAP_TILE_URL=...` | ⚪ Only for the fallback map (web/dev). OpenStreetMap public tiles are for dev only; e.g. MapTiler or Stadia key |
 | `android/app/google-services.json` | 🔴 Real Firebase file (see Push above) |

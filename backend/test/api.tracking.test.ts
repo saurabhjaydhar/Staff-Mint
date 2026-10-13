@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { Types } from 'mongoose';
 import { api, auth, V, createOwner, addEmployee, employeeSession, nextPhone, mocks, punchBody } from './helpers.js';
 import { Attendance, AuditLog, Employee, LocationPing, Notification, Shift, TrackingSession } from '../src/models/index.js';
-import { addEvents, addPings, trackingTick } from '../src/modules/tracking/service.js';
+import { addEvents, addPings, trackingTick, travelSummary } from '../src/modules/tracking/service.js';
+import { sendDigest } from '../src/jobs/handlers.js';
+import ExcelJS from 'exceljs';
 import { cleanPoints, distanceOf, stopsOf } from '../src/modules/tracking/route.js';
 import { describe as describeLog } from '../src/modules/audit/describe.js';
-import { todayIn, zonedInstant } from '../src/lib/dates.js';
+import { addDays, todayIn, zonedInstant } from '../src/lib/dates.js';
 import type { Ctx } from '../src/lib/context.js';
 
 const TZ = 'Asia/Kolkata';
@@ -212,5 +214,54 @@ describe('field staff check-in and place names', () => {
     expect(live[0].near).toBe('Ajmal Khan Road, Karol Bagh');
     const day = (await api().get(`${V}/tracking/day?employeeId=${emp.id}&date=${todayIn(TZ)}`).set(auth(owner.token)).expect(200)).body.data;
     expect(day.stops).toEqual([expect.objectContaining({ minutes: 14, place: 'Ajmal Khan Road, Karol Bagh' })]);
+  });
+});
+
+describe('export and the morning summary', () => {
+  it('Excel for the day/month with km and stops; yesterday’s travel in the owner’s summary', async () => {
+    const { owner, emp } = await setup();
+    await Employee.updateOne({ _id: emp.id, companyId: owner.companyId }, { $set: { 'tracking.enabled': true, 'tracking.consentAt': new Date() } });
+    const today = todayIn(TZ);
+    const yesterday = addDays(today, -1);
+    const start = zonedInstant(yesterday, '10:00', TZ);
+    const s = await TrackingSession.create({
+      companyId: owner.companyId,
+      employeeId: emp.id,
+      date: yesterday,
+      startedAt: start,
+      endedAt: at(start, 120),
+      endReason: 'punch_out',
+      endsBy: zonedInstant(yesterday, '20:00', TZ),
+      distanceM: 4200,
+    });
+    // A drive, then 20 minutes at Karol Bagh.
+    const pts = [
+      ...Array.from({ length: 5 }, (_, i) => ({ at: at(start, i * 2), lat: 28.6315 + i * 0.004, lng: 77.2167 - i * 0.005 })),
+      ...Array.from({ length: 11 }, (_, i) => ({ at: at(start, 12 + i * 2), lat: 28.6514, lng: 77.1907 })),
+    ];
+    await LocationPing.insertMany(pts.map((p) => ({ ...p, companyId: owner.companyId, employeeId: emp.id, sessionId: s._id, accuracyM: 10, expireAt: at(start, 90 * 24 * 60) })));
+
+    const r = await api().get(`${V}/tracking/export?month=${yesterday.slice(0, 7)}`).set(auth(owner.token)).buffer(true).parse((res, cb) => {
+      const chunks: Buffer[] = [];
+      res.on('data', (c: Buffer) => chunks.push(c));
+      res.on('end', () => cb(null, Buffer.concat(chunks)));
+    }).expect(200);
+    expect(r.headers['content-disposition']).toContain(`field-staff-${yesterday.slice(0, 7)}.xlsx`);
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(r.body);
+    const days = wb.worksheets[0];
+    expect(days.getRow(2).getCell(2).value).toBe('Raju');
+    expect(days.getRow(2).getCell(6).value).toBe(1);
+    const stops = wb.worksheets[1];
+    expect(stops.getRow(2).getCell(5).value).toBe(20);
+    expect(stops.getRow(2).getCell(6).value).toBe('Ajmal Khan Road, Karol Bagh');
+    expect(await AuditLog.exists({ companyId: owner.companyId, action: 'tracking.export' })).toBeTruthy();
+    expect((await api().get(`${V}/tracking/export`).set(auth(owner.token))).status).toBe(400);
+
+    const travel = await travelSummary(new Types.ObjectId(owner.companyId), yesterday);
+    expect(travel).toEqual([{ name: 'Raju', km: 4.2, stops: 1 }]);
+    await sendDigest(new Types.ObjectId(owner.companyId));
+    const digest = await Notification.findOne({ companyId: owner.companyId, template: 'daily_digest' }).lean();
+    expect(digest!.body).toMatch(/(Yesterday: Raju 4.2 km, 1 stop|कल: Raju 4.2 किमी, 1 रुकाव)/);
   });
 });

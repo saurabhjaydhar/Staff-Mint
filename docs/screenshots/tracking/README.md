@@ -23,3 +23,11 @@ The map pictures are grey here because the sandbox can't load map tiles; on phon
 |---|---|---|
 | <img src="owner-3-staff-tab.jpg" width="240"><br>Staff tab → "Field staff" | <img src="owner-4-live-map.jpg" width="240"><br>Initials at their last point (green: under 5 minutes), "3 min ago · 5.9 km" | <img src="owner-5-day.jpg" width="240"><br>Their day: route, stops with place and minutes, km |
 | <img src="owner-hi-live-map.jpg" width="240"><br>हिंदी: फ़ील्ड स्टाफ़ | <img src="owner-hi-day.jpg" width="240"><br>हिंदी: दिन का रास्ता | |
+
+## Round T2a: website
+
+| |
+|---|
+| <img src="web-1-live.jpg" width="720"><br>Field staff → everyone on the map and the list, Excel for the month |
+| <img src="web-2-day.jpg" width="720"><br>A person's day: route, numbered stops, km |
+| <img src="web-3-day-hindi.jpg" width="720"><br>हिंदी |

@@ -3,7 +3,7 @@ import { DateTime } from 'luxon';
 import { Attendance, Company, Employee, RosterRepeat } from '../models/index.js';
 import { purgeDocuments, remindExpiring } from '../modules/verification/documents.js';
 import { purgeVerification } from '../modules/verification/service.js';
-import { trackingTick } from '../modules/tracking/service.js';
+import { trackingTick, travelSummary } from '../modules/tracking/service.js';
 import { getConfig } from '../modules/config/service.js';
 import { logger } from '../lib/logger.js';
 import { previousMonth, todayIn, addDays } from '../lib/dates.js';
@@ -31,8 +31,12 @@ export async function sendDigest(companyId: Types.ObjectId) {
   const d = await dashboardToday(systemCtx(companyId));
   const c = d.counts;
   const pending = d.needsAction.leaveRequests.length + d.needsAction.punchApprovals.length;
-  const en = `${c.present}/${c.total} present, ${c.late} late, ${c.onLeave} on leave, ${c.notMarked} not marked.${pending ? ` ${pending} need your action.` : ''}`;
-  const hi = `${c.total} में से ${c.present} हाज़िर, ${c.late} लेट, ${c.onLeave} छुट्टी पर, ${c.notMarked} की हाज़िरी नहीं लगी।${pending ? ` ${pending} काम आपकी मंज़ूरी के लिए।` : ''}`;
+  // Field staff: yesterday's travel, a few names at most.
+  const travel = (await travelSummary(companyId, addDays(d.date, -1))).filter((t) => t.km > 0).slice(0, 3);
+  const travelEn = travel.length ? ` Yesterday: ${travel.map((t) => `${t.name} ${t.km} km, ${t.stops} ${t.stops === 1 ? 'stop' : 'stops'}`).join('; ')}.` : '';
+  const travelHi = travel.length ? ` कल: ${travel.map((t) => `${t.name} ${t.km} किमी, ${t.stops} रुकाव`).join('; ')}।` : '';
+  const en = `${c.present}/${c.total} present, ${c.late} late, ${c.onLeave} on leave, ${c.notMarked} not marked.${pending ? ` ${pending} need your action.` : ''}${travelEn}`;
+  const hi = `${c.total} में से ${c.present} हाज़िर, ${c.late} लेट, ${c.onLeave} छुट्टी पर, ${c.notMarked} की हाज़िरी नहीं लगी।${pending ? ` ${pending} काम आपकी मंज़ूरी के लिए।` : ''}${travelHi}`;
   await notifyOwners(
     companyId,
     {
