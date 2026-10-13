@@ -1,6 +1,6 @@
 import { Types } from 'mongoose';
 import { DateTime } from 'luxon';
-import { Attendance, Company, Employee, RosterRepeat, VerificationCheck, VerificationRequest } from '../models/index.js';
+import { Attendance, Company, Employee, RosterRepeat } from '../models/index.js';
 import { purgeDocuments, remindExpiring } from '../modules/verification/documents.js';
 import { purgeVerification } from '../modules/verification/service.js';
 import { getConfig } from '../modules/config/service.js';
