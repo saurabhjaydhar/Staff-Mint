@@ -5,6 +5,8 @@ import { useAction } from "@/hooks/useAsync";
 import { api } from "@/lib/api";
 import { OVERRIDE_STATUSES } from "@/lib/attendance";
 import { formatDate } from "@/lib/format";
+import { fill } from "@/lib/i18n";
+import { useI18n } from "./providers";
 import type { Attendance, AttendanceStatus, LeaveType } from "@/lib/types";
 import { Alert, Button, Field, Input, Modal, Select } from "./ui";
 
@@ -13,6 +15,8 @@ export interface OverrideTarget {
   employeeName: string;
   date: string;
   status: AttendanceStatus;
+  /** The day is before their joining date ("2026-10-13"). */
+  joinsOn?: string | null;
 }
 
 /** Owner/manager attendance override: pick what happened; the reason is optional (both are audited). */
@@ -34,6 +38,7 @@ export function OverrideModal({
 }
 
 function OverrideForm({ target, onClose, onSaved }: { target: OverrideTarget; onClose: () => void; onSaved: (a: Attendance) => void }) {
+  const { t } = useI18n();
   const [status, setStatus] = useState<AttendanceStatus>(target.status);
   const [leaveType, setLeaveType] = useState<LeaveType>("paid");
   const [reason, setReason] = useState("");
@@ -57,6 +62,11 @@ function OverrideForm({ target, onClose, onSaved }: { target: OverrideTarget; on
       <p className="text-sm text-slate-600">
         <span className="font-medium text-slate-900">{target.employeeName}</span> · {formatDate(target.date)}
       </p>
+      {target.joinsOn && (
+        <p className="rounded-md bg-amber-50 p-2 text-sm text-amber-900" data-testid="joining-moves">
+          {fill(t("att_joining_moves"), { joining: formatDate(target.joinsOn), day: formatDate(target.date) })}
+        </p>
+      )}
       <Field label="Status">
         {(id) => (
           <Select id={id} value={status} onChange={(e) => setStatus(e.target.value as AttendanceStatus)}>

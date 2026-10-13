@@ -27,7 +27,7 @@ payrollRouter.post('/payroll/runs', requireRole('owner'), requireFeature('payrol
 
 payrollRouter.get('/payroll/runs/:id', requireRole('owner', 'ca'), async (req, res) => {
   const ctx = ctxOf(req);
-  res.json({ data: await svc.runView(await svc.getRun(ctx, param(req, 'id')), true, ctx.language) });
+  res.json({ data: await svc.runView(await svc.getFreshRun(ctx, param(req, 'id')), true, ctx.language) });
 });
 
 for (const [path, fn] of [

@@ -18,6 +18,8 @@ const en = {
   // roster
   nav_roster: "Roster",
   nav_field: "Field staff",
+  att_joins_on: "Joining date {date} · mark if they worked",
+  att_joining_moves: "Their joining date is {joining}. Marking this day moves it to {day}.",
   set_travel: "Travel allowance for field staff",
   set_travel_hint: "Km tracked while they are checked in × this rate, added to salary.",
   set_travel_off: "Off",
@@ -569,6 +571,8 @@ const hi: Dict = {
   // roster
   nav_roster: "रोस्टर",
   nav_field: "फ़ील्ड स्टाफ़",
+  att_joins_on: "जॉइनिंग {date} · काम किया हो तो लगाएँ",
+  att_joining_moves: "इनकी जॉइनिंग {joining} है। यह दिन लगाने पर जॉइनिंग {day} हो जाएगी।",
   set_travel: "फ़ील्ड स्टाफ़ का यात्रा भत्ता",
   set_travel_hint: "चेक-इन रहते हुए ट्रैक हुए किमी × यह दर, सैलरी में जुड़ेगा।",
   set_travel_off: "बंद",

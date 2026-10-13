@@ -389,4 +389,33 @@ void main() {
     expect(find.byKey(const Key('homeTips')), findsNothing);
     expect(prefs.getBool('sm_tips_home_v1'), isTrue);
   });
+
+  testWidgets('staff added later are listed on an earlier day, not counted, and marking says the joining date moves', (
+    tester,
+  ) async {
+    await pump(
+      tester,
+      rows: (date) => [
+        ..._rows(date),
+        const DayRow(
+          employee: EmployeeRef(id: 'e7', name: 'Naya Staff'),
+          displayStatus: 'not_marked',
+          joinsOn: '2026-10-13',
+        ),
+      ],
+    );
+    // Same counts as without them.
+    expect(find.text('4 of 6 at work'), findsOneWidget);
+    expect(find.text('1 not in yet'), findsOneWidget);
+    expect(find.text('Joining date 13 Oct 2026 · tap if they worked'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('pill_e7')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('joiningMoves')), findsOneWidget);
+    expect(find.textContaining('Their joining date is 13 Oct 2026. Marking this day moves it to'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('quickStatus_present')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('quickSave')));
+    await tester.pumpAndSettle();
+    expect(api.calls.single, containsPair('employeeId', 'e7'));
+  });
 }

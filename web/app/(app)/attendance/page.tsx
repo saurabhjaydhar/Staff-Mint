@@ -6,6 +6,7 @@ import { useI18n, useToast } from "@/components/providers";
 import { Alert, Badge, Button, Card, EmptyState, Field, Input, Loading, PageHeader, Segmented, Table, Td, Th, cx } from "@/components/ui";
 import { useAction, useAsync } from "@/hooks/useAsync";
 import { api } from "@/lib/api";
+import { fill } from "@/lib/i18n";
 import { STATUS_STYLES, overrideDefault, statusStyle } from "@/lib/attendance";
 import { currentMonth, dayOfMonth, formatDate, formatMinutes, formatMonth, formatTime, todayStr, weekdayOf, WEEKDAYS_EN, WEEKDAYS_HI } from "@/lib/format";
 import type { DayRow, DisplayStatus, MonthGrid } from "@/lib/types";
@@ -251,6 +252,7 @@ function DayView({
                   <Td>
                     <div className="font-medium">{r.employee.name}</div>
                     <div className="text-xs text-slate-500">{r.employee.designation || r.employee.phone}</div>
+                    {r.joinsOn && !rec && <div className="text-xs text-amber-700">{fill(t("att_joins_on"), { date: formatDate(r.joinsOn) })}</div>}
                   </Td>
                   <Td>
                     <Badge tone={DISPLAY_TONE[r.displayStatus] ?? "slate"}>{statusStyle(r.displayStatus).label}</Badge>
@@ -303,7 +305,7 @@ function DayView({
                       size="sm"
                       variant="secondary"
                       onClick={() =>
-                        onOverride({ employeeId: r.employee.id, employeeName: r.employee.name, date, status: overrideDefault(r.displayStatus) })
+                        onOverride({ employeeId: r.employee.id, employeeName: r.employee.name, date, status: overrideDefault(r.displayStatus), joinsOn: rec ? null : r.joinsOn })
                       }
                     >
                       Change

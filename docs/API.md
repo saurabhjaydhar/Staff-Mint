@@ -153,10 +153,10 @@ Fields: `name, phone, ratePaise, wageType, designation, joiningDate, branch, adv
 | POST | /attendance/check-out | same | same |
 | POST | /attendance/sync | `{punches: [{type:'in'\|'out', ...same as above}]}` (offline queue) | `{results: {clientPunchId, ok, error?, punch?}[]}` — idempotent by `clientPunchId` |
 | GET | /attendance/today | (employee) | `{date, record: Attendance\|null, shift: Shift, branch: Branch}`. `shift` is today's roster shift when one was sent |
-| GET | /attendance | `?date=YYYY-MM-DD` (owner/manager day view) | `DayRow[]` |
+| GET | /attendance | `?date=YYYY-MM-DD` (owner/manager day view) | `DayRow[]`. Staff whose joining date is up to 45 days after `date` are listed too (`joinsOn: 'YYYY-MM-DD'`, otherwise null), so a forgotten day can be filled in |
 | GET | /attendance/month | `?month=YYYY-MM&employeeId?` (employee: own only) | `{month, days:string[], rows: {employee, days: {[date]: displayStatus}, totals}[]}` |
 | POST | /attendance/fix-request | `{date, note?}` (staff) | `{sent}`: "I was there — ask owner to fix"; tells owners and managers (`attendance_fix_request`), once per day per date; future dates refused |
-| POST | /attendance/override | `{employeeId, date, status, leaveType?, reason?}` (owner/manager; reason optional) | `Attendance` (audited) |
+| POST | /attendance/override | `{employeeId, date, status, leaveType?, reason?}` (owner/manager; reason optional) | `Attendance` (audited). Present / absent / half day for a future date → `VALIDATION_ERROR` with `details.reason: 'future_date'` (leave, holiday and week off can be marked ahead). A date before their joining date moves the joining date (and the first salary's start) back to it (audited `employee.update`) |
 | POST | /attendance/:id/punches/:punchId/decision | `{approve:boolean}` | `Attendance` |
 | POST | /attendance/clear-override | `{employeeId, date, reason}` (owner/manager) | `Attendance` with status recomputed from punches/leave/holiday (may be `null`), or `null` if no record. Used for Undo |
 
@@ -259,9 +259,9 @@ The scheduler closes sessions past their end and tells owners once when someone'
 | DELETE | /adjustments/:id | | `{ok:true}` |
 
 ### Payroll & payslips
-| GET | /payroll/runs | `?month` | `PayrollRun[]` |
+| GET | /payroll/runs | `?month` | `PayrollRun[]`. Drafts are recomputed first, so they always show the latest attendance, staff and advances |
 | POST | /payroll/runs | `{month}` → creates or recomputes the draft | `PayrollRun` (with payslips) |
-| GET | /payroll/runs/:id | | `PayrollRun` (with payslips) |
+| GET | /payroll/runs/:id | | `PayrollRun` (with payslips). A draft is recomputed first; approved and paid runs never change |
 | POST | /payroll/runs/:id/recompute | | `PayrollRun` |
 | POST | /payroll/runs/:id/approve | | `PayrollRun` (payslip PDFs generated) |
 | POST | /payroll/runs/:id/mark-paid | `{paidOn?: 'YYYY-MM-DD', method?: 'cash'\|'upi'\|'bank'\|'mixed'}` | `PayrollRun`; slips show "Paid on … by …" (PDFs regenerated), staff get a `salary_paid` message |

@@ -78,6 +78,8 @@ void invalidateAttendance(WidgetRef ref) {
   ref.invalidate(monthGridProvider);
   ref.invalidate(employeeMonthProvider);
   ref.invalidate(leavesProvider);
+  // Salary drafts are recomputed on the server when opened; make the Salary tab ask again.
+  ref.invalidate(payrollRunsProvider);
 }
 
 /// Invalidate money-related providers after advances / adjustments change.

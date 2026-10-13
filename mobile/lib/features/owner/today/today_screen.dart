@@ -325,6 +325,7 @@ class _Ledger extends StatelessWidget {
         if (reason != null && reason.isNotEmpty && reason != 'Undo') reason,
       ].join(' · ');
     }
+    if (r.joinsOn != null && rec == null) return s.rowJoinsOn(Dates.prettyApiDate(r.joinsOn!, s.languageCode));
     if (r.ownerMarks && rec != null && rec.autoMarked && r.displayStatus == 'present') return s.rowAutoPresent;
     switch (r.displayStatus) {
       case 'late':
@@ -345,8 +346,10 @@ class _Ledger extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = context.s;
-    int count(String st) => rows.where((r) => r.displayStatus == st).length;
-    final expected = rows.where((r) => !_offStatuses.contains(r.displayStatus)).length;
+    // Not joined yet that day (listed only so a missed day can be filled in): not counted.
+    final counted = rows.where((r) => r.joinsOn == null || r.record != null).toList();
+    int count(String st) => counted.where((r) => r.displayStatus == st).length;
+    final expected = counted.where((r) => !_offStatuses.contains(r.displayStatus)).length;
     final atWork = rows.where((r) => _atWork.contains(r.displayStatus)).length;
     final present = count('present') + count('checked_in');
     final late = count('late');
@@ -354,7 +357,7 @@ class _Ledger extends StatelessWidget {
     final leave = count('leave');
     final absent = count('absent');
     // Staff the owner marks aren't "not in yet": they're waiting to be marked.
-    final toMark = rows.where((r) => r.ownerMarks && r.displayStatus == 'not_marked').length;
+    final toMark = counted.where((r) => r.ownerMarks && r.displayStatus == 'not_marked').length;
     final notIn = count('not_marked') - toMark;
     return LedgerSheet(
       header: Column(
