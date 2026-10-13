@@ -19,7 +19,7 @@ const placeCache = new Map<string, string | null>();
 export async function placeName(lat: number, lng: number, lang: 'en' | 'hi' = 'en') {
   const key = `${lat.toFixed(3)},${lng.toFixed(3)},${lang}`;
   if (placeCache.has(key)) return placeCache.get(key)!;
-  let name: string | null = null;
+  let name: string | null;
   try {
     const { address } = await (await provider('geo')).reverseGeocode(lat, lng, lang);
     name = address ? address.split(',').slice(0, 2).join(',').trim() : null;
