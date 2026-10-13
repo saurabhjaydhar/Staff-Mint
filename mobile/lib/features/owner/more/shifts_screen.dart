@@ -5,20 +5,98 @@ import '../../../core/api/providers.dart';
 import '../../../core/i18n/strings.dart';
 import '../../../core/models/models.dart';
 import '../../../core/utils/dates.dart';
+import '../../../core/utils/shift_text.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/pickers.dart';
+import '../../auth/auth_controller.dart';
 import '../providers/owner_providers.dart';
 
-/// Add or change a shift in a bottom sheet; refreshes the list when saved.
-Future<void> editShift(BuildContext context, WidgetRef ref, [Shift? shift]) async {
-  final changed = await showModalBottomSheet<bool>(
+/// Add or change a shift in a bottom sheet; refreshes the list when saved. Returns the saved shift.
+Future<Shift?> editShift(BuildContext context, WidgetRef ref, [Shift? shift]) async {
+  final saved = await showModalBottomSheet<Shift>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
     showDragHandle: true,
     builder: (_) => _ShiftForm(shift: shift),
   );
-  if (changed == true) ref.invalidate(shiftsProvider);
+  if (saved != null) ref.invalidate(shiftsProvider);
+  return saved;
+}
+
+const _newShift = '__new_shift__';
+
+/// The shift dropdown when adding or editing staff. Its last item, "Add shift", makes a new shift right
+/// there and picks it.
+class ShiftPicker extends ConsumerStatefulWidget {
+  const ShiftPicker({super.key, required this.value, required this.onChanged});
+
+  /// null: the business's default shift.
+  final String? value;
+  final ValueChanged<String> onChanged;
+
+  @override
+  ConsumerState<ShiftPicker> createState() => _ShiftPickerState();
+}
+
+class _ShiftPickerState extends ConsumerState<ShiftPicker> {
+  /// A shift just made here, shown before the list has reloaded with it.
+  Shift? _made;
+
+  /// Bumped to show the right choice again after "Add shift" (saved or cancelled).
+  int _rev = 0;
+
+  Future<void> _add() async {
+    final made = await editShift(context, ref);
+    if (!mounted) return;
+    setState(() {
+      _rev++;
+      if (made != null) _made = made;
+    });
+    if (made != null) widget.onChanged(made.id);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.s;
+    final loaded = ref.watch(shiftsProvider).value ?? const <Shift>[];
+    final shifts = [...loaded, if (_made != null && !loaded.any((x) => x.id == _made!.id)) _made!];
+    final selected = shifts.any((x) => x.id == widget.value) ? widget.value : defaultShiftOf(shifts)?.id;
+    // Only owners make shifts (managers can still pick one).
+    final canAdd = ref.watch(authControllerProvider).isOwner;
+    return DropdownButtonFormField<String>(
+      key: ValueKey('shiftPicker_${selected}_${shifts.length}_$_rev'),
+      initialValue: selected,
+      isExpanded: true,
+      decoration: InputDecoration(labelText: s.shift),
+      items: [
+        for (final sh in shifts)
+          DropdownMenuItem(
+            value: sh.id,
+            child: Text(shiftText(s, sh, withName: shifts.length > 1), overflow: TextOverflow.ellipsis),
+          ),
+        if (canAdd)
+          DropdownMenuItem(
+            key: const Key('shiftPickerAdd'),
+            value: _newShift,
+            child: Row(
+              children: [
+                const Icon(Icons.add_rounded, size: 20),
+                const SizedBox(width: 6),
+                Text(s.addShift, style: const TextStyle(fontWeight: FontWeight.w700)),
+              ],
+            ),
+          ),
+      ],
+      onChanged: (v) {
+        if (v == _newShift) {
+          _add();
+        } else if (v != null) {
+          widget.onChanged(v);
+        }
+      },
+    );
+  }
 }
 
 class ShiftsScreen extends ConsumerWidget {
@@ -113,16 +191,13 @@ class _ShiftFormState extends ConsumerState<_ShiftForm> {
     };
     setState(() => _busy = true);
     final api = ref.read(companyApiProvider);
+    Shift? saved;
     final ok = await runGuarded(context, () async {
-      if (widget.shift == null) {
-        await api.createShift(body);
-      } else {
-        await api.updateShift(widget.shift!.id, body);
-      }
+      saved = widget.shift == null ? await api.createShift(body) : await api.updateShift(widget.shift!.id, body);
     }, success: s.saved);
     if (!mounted) return;
     setState(() => _busy = false);
-    if (ok) Navigator.pop(context, true);
+    if (ok) Navigator.pop(context, saved);
   }
 
   Widget _offWeeksRow(S s, int day) {

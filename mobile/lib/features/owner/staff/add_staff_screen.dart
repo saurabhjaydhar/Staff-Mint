@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../more/shifts_screen.dart';
 import '../../../core/api/providers.dart';
 import '../../../core/i18n/strings.dart';
 import '../../../core/models/models.dart';
@@ -10,7 +11,6 @@ import '../../../core/router/routes.dart';
 import '../../../core/utils/dates.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/utils/phone.dart';
-import '../../../core/utils/shift_text.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/pickers.dart';
@@ -183,9 +183,6 @@ class _AddStaffScreenState extends ConsumerState<AddStaffScreen> {
   );
 
   Widget _formView(S s) {
-    final shifts = ref.watch(shiftsProvider).value ?? const <Shift>[];
-    final fallback = defaultShiftOf(shifts);
-    final selected = shifts.any((x) => x.id == _shiftId) ? _shiftId : fallback?.id;
     final joining = _joining ?? DateTime.now();
     final isToday = Dates.toApiDate(joining) == Dates.toApiDate(DateTime.now());
     return Form(
@@ -220,23 +217,8 @@ class _AddStaffScreenState extends ConsumerState<AddStaffScreen> {
           ),
           const SizedBox(height: 12),
           AmountField(controller: _rate, label: _wageType == 'daily' ? s.dailyWage : s.monthlySalary),
-          if (shifts.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              key: const Key('shiftPicker'),
-              initialValue: selected,
-              isExpanded: true,
-              decoration: InputDecoration(labelText: s.shift),
-              items: [
-                for (final sh in shifts)
-                  DropdownMenuItem(
-                    value: sh.id,
-                    child: Text(shiftText(s, sh, withName: shifts.length > 1), overflow: TextOverflow.ellipsis),
-                  ),
-              ],
-              onChanged: (v) => setState(() => _shiftId = v),
-            ),
-          ],
+          const SizedBox(height: 12),
+          ShiftPicker(key: const Key('shiftPicker'), value: _shiftId, onChanged: (v) => setState(() => _shiftId = v)),
           const SizedBox(height: 12),
           TextFormField(
             controller: _designation,

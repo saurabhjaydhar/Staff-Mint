@@ -45,6 +45,12 @@ class _FakeCompanyApi implements CompanyApi {
   }
 
   @override
+  Future<Shift> createShift(Json body) async {
+    saved.add(body);
+    return Shift(id: 's3', name: body['name'] as String, start: body['start'] as String, end: body['end'] as String);
+  }
+
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
@@ -55,7 +61,7 @@ void main() {
     prefs = await SharedPreferences.getInstance();
   });
 
-  Future<void> pump(WidgetTester tester, Widget home) async {
+  Future<void> pump(WidgetTester tester, Widget home, {CompanyApi? companyApi}) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.6;
     addTearDown(tester.view.reset);
@@ -66,6 +72,7 @@ void main() {
           sharedPreferencesProvider.overrideWithValue(prefs),
           authControllerProvider.overrideWith(_FakeAuth.new),
           shiftsProvider.overrideWith((ref) async => _shifts),
+          if (companyApi != null) companyApiProvider.overrideWithValue(companyApi),
           employeesProvider.overrideWith((ref, q) async => _staff),
           activeEmployeesProvider.overrideWith((ref) async => _staff.where((e) => e.isActive).toList()),
           dayAttendanceProvider.overrideWith((ref, d) async => const <DayRow>[]),
@@ -97,6 +104,23 @@ void main() {
     expect(find.text('General · 9:00 AM – 9:00 PM · Sunday off'), findsOneWidget);
     expect(find.text('Joining date: today'), findsOneWidget);
     expect(find.text('Add & send invite'), findsOneWidget);
+  });
+
+  testWidgets('Add staff: "Add shift" in the shift list makes a new shift and picks it', (tester) async {
+    final api = _FakeCompanyApi();
+    await pump(tester, const AddStaffScreen(), companyApi: api);
+    await tester.tap(find.text('Type'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('shiftPicker')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Add shift').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, 'Shift name'), 'Night');
+    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+    await tester.pumpAndSettle();
+    expect(api.saved.single, containsPair('name', 'Night'));
+    // The new shift is now the one picked.
+    expect(find.text('Night · 9:00 AM – 7:00 PM · Sunday off'), findsOneWidget);
   });
 
   testWidgets('Staff tab: a labelled "+ Add" and Working / Left chips instead of "Show inactive"', (tester) async {
