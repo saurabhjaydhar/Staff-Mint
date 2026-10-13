@@ -404,6 +404,16 @@ export function describe(
         'attendance',
         [{ label: t('Days changed', 'बदले दिन'), to: String(a.days ?? 0) }],
       );
+    case 'roster.repeat_on':
+      return r(
+        a.mode === 'rotate'
+          ? t(`Roster set to swap shifts every week (${Number(a.staff ?? 0)} staff)`, `रोस्टर हर हफ़्ते शिफ़्ट बदलेगा (${Number(a.staff ?? 0)} स्टाफ़)`)
+          : t(`Roster set to repeat every week (${Number(a.staff ?? 0)} staff)`, `रोस्टर हर हफ़्ते दोहराया जाएगा (${Number(a.staff ?? 0)} स्टाफ़)`),
+        'attendance',
+        a.autoSend ? [{ label: t('Sent to staff', 'स्टाफ़ को भेजना'), to: t('On its own', 'अपने-आप') }] : [],
+      );
+    case 'roster.repeat_off':
+      return r(t('Roster repeat turned off', 'रोस्टर दोहराना बंद किया'), 'attendance', []);
 
     // ------------------------------------------------------------------- billing
     case 'billing.subscribe':

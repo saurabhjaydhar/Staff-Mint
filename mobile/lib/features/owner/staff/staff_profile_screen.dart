@@ -169,7 +169,7 @@ class StaffProfileScreen extends ConsumerWidget {
                           : '${Dates.hhmmToDisplay(shift.start, s.languageCode)} – ${Dates.hhmmToDisplay(shift.end, s.languageCode)}',
                     ),
                     if (shift != null && shift.weeklyOff.isNotEmpty)
-                      _InfoRow(label: s.weeklyOffLabel, value: Dates.weekdayNames(shift.weeklyOff, s.languageCode)),
+                      _InfoRow(label: s.weeklyOffLabel, value: s.offDaysText(shift.weeklyOff, shift.weeklyOffWeeks)),
                     if (e.joiningDate != null)
                       _InfoRow(label: s.joinedLabel, value: Dates.prettyApiDate(e.joiningDate!, s.languageCode)),
                     _WhoMarksTile(employee: e, onChanged: invalidate),

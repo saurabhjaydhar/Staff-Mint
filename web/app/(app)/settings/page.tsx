@@ -407,7 +407,36 @@ function WeekdayPicker({ value, onChange }: { value: number[]; onChange: (v: num
   );
 }
 
-type ShiftDraft = { name: string; start: string; end: string; graceMinutes: string; weeklyOff: number[] };
+/** Alternating offs for each weekly-off day: every week, 1st & 3rd, or 2nd & 4th of the month. */
+function OffWeeksPicker({ days, value, onChange }: { days: number[]; value: Record<string, number[]>; onChange: (v: Record<string, number[]>) => void }) {
+  const { lang, t } = useI18n();
+  const names = lang === "hi" ? WEEKDAYS_HI : WEEKDAYS_EN;
+  if (!days.length) return null;
+  return (
+    <div className="mt-1 flex flex-wrap gap-2">
+      {days.map((d) => {
+        const cur = (value[String(d)] ?? []).join(",");
+        return (
+          <label key={d} className="inline-flex items-center gap-1 text-xs text-slate-600">
+            {names[d]}
+            <select
+              className="rounded border border-slate-200 px-1 py-0.5 text-xs"
+              value={cur === "1,3" || cur === "2,4" ? cur : ""}
+              onChange={(e) => onChange({ ...value, [String(d)]: e.target.value ? e.target.value.split(",").map(Number) : [] })}
+              aria-label={`${names[d]} off weeks`}
+            >
+              <option value="">{t("shift_off_weeks_every")}</option>
+              <option value="1,3">{t("shift_off_weeks_13")}</option>
+              <option value="2,4">{t("shift_off_weeks_24")}</option>
+            </select>
+          </label>
+        );
+      })}
+    </div>
+  );
+}
+
+type ShiftDraft = { name: string; start: string; end: string; graceMinutes: string; weeklyOff: number[]; weeklyOffWeeks: Record<string, number[]> };
 
 function shiftBody(s: ShiftDraft) {
   return {
@@ -416,6 +445,7 @@ function shiftBody(s: ShiftDraft) {
     end: s.end,
     graceMinutes: s.graceMinutes === "" ? null : Number(s.graceMinutes),
     weeklyOff: s.weeklyOff,
+    weeklyOffWeeks: Object.fromEntries(Object.entries(s.weeklyOffWeeks).filter(([d, w]) => s.weeklyOff.includes(Number(d)) && w.length)),
   };
 }
 
@@ -423,11 +453,11 @@ function ShiftsCard() {
   const toast = useToast();
   const shifts = useAsync(() => api.get<Shift[]>("/shifts"), "shifts");
   const [edits, setEdits] = useState<Record<string, ShiftDraft>>({});
-  const [newShift, setNewShift] = useState<ShiftDraft>({ name: "", start: "09:00", end: "18:00", graceMinutes: "", weeklyOff: [0] });
+  const [newShift, setNewShift] = useState<ShiftDraft>({ name: "", start: "09:00", end: "18:00", graceMinutes: "", weeklyOff: [0], weeklyOffWeeks: {} });
   const action = useAction();
 
   const draftOf = (s: Shift): ShiftDraft =>
-    edits[s.id] ?? { name: s.name, start: s.start, end: s.end, graceMinutes: s.graceMinutes == null ? "" : String(s.graceMinutes), weeklyOff: s.weeklyOff };
+    edits[s.id] ?? { name: s.name, start: s.start, end: s.end, graceMinutes: s.graceMinutes == null ? "" : String(s.graceMinutes), weeklyOff: s.weeklyOff, weeklyOffWeeks: s.weeklyOffWeeks ?? {} };
   const edit = (s: Shift, p: Partial<ShiftDraft>) => setEdits((e) => ({ ...e, [s.id]: { ...draftOf(s), ...p } }));
 
   async function save(s: Shift) {
@@ -448,7 +478,7 @@ function ShiftsCard() {
     const res = await action.run("add", () => api.post<Shift>("/shifts", shiftBody(newShift)));
     if (res.ok) {
       shifts.setData((prev) => [...(prev ?? []), res.value]);
-      setNewShift({ name: "", start: "09:00", end: "18:00", graceMinutes: "", weeklyOff: [0] });
+      setNewShift({ name: "", start: "09:00", end: "18:00", graceMinutes: "", weeklyOff: [0], weeklyOffWeeks: {} });
       toast("Shift added");
     }
   }
@@ -480,7 +510,10 @@ function ShiftsCard() {
                   <Td><Input className="h-8 w-28 py-1" type="time" value={d.start} onChange={(e) => edit(s, { start: e.target.value })} aria-label="Start" /></Td>
                   <Td><Input className="h-8 w-28 py-1" type="time" value={d.end} onChange={(e) => edit(s, { end: e.target.value })} aria-label="End" /></Td>
                   <Td><Input className="h-8 w-24 py-1" type="number" min={0} placeholder="Default" value={d.graceMinutes} onChange={(e) => edit(s, { graceMinutes: e.target.value })} aria-label="Grace minutes" /></Td>
-                  <Td><WeekdayPicker value={d.weeklyOff} onChange={(v) => edit(s, { weeklyOff: v })} /></Td>
+                  <Td>
+                    <WeekdayPicker value={d.weeklyOff} onChange={(v) => edit(s, { weeklyOff: v })} />
+                    <OffWeeksPicker days={d.weeklyOff} value={d.weeklyOffWeeks} onChange={(v) => edit(s, { weeklyOffWeeks: v })} />
+                  </Td>
                   <Td className="text-right">
                     {edits[s.id] && (
                       <Button size="sm" loading={action.busy === `save:${s.id}`} onClick={() => save(s)}>
@@ -496,7 +529,10 @@ function ShiftsCard() {
               <Td><Input className="h-8 w-28 py-1" type="time" value={newShift.start} onChange={(e) => setNewShift((n) => ({ ...n, start: e.target.value }))} aria-label="New shift start" /></Td>
               <Td><Input className="h-8 w-28 py-1" type="time" value={newShift.end} onChange={(e) => setNewShift((n) => ({ ...n, end: e.target.value }))} aria-label="New shift end" /></Td>
               <Td><Input className="h-8 w-24 py-1" type="number" min={0} placeholder="Default" value={newShift.graceMinutes} onChange={(e) => setNewShift((n) => ({ ...n, graceMinutes: e.target.value }))} aria-label="New shift grace" /></Td>
-              <Td><WeekdayPicker value={newShift.weeklyOff} onChange={(v) => setNewShift((n) => ({ ...n, weeklyOff: v }))} /></Td>
+              <Td>
+                <WeekdayPicker value={newShift.weeklyOff} onChange={(v) => setNewShift((n) => ({ ...n, weeklyOff: v }))} />
+                <OffWeeksPicker days={newShift.weeklyOff} value={newShift.weeklyOffWeeks} onChange={(v) => setNewShift((n) => ({ ...n, weeklyOffWeeks: v }))} />
+              </Td>
               <Td className="text-right">
                 <form onSubmit={add}>
                   <Button size="sm" type="submit" loading={action.busy === "add"}>

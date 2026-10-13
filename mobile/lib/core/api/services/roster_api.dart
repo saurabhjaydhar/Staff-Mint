@@ -25,6 +25,12 @@ class RosterApi {
   /// Returns how many staff were told.
   Future<int> send(String week) async => asInt(asMap(await _c.post('/roster/send', body: {'week': week}))['sentTo']);
 
+  /// Repeat [week]'s plan every week (`same`) or swap shifts every week (`rotate`). Returns days filled next week.
+  Future<int> repeat(String week, {required String mode, bool autoSend = false}) async =>
+      asInt(asMap(await _c.post('/roster/repeat', body: {'week': week, 'mode': mode, 'autoSend': autoSend}))['filled']);
+
+  Future<void> stopRepeat() => _c.delete('/roster/repeat');
+
   Future<MyRosterWeek> mine(String date) async =>
       MyRosterWeek.fromJson(asMap(await _c.get('/roster/mine', query: {'week': date})));
 }

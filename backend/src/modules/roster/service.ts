@@ -1,7 +1,8 @@
 import { Types } from 'mongoose';
 import { DateTime } from 'luxon';
 import { AppError, notFound } from '../../lib/errors.js';
-import { dateRange, todayIn, weekdayOf } from '../../lib/dates.js';
+import { dateRange, todayIn } from '../../lib/dates.js';
+import { isShiftOff, usualShiftResolver } from './days.js';
 import type { Ctx } from '../../lib/context.js';
 import { Attendance, Branch, Company, Employee, Holiday, Leave, RosterEntry, Shift } from '../../models/index.js';
 import { employeeScope } from '../employees/service.js';
@@ -9,21 +10,22 @@ import { audit } from '../audit/service.js';
 import { notifyEmployee } from '../notifications/service.js';
 import { applyRules } from '../attendance/service.js';
 import { shiftView } from '../views.js';
+import { canRepeat, fillIfAhead, repeatInfo } from './repeat.js';
 
-type Kind = 'shift' | 'off';
-interface DayPlan {
+export type Kind = 'shift' | 'off';
+export interface DayPlan {
   kind: Kind;
   shiftId: string | null;
 }
 
 /** Monday of the week that contains [date]. */
 export const weekStartOf = (date: string) => DateTime.fromISO(date).startOf('week').toISODate()!;
-const weekDays = (start: string) => dateRange(start, DateTime.fromISO(start).plus({ days: 6 }).toISODate()!);
-const same = (a: DayPlan, b: DayPlan) => a.kind === b.kind && (a.kind === 'off' || a.shiftId === b.shiftId);
-const employedOn = (e: any, d: string) => (!e.joiningDate || e.joiningDate <= d) && (!e.exitDate || e.exitDate >= d);
+export const weekDays = (start: string) => dateRange(start, DateTime.fromISO(start).plus({ days: 6 }).toISODate()!);
+export const same = (a: DayPlan, b: DayPlan) => a.kind === b.kind && (a.kind === 'off' || a.shiftId === b.shiftId);
+export const employedOn = (e: any, d: string) => (!e.joiningDate || e.joiningDate <= d) && (!e.exitDate || e.exitDate >= d);
 
 /** Everything a week needs: people in scope, their usual shift and weekly off, roster rows, leave, holidays. */
-async function loadWeek(ctx: Ctx, start: string, opts: { branchId?: string; employeeIds?: Types.ObjectId[] } = {}) {
+export async function loadWeek(ctx: Ctx, start: string, opts: { branchId?: string; employeeIds?: Types.ObjectId[] } = {}) {
   const days = weekDays(start);
   const f: any = { ...employeeScope(ctx), status: 'active' };
   if (opts.branchId) f.branchId = new Types.ObjectId(opts.branchId);
@@ -38,13 +40,10 @@ async function loadWeek(ctx: Ctx, start: string, opts: { branchId?: string; empl
     Leave.find({ companyId: ctx.companyId, employeeId: { $in: ids }, status: 'approved', deletedAt: null, from: { $lte: days[6] }, to: { $gte: days[0] } }).lean(),
   ]);
   const shiftById = new Map(shifts.map((s) => [String(s._id), s]));
-  const defaultShift = shifts.find((s) => s.isDefault) ?? shifts[0];
-  const branchById = new Map(branches.map((b) => [String(b._id), b]));
-  const usualShift = (e: any) =>
-    shiftById.get(String(e.shiftId ?? '')) ?? shiftById.get(String(branchById.get(String(e.branchId ?? ''))?.shiftId ?? '')) ?? defaultShift;
+  const usualShift = usualShiftResolver(shifts, branches);
   const usual = (e: any, d: string): DayPlan => {
     const sh = usualShift(e);
-    return (sh?.weeklyOff ?? [0]).includes(weekdayOf(d)) ? { kind: 'off', shiftId: null } : { kind: 'shift', shiftId: sh ? String(sh._id) : null };
+    return isShiftOff(sh, d) ? { kind: 'off', shiftId: null } : { kind: 'shift', shiftId: sh ? String(sh._id) : null };
   };
   const entryOf = new Map(entries.map((r) => [`${r.employeeId}:${r.date}`, r]));
   const holidayOn = new Map(holidays.map((h) => [h.date, h.name]));
@@ -67,6 +66,7 @@ async function loadWeek(ctx: Ctx, start: string, opts: { branchId?: string; empl
 /** Owner/manager: the week, one row per person, with what isn't sent yet and what needs a look. */
 export async function weekView(ctx: Ctx, date: string, branchId?: string) {
   const start = weekStartOf(date);
+  await fillIfAhead(ctx, start, branchId);
   const w = await loadWeek(ctx, start, { branchId });
   const problems: { type: 'leave_working' | 'no_day_off'; employeeId: string; name: string; date: string }[] = [];
   let notSent = 0;
@@ -92,6 +92,8 @@ export async function weekView(ctx: Ctx, date: string, branchId?: string) {
     staff,
     notSent,
     problems,
+    repeat: await repeatInfo(ctx, branchId),
+    repeatAllowed: await canRepeat(ctx.companyId),
   };
 }
 
@@ -116,12 +118,12 @@ export async function setCells(ctx: Ctx, cells: CellInput[]) {
     if (c.kind === 'usual') {
       // Nothing was ever sent for this day: forget it. Otherwise remember to send "back to usual".
       await RosterEntry.deleteOne({ ...key, sent: null });
-      await RosterEntry.updateOne(key, { $set: { kind: 'usual', shiftId: null, updatedBy: ctx.userId } });
+      await RosterEntry.updateOne(key, { $set: { kind: 'usual', shiftId: null, source: 'owner', updatedBy: ctx.userId } });
       continue;
     }
     await RosterEntry.updateOne(
       key,
-      { $set: { kind: c.kind, shiftId: c.kind === 'shift' ? new Types.ObjectId(c.shiftId!) : null, updatedBy: ctx.userId }, $setOnInsert: { sent: null } },
+      { $set: { kind: c.kind, shiftId: c.kind === 'shift' ? new Types.ObjectId(c.shiftId!) : null, source: 'owner', updatedBy: ctx.userId }, $setOnInsert: { sent: null } },
       { upsert: true },
     );
   }

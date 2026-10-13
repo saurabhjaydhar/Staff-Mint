@@ -1,4 +1,4 @@
-# Roster (round 1)
+# Roster
 
 Captured from the Flutter app compiled for the browser (390×844) against the local backend with demo data for Sharma Medical Store (week of 12–18 Oct 2026).
 
@@ -13,3 +13,18 @@ Captured from the Flutter app compiled for the browser (390×844) against the lo
 |---|---|---|
 | <img src="hi-1-staff-tab.jpg" width="240"><br>स्टाफ़ टैब में रोस्टर | <img src="hi-2-day.jpg" width="240"><br>एक बार में एक दिन | <img src="hi-3-wed.jpg" width="240"><br>बुधवार: बदलाव अभी नहीं भेजे |
 | <img src="hi-4-change.jpg" width="240"><br>शिफ़्ट बदलें | <img src="hi-5-send.jpg" width="240"><br>भेजने से पहले एक टैप में सुधार | <img src="hi-7-my-week.jpg" width="240"><br>स्टाफ़ का "मेरा हफ़्ता" |
+
+## Round 2a: repeat every week, whole week, web grid
+
+| | | |
+|---|---|---|
+| <img src="r2-en-2-week-grid.jpg" width="240"><br>Whole week: a letter per shift; Raju's Friday (outlined) isn't sent yet | <img src="r2-en-3-repeat-sheet.jpg" width="240"><br>Repeat every week: same, or swap Morning → Evening → Morning | <img src="r2-en-5-next-week.jpg" width="240"><br>Next week filled in with shifts swapped, ready to check and send |
+| <img src="r2-hi-2-week-grid.jpg" width="240"><br>पूरा हफ़्ता | <img src="r2-hi-3-repeat-sheet.jpg" width="240"><br>हर हफ़्ते दोहराएँ | <img src="r2-hi-5-next-week.jpg" width="240"><br>अगला हफ़्ता अपने-आप भरा |
+
+### Web dashboard
+
+| | |
+|---|---|
+| <img src="r2-web-roster.jpg" width="480"><br>Roster grid: pick a shift in any box | <img src="r2-web-roster-next-week.jpg" width="480"><br>Next week, filled in by "swap every week" |
+| <img src="r2-web-repeat-modal.jpg" width="480"><br>Repeat every week | <img src="r2-web-send-modal.jpg" width="480"><br>Send to staff, with one-tap fixes |
+| <img src="r2-web-settings-shifts.jpg" width="480"><br>Shifts: each weekly off can be every week, 1st & 3rd, or 2nd & 4th | <img src="r2-web-roster-hindi.jpg" width="480"><br>Hindi |

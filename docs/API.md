@@ -110,7 +110,7 @@ Phone: E.164 (`+919876543210`) or 10-digit Indian (`9876543210`, normalised serv
 | POST | /company/accountants | `{phone, name}` (Pro plan) | CA access to reports/payroll/export. An existing StaffMint user gets one more account (`ca` membership) |
 | GET/POST | /branches | `{name, location, radiusM?}` | `Branch[]` / `Branch` |
 | PATCH | /branches/:id | partial | `Branch` |
-| GET/POST | /shifts | `{name, start, end, graceMinutes?, weeklyOff}` | |
+| GET/POST | /shifts | `{name, start, end, graceMinutes?, weeklyOff, weeklyOffWeeks?}` | `weeklyOffWeeks`: alternating offs, weekday → weeks of the month it is off (`{"6": [1, 3]}` = 1st and 3rd Saturday; days 1–7 are week 1). A weekly-off day not listed is off every week. Used by attendance, salary, leave counting and the roster |
 | PATCH | /shifts/:id | partial | |
 | GET | /holidays | `?year` | `{id,date,name}[]` |
 | POST | /holidays | `{date, name}` | |
@@ -162,10 +162,12 @@ Fields: `name, phone, ratePaise, wageType, designation, joiningDate, branch, adv
 ### Roster (owner/manager; feature `roster`: Starter and up)
 | Method | Path | Body / Query | Returns |
 |---|---|---|---|
-| GET | /roster | `?week=YYYY-MM-DD` (any day of the week; default today) `&branchId` | `{weekStart, days: {date, holiday}[7], shifts: Shift[], staff: {id, name, designation, cells: {date, kind:'shift'\|'off', shiftId, usual, changed, leave, employed}[7]}[], notSent, problems: {type:'leave_working'\|'no_day_off', employeeId, name, date}[]}`. A cell is the owner's plan: a roster day, or the usual shift and weekly off (`usual: true`). `changed` = not sent to staff yet |
+| GET | /roster | `?week=YYYY-MM-DD` (any day of the week; default today) `&branchId` | `{weekStart, days: {date, holiday}[7], shifts: Shift[], staff: {id, name, designation, cells: {date, kind:'shift'\|'off', shiftId, usual, changed, leave, employed}[7]}[], notSent, problems: {type:'leave_working'\|'no_day_off', employeeId, name, date}[], repeat: {mode, startWeek, autoSend, staff}\|null, repeatAllowed}`. Opening a future week (up to 8 ahead) first fills it from "Repeat every week". A cell is the owner's plan: a roster day, or the usual shift and weekly off (`usual: true`). `changed` = not sent to staff yet |
 | PUT | /roster/cells | `{cells: {employeeId, date, kind:'shift'\|'off'\|'usual', shiftId?}[]}` (max 500) | `{saved}`. Saved as not sent; `usual` puts the day back to the usual shift |
 | POST | /roster/copy-last-week | `{week?, branchId?}` | `{copied}`: last week's roster days onto the same weekdays, not sent |
 | POST | /roster/send | `{week?, branchId?}` | `{sentTo, days}`. Sent days are what attendance (late/half day/auto-absent), leave counting and salary use. People whose days changed get a push, or WhatsApp `roster_published` if they haven't joined the app. Days already worked are re-checked against the new shift |
+| POST | /roster/repeat | `{week?, mode:'same'\|'rotate', autoSend?, branchId?}` (feature `roster_repeat`: Growth and up) | `{staff, mode, nextWeek, filled}`. Repeats [week]'s plan for everyone in view: `same` = every week alike; `rotate` = each person moves to the next shift every week (start-time order of the shifts used that week; needs 2+). Days off stay on the same days, and days on the usual shift keep following it. Each future week is filled once, as not sent; days the owner already planned are kept. Every Thursday from 10 AM the next week is filled, then sent (`autoSend`) or owners get a `roster_ready` push to check and send |
+| DELETE | /roster/repeat | `?branchId` (any plan) | `{staff}`. Turns repeat off; future days it filled and nobody sent are removed |
 | GET | /roster/mine | `?week` (employee, every plan) | `{weekStart, rostered, shifts, days: {date, kind, shiftId, holiday, leave, changed}[7]}`: their week as sent (`changed` = sent in the last 3 days and different from their usual day; `rostered` = a roster was sent for this week) |
 
 ### Leave

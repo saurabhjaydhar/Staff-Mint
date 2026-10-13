@@ -201,6 +201,22 @@ class S {
     return isHindi ? hi[d % 7] : en[d % 7];
   }
 
+  /// "1st & 3rd" / "पहला और तीसरा": weeks of the month.
+  String weeksOfMonth(List<int> weeks) {
+    const en = ['', '1st', '2nd', '3rd', '4th', '5th'];
+    const hi = ['', 'पहला', 'दूसरा', 'तीसरा', 'चौथा', 'पाँचवाँ'];
+    final names = [for (final w in weeks) (isHindi ? hi : en)[w.clamp(1, 5)]];
+    final last = names.removeLast();
+    return names.isEmpty ? last : '${names.join(', ')} ${_t('&', 'और')} $last';
+  }
+
+  /// "Sunday, 1st & 3rd Saturday": a shift's days off, alternating weeks included.
+  String offDaysText(List<int> days, Map<int, List<int>> weeks) => days
+      .map((d) => weeks[d]?.isNotEmpty == true ? '${weeksOfMonth(weeks[d]!)} ${weekday(d)}' : weekday(d))
+      .join(', ');
+  String get everyWeek => _t('Every week', 'हर हफ़्ते');
+  String whichWeekdayOff(String day) => _t('Which ${day}s off?', 'कौन से $day छुट्टी?');
+
   String weekdayShort(int d) {
     const en = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const hi = ['रवि', 'सोम', 'मंगल', 'बुध', 'गुरु', 'शुक्र', 'शनि'];
@@ -647,6 +663,8 @@ class S {
         return _t('Reports', 'रिपोर्ट');
       case 'roster':
         return _t('Roster', 'रोस्टर');
+      case 'roster_repeat':
+        return _t('Repeat roster every week', 'रोस्टर हर हफ़्ते दोहराना');
       case 'whatsapp_payslips':
         return _t('Salary slips on WhatsApp', 'WhatsApp पर सैलरी स्लिप');
       case 'whatsapp_assistant':
@@ -2052,6 +2070,7 @@ class S {
     'salary' => _t('Salary & advances', 'सैलरी और एडवांस'),
     'slips' => _t('Salary slips & reports', 'सैलरी स्लिप, रिपोर्ट'),
     'roster' => _t('Weekly roster (shifts)', 'हफ़्ते का रोस्टर (शिफ़्ट)'),
+    'roster_repeat' => _t('Roster repeats every week', 'रोस्टर हर हफ़्ते अपने-आप'),
     'mint' => _t('Ask Mint (voice)', 'Mint से पूछें (आवाज़)'),
     'branches' => _t('More branches', 'कई ब्रांच'),
     'whatsapp' => _t('Slips & helper on WhatsApp', 'WhatsApp पर स्लिप, सहायक'),
@@ -2195,6 +2214,35 @@ class S {
   );
   String get addShifts => _t('Add shifts', 'शिफ़्ट जोड़ें');
   String get rosterNeedsPlan => _t('Roster comes with Starter and up.', 'रोस्टर स्टार्टर और उससे ऊपर के प्लान में है।');
+  String get viewDay => _t('Day', 'दिन');
+  String get previousWeek => _t('Previous week', 'पिछला हफ़्ता');
+  String get nextWeek => _t('Next week', 'अगला हफ़्ता');
+  String get viewWeek => _t('Week', 'हफ़्ता');
+  String get leaveShort => _t('L', 'छु');
+  String get tapCellHint => _t('Tap a box to change it', 'बदलने के लिए किसी खाने पर टैप करें');
+  String get repeatTitle => _t('Repeat every week', 'हर हफ़्ते दोहराएँ');
+  String get repeatOffHint => _t('Plan once, next weeks fill themselves', 'एक बार तय करें, अगले हफ़्ते अपने-आप भरेंगे');
+  String get repeatOnSame => _t('Repeats every week: same shifts', 'हर हफ़्ते दोहराता है: वही शिफ़्ट');
+  String get repeatOnSwap => _t('Repeats every week: shifts swap', 'हर हफ़्ते दोहराता है: शिफ़्ट बदलती है');
+  String get repeatAutoOn => _t('Sent to staff on its own every Thursday', 'हर गुरुवार अपने-आप स्टाफ़ को जाता है');
+  String get repeatAutoOff => _t('We remind you every Thursday to send it', 'हर गुरुवार भेजने की याद दिलाएँगे');
+  String get repeatNeedsPlan => _t('Comes with Growth and up', 'Growth और उससे ऊपर के प्लान में');
+  String get repeatSheetTitle => _t('Repeat this week every week?', 'यह हफ़्ता हर हफ़्ते दोहराएँ?');
+  String get repeatNo => _t('No, I’ll plan each week', 'नहीं, हर हफ़्ते ख़ुद तय करूँगा');
+  String get repeatSame => _t('Yes, same every week', 'हाँ, हर हफ़्ते यही');
+  String get repeatSameHint => _t('Next week will be like this week', 'अगला हफ़्ता इसी हफ़्ते जैसा होगा');
+  String get repeatSwap => _t('Yes, swap every week', 'हाँ, हर हफ़्ते बदलें');
+  String repeatSwapHint(String chain) =>
+      _t('Each person moves to the next shift every week: $chain', 'हर हफ़्ते हर व्यक्ति अगली शिफ़्ट में: $chain');
+  String get repeatSwapNeeds =>
+      _t('To swap, use at least 2 shifts this week', 'बदलने के लिए इस हफ़्ते कम से कम 2 शिफ़्ट लगाएँ');
+  String get repeatAutoSend => _t('Send to staff on its own', 'स्टाफ़ को अपने-आप भेजें');
+  String get repeatAutoSendHint => _t(
+    'Every Thursday, for the next week. Otherwise we remind you to check and send.',
+    'हर गुरुवार, अगले हफ़्ते का। नहीं तो हम देखकर भेजने की याद दिलाएँगे।',
+  );
+  String get repeatTurnedOn => _t('Next week is filled in. Check it, then send.', 'अगला हफ़्ता भर गया। देखकर भेजें।');
+  String get repeatTurnedOff => _t('Repeat turned off', 'दोहराना बंद किया');
   String get myWeek => _t('My week', 'मेरा हफ़्ता');
   String get changedTag => _t('Changed', 'बदला');
 

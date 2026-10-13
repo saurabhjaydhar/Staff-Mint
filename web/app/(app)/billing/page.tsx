@@ -37,6 +37,7 @@ const FEATURE_LABELS: Record<string, string> = {
   branches: "Multiple branches",
   reports: "Reports (PDF/Excel)",
   roster: "Weekly roster (shifts)",
+  roster_repeat: "Roster repeats every week",
   whatsapp_payslips: "Salary slips on WhatsApp",
   whatsapp_assistant: "WhatsApp assistant",
   face_match: "Face check",

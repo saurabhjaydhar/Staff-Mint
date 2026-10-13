@@ -19,51 +19,58 @@ const _shifts = [
 
 const _days = ['2026-10-05', '2026-10-06', '2026-10-07', '2026-10-08', '2026-10-09', '2026-10-10', '2026-10-11'];
 
-RosterWeek _week({bool fixed = false, bool sent = false}) => RosterWeek(
-  weekStart: '2026-10-05',
-  days: [for (final d in _days) (date: d, holiday: d == '2026-10-09' ? 'Dussehra' : null)],
-  shifts: _shifts,
-  staff: [
-    RosterStaff(
-      id: 'raju',
-      name: 'Raju',
-      designation: 'Helper',
-      cells: [
-        for (final d in _days)
-          d == '2026-10-11'
-              ? RosterCell(date: d, kind: 'off')
-              : d == '2026-10-06'
-              ? RosterCell(date: d, kind: 'shift', shiftId: 'e', usual: false, changed: !sent)
-              : RosterCell(date: d, kind: 'shift', shiftId: 'm'),
+RosterWeek _week({bool fixed = false, bool sent = false, RosterRepeat? repeat, bool repeatAllowed = true}) =>
+    RosterWeek(
+      weekStart: '2026-10-05',
+      days: [for (final d in _days) (date: d, holiday: d == '2026-10-09' ? 'Dussehra' : null)],
+      shifts: _shifts,
+      staff: [
+        RosterStaff(
+          id: 'raju',
+          name: 'Raju',
+          designation: 'Helper',
+          cells: [
+            for (final d in _days)
+              d == '2026-10-11'
+                  ? RosterCell(date: d, kind: 'off')
+                  : d == '2026-10-06'
+                  ? RosterCell(date: d, kind: 'shift', shiftId: 'e', usual: false, changed: !sent)
+                  : RosterCell(date: d, kind: 'shift', shiftId: 'm'),
+          ],
+        ),
+        RosterStaff(
+          id: 'sita',
+          name: 'Sita',
+          cells: [
+            for (final d in _days)
+              d == '2026-10-06'
+                  ? RosterCell(
+                      date: d,
+                      kind: fixed ? 'off' : 'shift',
+                      shiftId: fixed ? null : 'm',
+                      leave: 'paid',
+                      usual: !fixed,
+                      changed: fixed,
+                    )
+                  : RosterCell(date: d, kind: d == '2026-10-11' ? 'off' : 'shift', shiftId: 'm'),
+          ],
+        ),
       ],
-    ),
-    RosterStaff(
-      id: 'sita',
-      name: 'Sita',
-      cells: [
-        for (final d in _days)
-          d == '2026-10-06'
-              ? RosterCell(
-                  date: d,
-                  kind: fixed ? 'off' : 'shift',
-                  shiftId: fixed ? null : 'm',
-                  leave: 'paid',
-                  usual: !fixed,
-                  changed: fixed,
-                )
-              : RosterCell(date: d, kind: d == '2026-10-11' ? 'off' : 'shift', shiftId: 'm'),
-      ],
-    ),
-  ],
-  notSent: sent ? 0 : (fixed ? 2 : 1),
-  problems: fixed
-      ? const []
-      : const [RosterProblem(type: 'leave_working', employeeId: 'sita', name: 'Sita', date: '2026-10-06')],
-);
+      notSent: sent ? 0 : (fixed ? 2 : 1),
+      problems: fixed
+          ? const []
+          : const [RosterProblem(type: 'leave_working', employeeId: 'sita', name: 'Sita', date: '2026-10-06')],
+      repeat: repeat,
+      repeatAllowed: repeatAllowed,
+    );
 
 class _FakeRosterApi implements RosterApi {
-  _FakeRosterApi({this.planError = false});
+  _FakeRosterApi({this.planError = false, this.repeatAllowed = true});
   final bool planError;
+  RosterRepeat? repeatOn;
+  final bool repeatAllowed;
+  final repeats = <String>[];
+  var stops = 0;
   final saved = <List<_Cell>>[];
   final sentWeeks = <String>[];
   var loads = 0;
@@ -75,7 +82,20 @@ class _FakeRosterApi implements RosterApi {
     if (planError) {
       throw const ApiException(code: ApiErrorCode.featureNotInPlan, message: 'Upgrade', statusCode: 402);
     }
-    return _week(fixed: fixed, sent: sentWeeks.isNotEmpty);
+    return _week(fixed: fixed, sent: sentWeeks.isNotEmpty, repeat: repeatOn, repeatAllowed: repeatAllowed);
+  }
+
+  @override
+  Future<int> repeat(String week, {required String mode, bool autoSend = false}) async {
+    repeats.add('$week/$mode/$autoSend');
+    repeatOn = RosterRepeat(mode: mode, startWeek: week, autoSend: autoSend, staff: 2);
+    return 12;
+  }
+
+  @override
+  Future<void> stopRepeat() async {
+    stops++;
+    repeatOn = null;
   }
 
   @override
@@ -221,5 +241,80 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('स्टाफ़ को शिफ़्ट भेजें?'), findsOneWidget);
     expect(find.text('छुट्टी करें'), findsOneWidget);
+  });
+
+  testWidgets('whole week: a letter per day, leave and days off clear, tap a box to change it', (tester) async {
+    await _pump(tester, _FakeRosterApi());
+    await tester.tap(find.byKey(const Key('rosterViewWeek')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('rosterWeekGrid')), findsOneWidget);
+    expect(_in('rosterCell_raju_2026-10-06', find.text('E')), findsOneWidget);
+    expect(_in('rosterCell_raju_2026-10-05', find.text('M')), findsOneWidget);
+    expect(_in('rosterCell_raju_2026-10-11', find.text('–')), findsOneWidget);
+    expect(_in('rosterCell_sita_2026-10-06', find.text('L')), findsOneWidget);
+    expect(_in('rosterLegend', find.text('Morning 8 – 2')), findsOneWidget);
+    expect(_in('rosterLegend', find.text('Day off')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('rosterCell_raju_2026-10-07')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('rosterChangeSheet')), findsOneWidget);
+    expect(find.text('Wed, 7 Oct'), findsOneWidget);
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+
+    // Tapping a day in the header opens that day.
+    await tester.tap(find.byKey(const Key('rosterGridDay4')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('rosterWeekGrid')), findsNothing);
+    expect(find.text('Holiday · Dussehra'), findsOneWidget);
+  });
+
+  testWidgets('repeat every week: swap shifts from this week, sent on its own', (tester) async {
+    final api = _FakeRosterApi();
+    await _pump(tester, api);
+    expect(_in('rosterRepeatTile', find.text('Repeat every week')), findsOneWidget);
+    expect(_in('rosterRepeatTile', find.text('Plan once, next weeks fill themselves')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('rosterRepeatTile')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('rosterRepeatSheet')), findsOneWidget);
+    expect(find.text('Each person moves to the next shift every week: Morning → Evening → Morning'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('repeat_rotate')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('repeatAutoSend')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('repeatSave')));
+    await tester.pumpAndSettle();
+    expect(api.repeats, ['2026-10-05/rotate/true']);
+    expect(find.text('Next week is filled in. Check it, then send.'), findsOneWidget);
+    expect(_in('rosterRepeatTile', find.text('Repeats every week: shifts swap')), findsOneWidget);
+    expect(_in('rosterRepeatTile', find.text('Sent to staff on its own every Thursday')), findsOneWidget);
+
+    // Turn it off again.
+    await tester.tap(find.byKey(const Key('rosterRepeatTile')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('repeat_off')));
+    await tester.tap(find.byKey(const Key('repeatSave')));
+    await tester.pumpAndSettle();
+    expect(api.stops, 1);
+    expect(find.text('Repeat turned off'), findsOneWidget);
+    expect(_in('rosterRepeatTile', find.text('Repeat every week')), findsOneWidget);
+  });
+
+  testWidgets('repeat on a smaller plan says which plan has it', (tester) async {
+    await _pump(tester, _FakeRosterApi(repeatAllowed: false));
+    expect(_in('rosterRepeatTile', find.text('Comes with Growth and up')), findsOneWidget);
+    expect(_in('rosterRepeatTile', find.byIcon(Icons.lock_outline_rounded)), findsOneWidget);
+  });
+
+  testWidgets('Hindi: week grid and repeat sheet', (tester) async {
+    await _pump(tester, _FakeRosterApi(), lang: 'hi');
+    await tester.tap(find.byKey(const Key('rosterViewWeek')));
+    await tester.pumpAndSettle();
+    expect(_in('rosterCell_sita_2026-10-06', find.text('छु')), findsOneWidget);
+    expect(_in('rosterGridDay0', find.text('सोम')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('rosterRepeatTile')));
+    await tester.pumpAndSettle();
+    expect(find.text('यह हफ़्ता हर हफ़्ते दोहराएँ?'), findsOneWidget);
+    expect(find.text('हाँ, हर हफ़्ते बदलें'), findsOneWidget);
   });
 }

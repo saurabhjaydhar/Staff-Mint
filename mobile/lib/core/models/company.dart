@@ -284,6 +284,7 @@ class Shift {
     required this.end,
     this.graceMinutes,
     this.weeklyOff = const [0],
+    this.weeklyOffWeeks = const {},
     this.isDefault = false,
   });
   final String id;
@@ -292,6 +293,10 @@ class Shift {
   final String end;
   final int? graceMinutes;
   final List<int> weeklyOff;
+
+  /// Alternating offs: weekday → weeks of the month it is off ({6: [1, 3]} = 1st and 3rd Saturday).
+  /// A weekly-off day not listed here is off every week.
+  final Map<int, List<int>> weeklyOffWeeks;
 
   /// Used for staff who have no shift of their own.
   final bool isDefault;
@@ -303,6 +308,10 @@ class Shift {
     end: asString(j['end'], '19:00'),
     graceMinutes: asIntOrNull(j['graceMinutes']),
     weeklyOff: asIntList(j['weeklyOff']),
+    weeklyOffWeeks: {
+      for (final e in asMap(j['weeklyOffWeeks']).entries)
+        if (int.tryParse(e.key) case final d? when asIntList(e.value).isNotEmpty) d: asIntList(e.value),
+    },
     isDefault: asBool(j['isDefault']),
   );
 }

@@ -34,7 +34,7 @@ export const DEFAULT_PLANS = [
     extraStaffPricePaise: 0,
     maxStaffHardCap: 30,
     trialDays: 14,
-    features: ['attendance', 'leave', 'digest', 'payroll', 'advances', 'payslips', 'assistant', 'reports', 'roster', 'branches', 'whatsapp_payslips', 'whatsapp_assistant', 'face_match'],
+    features: ['attendance', 'leave', 'digest', 'payroll', 'advances', 'payslips', 'assistant', 'reports', 'roster', 'roster_repeat', 'branches', 'whatsapp_payslips', 'whatsapp_assistant', 'face_match'],
     sort: 2,
   },
   {
@@ -56,6 +56,7 @@ export const DEFAULT_PLANS = [
       'assistant',
       'reports',
       'roster',
+      'roster_repeat',
       'branches',
       'whatsapp_payslips',
       'whatsapp_assistant',
@@ -73,6 +74,7 @@ export const DEFAULT_PLANS = [
  */
 export const ADDED_FEATURES: Record<string, string[]> = {
   roster: ['starter', 'growth', 'pro'],
+  roster_repeat: ['growth', 'pro'],
 };
 
 export const DEFAULT_CONFIG: Record<string, unknown> = {

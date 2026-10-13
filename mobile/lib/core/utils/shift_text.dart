@@ -6,7 +6,7 @@ import 'dates.dart';
 String shiftText(S s, Shift sh, {bool withName = false}) => [
   if (withName) sh.name,
   '${Dates.hhmmToDisplay(sh.start, s.languageCode)} – ${Dates.hhmmToDisplay(sh.end, s.languageCode)}',
-  if (sh.weeklyOff.isNotEmpty) s.daysOff(Dates.weekdayNames(sh.weeklyOff, s.languageCode)),
+  if (sh.weeklyOff.isNotEmpty) s.daysOff(s.offDaysText(sh.weeklyOff, sh.weeklyOffWeeks)),
 ].join(' · ');
 
 /// The shift used for staff without one of their own.

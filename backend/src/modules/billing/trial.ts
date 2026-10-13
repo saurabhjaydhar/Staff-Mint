@@ -20,6 +20,7 @@ const FEATURE_LABELS: Record<string, { en: string; hi: string }> = {
   assistant: { en: 'the assistant', hi: 'असिस्टेंट' },
   reports: { en: 'reports', hi: 'रिपोर्ट' },
   roster: { en: 'the roster', hi: 'रोस्टर' },
+  roster_repeat: { en: 'repeating the roster', hi: 'रोस्टर दोहराना' },
   branches: { en: 'more branches', hi: 'ज़्यादा ब्रांच' },
   whatsapp_payslips: { en: 'payslips on WhatsApp', hi: 'WhatsApp पर सैलरी स्लिप' },
   whatsapp_assistant: { en: 'the WhatsApp assistant', hi: 'WhatsApp असिस्टेंट' },
