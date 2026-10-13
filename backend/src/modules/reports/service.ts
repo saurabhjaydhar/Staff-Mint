@@ -43,6 +43,8 @@ export async function buildReport(ctx: Ctx, kind: ReportKind, month: string): Pr
       // PF / ESI / PT columns only when this month has them (most small shops don't).
       const statutory = (['pf', 'esi', 'pt'] as const).filter((c) => slips.some((s: any) => sum(c)(s) > 0));
       const label = { pf: 'PF', esi: 'ESI', pt: 'Prof. tax' };
+      // Travel allowance column only when someone got one.
+      const travel = slips.some((s: any) => sum('travel')(s) > 0) ? (['travel'] as const) : [];
       const rows = slips.map((s: any) => [
         s.employeeName,
         s.wageType,
@@ -50,6 +52,7 @@ export async function buildReport(ctx: Ctx, kind: ReportKind, month: string): Pr
         s.payableDays,
         money(sum('basic', 'allowance')(s)),
         money(sum('bonus')(s)),
+        ...travel.map((c) => money(sum(c)(s))),
         money(s.grossPaise ?? 0),
         ...statutory.map((c) => money(sum(c)(s))),
         money(sum('deduction')(s)),
@@ -57,11 +60,11 @@ export async function buildReport(ctx: Ctx, kind: ReportKind, month: string): Pr
         money(s.netPaise),
       ]);
       const total = (f: (s: any) => number) => money(slips.reduce((a: number, s: any) => a + f(s), 0));
-      rows.push(['TOTAL', '', '', '', total(sum('basic', 'allowance')), total(sum('bonus')), total((s) => s.grossPaise ?? 0), ...statutory.map((c) => total(sum(c))), total(sum('deduction')), total(sum('advance')), money(run.totals?.netPaise ?? 0)]);
+      rows.push(['TOTAL', '', '', '', total(sum('basic', 'allowance')), total(sum('bonus')), ...travel.map((c) => total(sum(c))), total((s) => s.grossPaise ?? 0), ...statutory.map((c) => total(sum(c))), total(sum('deduction')), total(sum('advance')), money(run.totals?.netPaise ?? 0)]);
       return {
         title: 'Salary register / सैलरी रजिस्टर',
         subtitle: `${monthLabel(month)} · ${run.status} · rev ${run.revision}`,
-        headers: ['Name', 'Type', 'Rate', 'Paid days', 'Earned', 'Bonus', 'Gross', ...statutory.map((c) => label[c]), 'Deductions', 'Advance', 'Net pay'],
+        headers: ['Name', 'Type', 'Rate', 'Paid days', 'Earned', 'Bonus', ...travel.map(() => 'Travel'), 'Gross', ...statutory.map((c) => label[c]), 'Deductions', 'Advance', 'Net pay'],
         rows,
         landscape: true,
       };

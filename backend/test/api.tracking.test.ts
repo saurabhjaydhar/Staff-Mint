@@ -5,6 +5,8 @@ import { Attendance, AuditLog, Employee, LocationPing, Notification, Shift, Trac
 import { addEvents, addPings, trackingTick, travelSummary } from '../src/modules/tracking/service.js';
 import { sendDigest } from '../src/jobs/handlers.js';
 import ExcelJS from 'exceljs';
+import { buildEngineInputs } from '../src/modules/payroll/inputs.js';
+import { computePayslip } from '../src/modules/payroll/engine.js';
 import { cleanPoints, distanceOf, stopsOf } from '../src/modules/tracking/route.js';
 import { describe as describeLog } from '../src/modules/audit/describe.js';
 import { addDays, todayIn, zonedInstant } from '../src/lib/dates.js';
@@ -263,5 +265,25 @@ describe('export and the morning summary', () => {
     await sendDigest(new Types.ObjectId(owner.companyId));
     const digest = await Notification.findOne({ companyId: owner.companyId, template: 'daily_digest' }).lean();
     expect(digest!.body).toMatch(/(Yesterday: Raju 4.2 km, 1 stop|कल: Raju 4.2 किमी, 1 रुकाव)/);
+  });
+});
+
+describe('travel allowance', () => {
+  it('km tracked in the month × the business rate becomes a salary line (off by default)', async () => {
+    const { owner, emp } = await setup();
+    const today = todayIn(TZ);
+    await TrackingSession.create({ companyId: owner.companyId, employeeId: emp.id, date: today, startedAt: new Date(), endedAt: new Date(), endsBy: new Date(), distanceM: 42_500 });
+    const cid = new Types.ObjectId(owner.companyId);
+    let [input] = (await buildEngineInputs(cid, today.slice(0, 7))).filter((i) => i.employee.employeeId === emp.id);
+    // Off until the owner sets a rate.
+    expect(input.employee.travelKm).toBe(0);
+    expect(computePayslip(input).lines.some((l) => l.code === 'travel')).toBe(false);
+
+    await api().patch(`${V}/company/settings`).set(auth(owner.token)).send({ travelRatePaisePerKm: 500 }).expect(200);
+    [input] = (await buildEngineInputs(cid, today.slice(0, 7))).filter((i) => i.employee.employeeId === emp.id);
+    expect(input.employee).toMatchObject({ travelKm: 42.5, travelRatePaisePerKm: 500 });
+    const line = computePayslip(input).lines.find((l) => l.code === 'travel')!;
+    expect(line).toMatchObject({ kind: 'earning', amountPaise: 21300, label: { en: 'Travel allowance (42.5 km)' } });
+    expect(line.explanation.en).toBe('42.5 km travelled during shifts × ₹5 per km.');
   });
 });

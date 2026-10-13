@@ -18,6 +18,10 @@ const en = {
   // roster
   nav_roster: "Roster",
   nav_field: "Field staff",
+  set_travel: "Travel allowance for field staff",
+  set_travel_hint: "Km tracked while they are checked in × this rate, added to salary.",
+  set_travel_off: "Off",
+  set_travel_rate: "₹{rs} per km",
   trk_subtitle: "Where field staff are now, and each person's route, stops and km.",
   trk_none_title: "No field staff yet",
   trk_none: "Turn it on in the app: staff profile → “Field staff: share location during shift”. They agree once on their phone.",
@@ -557,6 +561,10 @@ const hi: Dict = {
   // roster
   nav_roster: "रोस्टर",
   nav_field: "फ़ील्ड स्टाफ़",
+  set_travel: "फ़ील्ड स्टाफ़ का यात्रा भत्ता",
+  set_travel_hint: "चेक-इन रहते हुए ट्रैक हुए किमी × यह दर, सैलरी में जुड़ेगा।",
+  set_travel_off: "बंद",
+  set_travel_rate: "₹{rs} प्रति किमी",
   trk_subtitle: "फ़ील्ड स्टाफ़ अभी कहाँ हैं, और हर किसी का रास्ता, रुकाव और किमी।",
   trk_none_title: "अभी कोई फ़ील्ड स्टाफ़ नहीं",
   trk_none: "ऐप में चालू करें: स्टाफ़ प्रोफ़ाइल → “फ़ील्ड स्टाफ़: शिफ़्ट में लोकेशन शेयर”। वे अपने फ़ोन पर एक बार हाँ कहेंगे।",

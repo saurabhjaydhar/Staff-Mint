@@ -21,7 +21,8 @@ Plan      { code, name, priceMonthlyPaise, priceYearlyPaise, currency, staffLimi
 Company   { id, name, businessType, country, currency, timezone, location:{lat,lng,address?},
             settings: { graceMinutes, halfDayHours, monthDivisor:'days_in_month'|'30'|'26', missingCheckoutPolicy:'half_day'|'present'|'flag',
                         weekOffsPaid, holidaysPaid, sickLeavePaid, outsideGeofencePolicy:'block'|'request_approval', phoneLockPolicy:'off'|'recommended'|'required', faceMatchPolicy:'off'|'review', language, digestTime:'09:30',
-                        roundToRupee, selfieRequired, maxDeviceTimeDriftMin, selfieRetentionDays, whatsappAlerts },
+                        roundToRupee, selfieRequired, maxDeviceTimeDriftMin, selfieRetentionDays, whatsappAlerts,
+                        travelRatePaisePerKm /* 0 = off; field staff get km tracked during shifts × this as a 'travel' salary line */ },
             plan: Plan, subscription: { status:'trialing'|'active'|'past_due'|'cancelled'|'free', planCode, currentPeriodEnd|null },
             trial: Trial|null }
 Trial     { planCode, planName, endsAt, daysLeft, active, ended, paidFeatures: string[] }
@@ -42,7 +43,7 @@ LeaveBalance { employeeId, year, paid, sick, usedPaid, usedSick }
 Advance   { id, employeeId, employeeName, amountPaise, date, mode:'installments'|'full_next', installments, installmentPaise, repaidPaise, balancePaise,
             status:'active'|'closed', skipMonths:string[], note? }
 Adjustment { id, employeeId, employeeName, month, type:'bonus'|'deduction', amountPaise, note? }
-PayslipLine { code:'basic'|'allowance'|'bonus'|'deduction'|'advance'|'pf'|'esi'|'pt', kind:'earning'|'deduction'|'employer', label, amountPaise, explanation }
+PayslipLine { code:'basic'|'allowance'|'travel'|'bonus'|'deduction'|'advance'|'pf'|'esi'|'pt', kind:'earning'|'deduction'|'employer', label, amountPaise, explanation }
 Payslip   { id, runId, employeeId, employeeName, month, revision, wageType, ratePaise, payableDays, daysInMonth, divisor,
             summary:{ present, halfDay, absent, paidLeave, unpaidLeave, holidays, weekOffs, unmarked },
             lines: PayslipLine[], grossPaise, deductionsPaise, netPaise, status:'draft'|'final'|'sent', pdfUrl:string|null, sentAt?,

@@ -130,6 +130,7 @@ class CompanySettings {
     this.language = 'en',
     this.digestTime = '09:30',
     this.roundToRupee = true,
+    this.travelRatePaisePerKm = 0,
     this.selfieRequired = true,
     this.maxDeviceTimeDriftMin = 10,
     this.selfieRetentionDays = 90,
@@ -160,6 +161,9 @@ class CompanySettings {
   final String language;
   final String digestTime;
   final bool roundToRupee;
+
+  /// Field staff: travel allowance per km tracked during shifts (0 = off).
+  final int travelRatePaisePerKm;
   final bool selfieRequired;
   final int maxDeviceTimeDriftMin;
   final int selfieRetentionDays;
@@ -184,6 +188,7 @@ class CompanySettings {
     language: asString(j['language'], 'en'),
     digestTime: asString(j['digestTime'], '09:30'),
     roundToRupee: asBool(j['roundToRupee'], true),
+    travelRatePaisePerKm: asInt(j['travelRatePaisePerKm']),
     selfieRequired: asBool(j['selfieRequired'], true),
     maxDeviceTimeDriftMin: asInt(j['maxDeviceTimeDriftMin'], 10),
     selfieRetentionDays: asInt(j['selfieRetentionDays'], 90),
@@ -207,6 +212,7 @@ class CompanySettings {
     'language': language,
     'digestTime': digestTime,
     'roundToRupee': roundToRupee,
+    'travelRatePaisePerKm': travelRatePaisePerKm,
     'selfieRequired': selfieRequired,
     'maxDeviceTimeDriftMin': maxDeviceTimeDriftMin,
     'selfieRetentionDays': selfieRetentionDays,

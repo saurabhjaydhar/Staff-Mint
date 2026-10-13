@@ -176,6 +176,31 @@ void main() {
     expect(api.saved, {'graceMinutes': 10});
   });
 
+  testWidgets('Salary rules: travel allowance per km for field staff, off by default', (tester) async {
+    final api = _FakeCompanyApi();
+    await pump(
+      tester,
+      const SalaryRulesScreen(),
+      overrides: [
+        companyApiProvider.overrideWithValue(api),
+        companyProvider.overrideWith(
+          (ref) async => const Company(id: 'c1', name: 'Sharma Medical', businessType: 'pharmacy'),
+        ),
+      ],
+    );
+    await tester.scrollUntilVisible(find.text('Only km tracked while field staff are checked in count.'), 300);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('travel_500')), warnIfMissed: true);
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Raju travelled 420 km during shifts this month → ₹2,100 added to their salary (₹5 per km).'),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const Key('saveRules')));
+    await tester.pumpAndSettle();
+    expect(api.saved, {'travelRatePaisePerKm': 500});
+  });
+
   testWidgets('Give an advance shows the effect on the next salary before saving', (tester) async {
     await pump(
       tester,
