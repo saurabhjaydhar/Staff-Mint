@@ -3,50 +3,36 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>StaffMint · Roster, background verification, live tracking: before vs after</title>
+<title>StaffMint · Roster, background verification, live tracking: step-by-step mock-ups</title>
 <style>
   body { margin: 0; background: #FFFDF7; color: #1C1A17; font-family: Mukta, "Noto Sans", system-ui, sans-serif; }
-  main { max-width: 1400px; margin: 0 auto; padding: 32px 20px 60px; }
-  h1 { font-size: 34px; margin: 0 0 6px; } h2 { margin: 36px 0 6px; } .sub { color: #7B7262; margin: 0 0 18px; font-size: 18px; }
-  img.full { width: 100%; border-radius: 14px; border: 1px solid #EDE5D3; }
-  ul { line-height: 1.55; font-size: 17px; padding-left: 22px; }
+  main { max-width: 1500px; margin: 0 auto; padding: 32px 20px 60px; }
+  h1 { font-size: 34px; margin: 0 0 6px; } h2 { margin: 40px 0 8px; } .sub { color: #7B7262; margin: 0 0 18px; font-size: 18px; }
+  img.full { width: 100%; border-radius: 14px; border: 1px solid #EDE5D3; margin-bottom: 14px; }
+  .before { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-start; }
+  .before img { width: 200px; border-radius: 20px; border: 6px solid #1C1A17; }
+  details { margin: 6px 0 0; font-size: 16px; } summary { cursor: pointer; color: #157A4C; font-weight: 700; }
 </style>
 </head>
 <body>
 <main>
-  <h1>Roster, background verification, live tracking: before vs after</h1>
-  <p class="sub">Round 0 of <a href="../plans/roster-tracking-verification.md">the plan</a>. Before = real screenshots of the app today. After = proposed screens, not built yet. English and Hindi.</p>
+  <h1>Roster, background verification, live tracking</h1>
+  <p class="sub">Step-by-step mock-ups (round 0 of <a href="../plans/roster-tracking-verification.md">the plan</a>). Each step shows who does it, what the screen is for, and what to tap: the orange numbers on each screen match the list under it. Not built yet. English first, then Hindi.</p>
 
   <h2>1 · Roster</h2>
-  <img class="full" src="images/r0/roster-before-after.png" alt="Roster before and after">
-  <ul>
-    <li><b>Weekly grid</b> (Staff → Roster): a shift or Off for each person and day, the holiday column marked, changed cells dotted, and an evening headcount per day in red when low.</li>
-    <li><b>Draft until published.</b> "Copy last week", then <b>Publish · 6 changes</b>.</li>
-    <li><b>Tap a cell</b> to pick Morning, Evening, Full day, Off or the usual shift. It warns if the person has approved leave that day.</li>
-    <li><b>Checks before publishing:</b> leave clashes, no weekly off, too few people on a shift. You can still publish.</li>
-    <li><b>Rotation</b> (Growth): Morning ⇄ Evening every week, each person with a starting week, and next week filled every Thursday.</li>
-    <li><b>Staff:</b> today's shift on the home card, "My week" with changed days highlighted, and a WhatsApp roster message plus a change notice.</li>
-  </ul>
+  <img class="full" src="images/r0/guide-roster-en.png" alt="Roster, step by step">
+  <img class="full" src="images/r0/guide-roster-hi.png" alt="रोस्टर, क़दम-दर-क़दम">
+  <details><summary>Today's app (before)</summary><div class="before"><img src="images/r0/before-en-timings.png" alt="Shifts today"><img src="images/r0/before-en-profile2.png" alt="One fixed shift per person"></div></details>
 
   <h2>2 · Background verification</h2>
-  <img class="full" src="images/r0/verification-before-after.png" alt="Verification before and after">
-  <ul>
-    <li><b>Badges on the staff list:</b> Verified ✓, 2 of 4 done, Needs a look, Not checked. The banner shows the free checks left this month (Growth 3, Pro 10, then ₹149 per staff).</li>
-    <li><b>Checklist per staff member:</b> Aadhaar via DigiLocker (last 4 digits only), PAN, bank (₹1 test), face, police certificate. A name mismatch can be accepted with "This is fine" or answered with a request for another account.</li>
-    <li><b>Owner starts a check</b> by picking what to check. Staff get a link in the app or on WhatsApp.</li>
-    <li><b>Staff consent</b> in plain words (what is checked, who sees it, when it's deleted), then simple steps.</li>
-    <li><b>Documents</b> are private, every view is recorded, expiry dates are shown, and police certificate reminders are sent.</li>
-  </ul>
+  <img class="full" src="images/r0/guide-verification-en.png" alt="Verification, step by step">
+  <img class="full" src="images/r0/guide-verification-hi.png" alt="वेरिफ़िकेशन, क़दम-दर-क़दम">
+  <details><summary>Today's app (before)</summary><div class="before"><img src="images/r0/before-en-staff.png" alt="Staff list"><img src="images/r0/before-en-profile2.png" alt="No documents on profile"></div></details>
 
   <h2>3 · Live tracking for field staff</h2>
-  <img class="full" src="images/r0/tracking-before-after.png" alt="Tracking before and after">
-  <ul>
-    <li><b>Owner turns on "Field staff"</b> per person. Nothing is shared until the staff member agrees. Included in Pro; ₹49 per field staff per month on Growth.</li>
-    <li><b>Staff consent:</b> sharing happens only between check-in and check-out, never on days off, and is kept for 90 days. Staff can see their own route.</li>
-    <li><b>While sharing:</b> the phone shows "Sharing location until you check out", and the home card shows km and stops.</li>
-    <li><b>Live map</b> with last-seen colours, and <b>a person's day</b>: route, stops with place names and time, km, gaps where location was off, and an Excel export.</li>
-    <li><b>Alerts:</b> location not updating, sharing turned off, a fake-location app. Plus an evening km summary.</li>
-  </ul>
+  <img class="full" src="images/r0/guide-tracking-en.png" alt="Tracking, step by step">
+  <img class="full" src="images/r0/guide-tracking-hi.png" alt="ट्रैकिंग, क़दम-दर-क़दम">
+  <details><summary>Today's app (before)</summary><div class="before"><img src="images/r0/before-en-profile.png" alt="Profile without field staff setting"></div></details>
 </main>
 </body>
 </html>
