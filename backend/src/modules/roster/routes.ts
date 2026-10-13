@@ -6,6 +6,7 @@ import { authenticate, ctxOf, requireFeature, requireRole } from '../../middlewa
 import { todayIn } from '../../lib/dates.js';
 import { Company } from '../../models/index.js';
 import * as svc from './service.js';
+import * as repeat from './repeat.js';
 
 export const rosterRouter = Router();
 
@@ -36,6 +37,15 @@ rosterRouter.post('/copy-last-week', ...owner, async (req, res) => {
 rosterRouter.post('/send', ...owner, async (req, res) => {
   const b = body(req, weekQuery);
   res.json({ data: await svc.sendWeek(ctxOf(req), b.week ?? (await today(ctxOf(req).companyId)), b.branchId) });
+});
+rosterRouter.post('/repeat', ...owner, requireFeature('roster_repeat'), async (req, res) => {
+  const b = body(req, weekQuery.extend({ mode: z.enum(['same', 'rotate']), autoSend: z.boolean().optional() }));
+  res.json({ data: await repeat.turnOnRepeat(ctxOf(req), { ...b, week: b.week ?? (await today(ctxOf(req).companyId)) }) });
+});
+// Turning it off works on any plan, so a shop that moved to a smaller plan can still stop it.
+rosterRouter.delete('/repeat', authenticate, requireRole('owner', 'manager'), async (req, res) => {
+  const q = query(req, weekQuery);
+  res.json({ data: await repeat.turnOffRepeat(ctxOf(req), q.branchId) });
 });
 // Staff: their own week (works on every plan: without a roster it is just their usual shift).
 rosterRouter.get('/mine', authenticate, requireRole('employee'), async (req, res) => {

@@ -17,6 +17,13 @@ import '../utils/dates.dart';
   return i < 0 ? (fg: AppColors.muted, bg: AppColors.mutedLight) : palette[i % palette.length];
 }
 
+/// One or two letters for a shift in the week grid ("M", "E"; "Ev" when two shifts share a first letter).
+String shiftShort(List<Shift> shifts, Shift s) {
+  String first(Shift x) => x.name.trim().isEmpty ? '?' : x.name.trim().characters.first.toUpperCase();
+  final clash = shifts.any((x) => x.id != s.id && first(x) == first(s));
+  return clash ? s.name.trim().characters.take(2).toString() : first(s);
+}
+
 /// "9 – 5": the short way people say shift hours.
 String shortHours(Shift s) {
   String h(String hhmm) {

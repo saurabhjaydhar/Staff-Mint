@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -33,6 +35,9 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
   late DateTime _weekStart = _mondayOf(widget.initialDate ?? DateTime.now());
   late int _day = ((widget.initialDate ?? DateTime.now()).weekday - 1).clamp(0, 6);
 
+  /// Whole week (a grid) instead of one day.
+  bool _wholeWeek = false;
+
   String get _weekKey => Dates.toApiDate(_weekStart);
 
   void _moveWeek(int by) => setState(() => _weekStart = _weekStart.add(Duration(days: 7 * by)));
@@ -62,6 +67,25 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
       _refresh();
       showSnack(context, s.rosterSent(sent));
     }
+  }
+
+  Future<void> _repeat(RosterWeek w) async {
+    final s = context.s;
+    if (!w.repeatAllowed && w.repeat == null) {
+      unawaited(context.push(Routes.ownerBilling));
+      return;
+    }
+    final done = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      backgroundColor: AppColors.paper,
+      builder: (_) => _RepeatSheet(week: w, weekKey: _weekKey),
+    );
+    if (done == null || !mounted) return;
+    _refresh();
+    showSnack(context, done == 'off' ? s.repeatTurnedOff : s.repeatTurnedOn);
   }
 
   Future<void> _change(RosterWeek w, RosterStaff person, String date) async {
@@ -166,6 +190,7 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
             children: [
               IconButton(
                 key: const Key('rosterPrevWeek'),
+                tooltip: s.previousWeek,
                 onPressed: () => _moveWeek(-1),
                 icon: const Icon(Icons.chevron_left_rounded),
               ),
@@ -178,6 +203,7 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
               ),
               IconButton(
                 key: const Key('rosterNextWeek'),
+                tooltip: s.nextWeek,
                 onPressed: () => _moveWeek(1),
                 icon: const Icon(Icons.chevron_right_rounded),
               ),
@@ -185,24 +211,38 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Row(
-            children: [
-              for (final (i, d) in w.days.indexed)
-                Expanded(
-                  child: _DayTab(
-                    key: Key('rosterDay$i'),
-                    label: s.weekdayShort(DateTime.parse(d.date).weekday % 7),
-                    date: DateTime.parse(d.date).day,
-                    selected: i == _day,
-                    holiday: d.holiday != null,
-                    changed: w.staff.any((p) => p.cellOn(d.date)?.changed ?? false),
-                    onTap: () => setState(() => _day = i),
-                  ),
-                ),
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: SegmentedButton<bool>(
+            key: const Key('rosterViewToggle'),
+            showSelectedIcon: false,
+            segments: [
+              ButtonSegment(value: false, label: Text(s.viewDay, key: const Key('rosterViewDay'))),
+              ButtonSegment(value: true, label: Text(s.viewWeek, key: const Key('rosterViewWeek'))),
             ],
+            selected: {_wholeWeek},
+            onSelectionChanged: (v) => setState(() => _wholeWeek = v.first),
           ),
         ),
+        if (!_wholeWeek)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              children: [
+                for (final (i, d) in w.days.indexed)
+                  Expanded(
+                    child: _DayTab(
+                      key: Key('rosterDay$i'),
+                      label: s.weekdayShort(DateTime.parse(d.date).weekday % 7),
+                      date: DateTime.parse(d.date).day,
+                      selected: i == _day,
+                      holiday: d.holiday != null,
+                      changed: w.staff.any((p) => p.cellOn(d.date)?.changed ?? false),
+                      onTap: () => setState(() => _day = i),
+                    ),
+                  ),
+              ],
+            ),
+          ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 2),
           child: Wrap(
@@ -226,11 +266,13 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
                   ),
                 ),
               ),
-              if (summary.isNotEmpty) Text(summary, style: const TextStyle(color: AppColors.muted, fontSize: 13.5)),
+              if (summary.isNotEmpty && !_wholeWeek)
+                Text(summary, style: const TextStyle(color: AppColors.muted, fontSize: 13.5)),
             ],
           ),
         ),
-        if (day.holiday != null)
+        if (w.shifts.isNotEmpty) _RepeatTile(week: w, onTap: () => _repeat(w)),
+        if (day.holiday != null && !_wholeWeek)
           Container(
             margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -257,14 +299,24 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
             ),
           ),
         const SizedBox(height: 6),
-        for (final p in people)
-          _StaffRow(
-            key: Key('rosterRow_${p.id}'),
+        if (_wholeWeek)
+          _WeekGrid(
             week: w,
-            person: p,
-            cell: p.cellOn(day.date)!,
-            onTap: () => _change(w, p, day.date),
-          ),
+            onTapCell: (p, date) => _change(w, p, date),
+            onTapDay: (i) => setState(() {
+              _day = i;
+              _wholeWeek = false;
+            }),
+          )
+        else
+          for (final p in people)
+            _StaffRow(
+              key: Key('rosterRow_${p.id}'),
+              week: w,
+              person: p,
+              cell: p.cellOn(day.date)!,
+              onTap: () => _change(w, p, day.date),
+            ),
       ],
     );
   }
@@ -654,4 +706,355 @@ class _SendSheetState extends ConsumerState<_SendSheet> {
       ),
     );
   }
+}
+
+/// "Repeat every week": off, on (same / swap) with how it reaches staff, or locked on smaller plans.
+class _RepeatTile extends StatelessWidget {
+  const _RepeatTile({required this.week, required this.onTap});
+  final RosterWeek week;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.s;
+    final r = week.repeat;
+    final locked = r == null && !week.repeatAllowed;
+    return Card(
+      key: const Key('rosterRepeatTile'),
+      margin: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+      color: r != null ? AppColors.mintFaint : null,
+      child: ListTile(
+        onTap: onTap,
+        leading: Icon(Icons.event_repeat_rounded, color: locked ? AppColors.muted : AppColors.mintDark),
+        title: Text(
+          r == null ? s.repeatTitle : (r.swaps ? s.repeatOnSwap : s.repeatOnSame),
+          style: const TextStyle(fontWeight: FontWeight.w800),
+        ),
+        subtitle: Text(
+          r == null ? (locked ? s.repeatNeedsPlan : s.repeatOffHint) : (r.autoSend ? s.repeatAutoOn : s.repeatAutoOff),
+        ),
+        trailing: Icon(locked ? Icons.lock_outline_rounded : Icons.chevron_right_rounded),
+      ),
+    );
+  }
+}
+
+/// Shifts used this week, in start-time order (the order people move through when shifts swap).
+List<Shift> _usedShifts(RosterWeek w) {
+  final used = {
+    for (final p in w.staff)
+      for (final c in p.cells)
+        if (c.employed && !c.isOff && c.shiftId != null) c.shiftId,
+  };
+  return [
+    for (final sh in w.shifts)
+      if (used.contains(sh.id)) sh,
+  ];
+}
+
+class _RepeatSheet extends ConsumerStatefulWidget {
+  const _RepeatSheet({required this.week, required this.weekKey});
+  final RosterWeek week;
+  final String weekKey;
+
+  @override
+  ConsumerState<_RepeatSheet> createState() => _RepeatSheetState();
+}
+
+class _RepeatSheetState extends ConsumerState<_RepeatSheet> {
+  /// `off`, `same` or `rotate`.
+  late String _mode = widget.week.repeat?.mode ?? 'same';
+  late bool _autoSend = widget.week.repeat?.autoSend ?? false;
+  bool _busy = false;
+
+  Future<void> _save() async {
+    final api = ref.read(rosterApiProvider);
+    setState(() => _busy = true);
+    final ok = await runGuarded(context, () async {
+      if (_mode == 'off') {
+        await api.stopRepeat();
+      } else {
+        await api.repeat(widget.weekKey, mode: _mode, autoSend: _autoSend);
+      }
+    });
+    if (!mounted) return;
+    setState(() => _busy = false);
+    if (ok) Navigator.pop(context, _mode == 'off' ? 'off' : 'on');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.s;
+    final used = _usedShifts(widget.week);
+    final allowed = widget.week.repeatAllowed;
+    // "Morning → Evening → Morning": back to the start shows it keeps going round.
+    final chain = [...used.map((x) => x.name), if (used.isNotEmpty) used.first.name].join(' → ');
+    Widget option(String mode, String title, String? sub, {bool enabled = true}) {
+      final selected = _mode == mode;
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Material(
+          color: selected ? AppColors.mintFaint : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: selected ? AppColors.mint : AppColors.line, width: 2),
+          ),
+          child: InkWell(
+            key: Key('repeat_$mode'),
+            borderRadius: BorderRadius.circular(16),
+            onTap: enabled ? () => setState(() => _mode = mode) : null,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 14, 12),
+              child: Row(
+                children: [
+                  Icon(
+                    selected ? Icons.radio_button_checked_rounded : Icons.radio_button_unchecked_rounded,
+                    color: !enabled ? AppColors.line : (selected ? AppColors.mint : AppColors.muted),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 16,
+                            color: enabled ? AppColors.ink : AppColors.muted,
+                          ),
+                        ),
+                        if (sub != null) Text(sub, style: const TextStyle(color: AppColors.muted, fontSize: 13.5)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      key: const Key('rosterRepeatSheet'),
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(s.repeatSheetTitle, style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 14),
+          option('off', s.repeatNo, null),
+          option('same', s.repeatSame, s.repeatSameHint, enabled: allowed),
+          option(
+            'rotate',
+            s.repeatSwap,
+            used.length < 2 ? s.repeatSwapNeeds : s.repeatSwapHint(chain),
+            enabled: allowed && used.length >= 2,
+          ),
+          if (_mode != 'off')
+            SwitchListTile(
+              key: const Key('repeatAutoSend'),
+              contentPadding: EdgeInsets.zero,
+              value: _autoSend,
+              onChanged: (v) => setState(() => _autoSend = v),
+              title: Text(s.repeatAutoSend, style: const TextStyle(fontWeight: FontWeight.w700)),
+              subtitle: Text(s.repeatAutoSendHint),
+            ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(key: const Key('repeatSave'), onPressed: _busy ? null : _save, child: Text(s.save)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The whole week: one row per person, one box per day with the shift's letter. Tap a box to change it.
+class _WeekGrid extends StatelessWidget {
+  const _WeekGrid({required this.week, required this.onTapCell, required this.onTapDay});
+  final RosterWeek week;
+  final void Function(RosterStaff person, String date) onTapCell;
+  final void Function(int day) onTapDay;
+
+  static const _nameWidth = 84.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.s;
+    final w = week;
+    final people = [
+      for (final p in w.staff)
+        if (p.cells.any((c) => c.employed)) p,
+    ];
+    return Padding(
+      key: const Key('rosterWeekGrid'),
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const SizedBox(width: _nameWidth),
+              for (final (i, d) in w.days.indexed)
+                Expanded(
+                  child: InkWell(
+                    key: Key('rosterGridDay$i'),
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: () => onTapDay(i),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Column(
+                        children: [
+                          FittedBox(
+                            child: Text(
+                              s.weekdayShort(DateTime.parse(d.date).weekday % 7),
+                              style: TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 12.5,
+                                color: d.holiday != null ? AppColors.orange : AppColors.ink,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            '${DateTime.parse(d.date).day}',
+                            style: const TextStyle(fontSize: 11.5, color: AppColors.muted),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          for (final p in people)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: _nameWidth,
+                    child: Text(
+                      p.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5, height: 1.15),
+                    ),
+                  ),
+                  for (final d in w.days)
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(2),
+                        child: _GridCell(
+                          key: Key('rosterCell_${p.id}_${d.date}'),
+                          week: w,
+                          cell: p.cellOn(d.date),
+                          onTap: (p.cellOn(d.date)?.employed ?? false) ? () => onTapCell(p, d.date) : null,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 10),
+          // What the letters mean.
+          Wrap(
+            key: const Key('rosterLegend'),
+            spacing: 12,
+            runSpacing: 6,
+            children: [
+              for (final sh in w.shifts)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _Letter(text: shiftShort(w.shifts, sh), colors: shiftColors(w.shifts, sh.id)),
+                    const SizedBox(width: 5),
+                    Text('${sh.name} ${shortHours(sh)}', style: const TextStyle(fontSize: 13)),
+                  ],
+                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const _Letter(text: '–', colors: (fg: AppColors.muted, bg: AppColors.mutedLight)),
+                  const SizedBox(width: 5),
+                  Text(s.dayOff, style: const TextStyle(fontSize: 13)),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(s.tapCellHint, style: const TextStyle(color: AppColors.muted, fontSize: 12.5)),
+        ],
+      ),
+    );
+  }
+}
+
+class _GridCell extends StatelessWidget {
+  const _GridCell({super.key, required this.week, required this.cell, this.onTap});
+  final RosterWeek week;
+  final RosterCell? cell;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = context.s;
+    final c = cell;
+    final shift = c == null ? null : week.shiftById(c.shiftId);
+    final ({Color fg, Color bg}) colors;
+    final String text;
+    if (c == null || !c.employed) {
+      colors = (fg: AppColors.line, bg: Colors.transparent);
+      text = '';
+    } else if (c.leave != null) {
+      colors = (fg: AppColors.red, bg: AppColors.redLight);
+      text = s.leaveShort;
+    } else if (c.isOff || shift == null) {
+      colors = (fg: AppColors.muted, bg: AppColors.mutedLight);
+      text = '–';
+    } else {
+      colors = shiftColors(week.shifts, shift.id);
+      text = shiftShort(week.shifts, shift);
+    }
+    return Material(
+      color: colors.bg,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(9),
+        side: c?.changed == true ? const BorderSide(color: AppColors.amber, width: 2) : BorderSide.none,
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(9),
+        onTap: onTap,
+        child: SizedBox(
+          height: 40,
+          child: Center(
+            child: Text(
+              text,
+              style: TextStyle(color: colors.fg, fontWeight: FontWeight.w800, fontSize: 15),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Letter extends StatelessWidget {
+  const _Letter({required this.text, required this.colors});
+  final String text;
+  final ({Color fg, Color bg}) colors;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 24,
+    height: 22,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(color: colors.bg, borderRadius: BorderRadius.circular(6)),
+    child: Text(
+      text,
+      style: TextStyle(color: colors.fg, fontWeight: FontWeight.w800, fontSize: 12.5),
+    ),
+  );
 }

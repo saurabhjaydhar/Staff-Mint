@@ -196,17 +196,32 @@ export async function listShifts(ctx: Ctx) {
   return (await Shift.find({ companyId: ctx.companyId, deletedAt: null }).sort({ createdAt: 1 }).lean()).map(shiftView);
 }
 
-export async function createShift(ctx: Ctx, input: { name: string; start: string; end: string; graceMinutes?: number | null; weeklyOff: number[] }) {
-  const s = await Shift.create({ companyId: ctx.companyId, ...input });
+type OffWeeks = Record<string, number[]>;
+
+/** Keep alternating weeks only for days that are weekly offs, sorted; an empty list means every week. */
+const cleanOffWeeks = (weeklyOff: number[], weeks: OffWeeks | undefined): OffWeeks =>
+  Object.fromEntries(
+    Object.entries(weeks ?? {})
+      .filter(([d, w]) => weeklyOff.includes(Number(d)) && w.length)
+      .map(([d, w]) => [d, [...new Set(w)].sort()]),
+  );
+
+export async function createShift(ctx: Ctx, input: { name: string; start: string; end: string; graceMinutes?: number | null; weeklyOff: number[]; weeklyOffWeeks?: OffWeeks }) {
+  const s = await Shift.create({ companyId: ctx.companyId, ...input, weeklyOffWeeks: cleanOffWeeks(input.weeklyOff, input.weeklyOffWeeks) });
   await audit(ctx, { action: 'shift.create', entity: 'shift', entityId: s._id, after: s });
   return shiftView(s);
 }
 
-export async function updateShift(ctx: Ctx, id: string, patch: Partial<{ name: string; start: string; end: string; graceMinutes: number | null; weeklyOff: number[] }>) {
+export async function updateShift(ctx: Ctx, id: string, patch: Partial<{ name: string; start: string; end: string; graceMinutes: number | null; weeklyOff: number[]; weeklyOffWeeks: OffWeeks }>) {
   const s = await Shift.findOne({ _id: id, companyId: ctx.companyId, deletedAt: null });
   if (!s) throw notFound('Shift');
   const before = s.toObject();
-  Object.assign(s, patch);
+  const { weeklyOffWeeks, ...rest } = patch;
+  Object.assign(s, rest);
+  if (weeklyOffWeeks || rest.weeklyOff) {
+    s.set('weeklyOffWeeks', cleanOffWeeks(s.weeklyOff, weeklyOffWeeks ?? (s.get('weeklyOffWeeks') as OffWeeks)));
+    s.markModified('weeklyOffWeeks');
+  }
   await s.save();
   await audit(ctx, { action: 'shift.update', entity: 'shift', entityId: s._id, before, after: s });
   return shiftView(s);

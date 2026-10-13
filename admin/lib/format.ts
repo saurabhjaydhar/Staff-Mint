@@ -93,6 +93,7 @@ export const FEATURE_LABELS: Record<string, string> = {
   assistant: "Mint AI assistant",
   reports: "Reports",
   roster: "Roster",
+  roster_repeat: "Repeat roster every week",
   branches: "Multiple branches",
   whatsapp_payslips: "Payslips on WhatsApp",
   whatsapp_assistant: "WhatsApp assistant",

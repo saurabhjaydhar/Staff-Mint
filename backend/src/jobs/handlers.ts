@@ -1,6 +1,6 @@
 import { Types } from 'mongoose';
 import { DateTime } from 'luxon';
-import { Attendance, Company } from '../models/index.js';
+import { Attendance, Company, RosterRepeat } from '../models/index.js';
 import { logger } from '../lib/logger.js';
 import { previousMonth, todayIn, addDays } from '../lib/dates.js';
 import { closeDay, dashboardToday } from '../modules/attendance/service.js';
@@ -10,6 +10,8 @@ import { notifyOwners } from '../modules/notifications/service.js';
 import { trialNotices } from '../modules/billing/trial.js';
 import { provider } from '../providers/registry.js';
 import { systemCtx } from '../lib/context.js';
+import { canRepeat, fillWeek } from '../modules/roster/repeat.js';
+import { sendWeek, weekView } from '../modules/roster/service.js';
 
 export type JobName = 'payslips.pdf' | 'scheduler.tick' | 'attendance.closeDay' | 'digest.send';
 
@@ -64,6 +66,38 @@ export async function purgeRetention(company: any, now: Date) {
   return removed;
 }
 
+/**
+ * Thursday from 10 AM (company time): fill next week from "Repeat every week", then send it to staff when
+ * the owner chose that, or remind owners to check and send. Returns the week handled (stored in jobState).
+ */
+export async function prepareNextRosterWeek(c: any, local: DateTime, lastWeek?: string) {
+  if (local.weekday < 4 || (local.weekday === 4 && local.hour < 10)) return null;
+  const next = local.startOf('week').plus({ weeks: 1 }).toISODate()!;
+  if (lastWeek && lastWeek >= next) return null;
+  if (!(await RosterRepeat.exists({ companyId: c._id }))) return null;
+  if (!(await canRepeat(c._id))) return next;
+  const ctx = systemCtx(c._id, c.settings?.language === 'en' ? 'en' : 'hi');
+  await fillWeek(ctx, next);
+  const autoSend = await RosterRepeat.exists({ companyId: c._id, autoSend: true });
+  if (autoSend) {
+    await sendWeek(ctx, next);
+    return next;
+  }
+  const { notSent } = await weekView(ctx, next);
+  if (!notSent) return next;
+  const label = DateTime.fromISO(next).toFormat('d LLL');
+  const labelHi = DateTime.fromISO(next).setLocale('hi').toFormat('d LLLL');
+  await notifyOwners(c._id, {
+    template: 'roster_ready',
+    title: `Next week's roster is ready (from ${label})`,
+    titleHi: `अगले हफ़्ते का रोस्टर तैयार है (${labelHi} से)`,
+    body: 'It was filled in from "Repeat every week". Check it and send it to staff.',
+    bodyHi: '"हर हफ़्ते दोहराएँ" से भरा गया है। देखकर स्टाफ़ को भेजें।',
+    data: { type: 'roster', weekStart: next },
+  });
+  return next;
+}
+
 /** Runs every few minutes; decides per company (in its own timezone) what is due. Idempotent via company.jobState. */
 export async function schedulerTick(now = new Date()) {
   const companies = await Company.find({ deletedAt: null }).lean();
@@ -109,6 +143,10 @@ export async function schedulerTick(now = new Date()) {
       // Free trial: reminders 3 days and 1 day before it ends, then "trial ended".
       const trialKey = await trialNotices(c, now);
       if (trialKey) updates['jobState.lastTrialNotice'] = trialKey;
+
+      // Roster "Repeat every week": on Thursday morning fill next week, then send it or remind the owner.
+      const rosterWeek = await prepareNextRosterWeek(c, local, state.lastRosterWeek);
+      if (rosterWeek) updates['jobState.lastRosterWeek'] = rosterWeek;
 
       // Retention purge at ~3 AM.
       if (local.hour === 3 && local.minute < 15) await purgeRetention(c, now);

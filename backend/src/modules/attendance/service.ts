@@ -2,7 +2,7 @@ import { Types } from 'mongoose';
 import { randomUUID } from 'node:crypto';
 import { AppError, notFound } from '../../lib/errors.js';
 import { distanceMeters, fromGeoPoint } from '../../lib/geo.js';
-import { localDateOf, monthDays, todayIn, weekdayOf, dateRange } from '../../lib/dates.js';
+import { localDateOf, monthDays, todayIn, dateRange } from '../../lib/dates.js';
 import type { Ctx } from '../../lib/context.js';
 import { Attendance, Branch, Company, Employee, Holiday, Leave, Membership, RosterEntry, Shift, type AttendanceStatus } from '../../models/index.js';
 import { computeDay, ownerMarksAttendance } from './rules.js';
@@ -14,6 +14,7 @@ import { getConfig } from '../config/service.js';
 import { notifyOwners, notifyEmployee } from '../notifications/service.js';
 import { companyPlan } from '../billing/plans.js';
 import { faceView, matchSelfie, type FaceResult } from '../face/service.js';
+import { isShiftOff, usualShiftResolver } from '../roster/days.js';
 
 export interface PunchInput {
   type: 'in' | 'out';
@@ -281,18 +282,19 @@ export async function attendanceView(r: any) {
 
 /** Context needed to classify days without punches: holidays, week offs, approved leaves. */
 export async function dayContext(companyId: Types.ObjectId, from: string, to: string, employeeIds: Types.ObjectId[]) {
-  const [holidays, leaves, shifts, company, roster] = await Promise.all([
+  const [holidays, leaves, shifts, company, roster, branches] = await Promise.all([
     Holiday.find({ companyId, deletedAt: null, date: { $gte: from, $lte: to } }).lean(),
     Leave.find({ companyId, employeeId: { $in: employeeIds }, status: 'approved', deletedAt: null, from: { $lte: to }, to: { $gte: from } }).lean(),
     Shift.find({ companyId }).lean(),
     Company.findById(companyId).lean(),
     RosterEntry.find({ companyId, employeeId: { $in: employeeIds }, date: { $gte: from, $lte: to }, sent: { $ne: null } }).lean(),
+    Branch.find({ companyId }).select('shiftId isDefault').lean(),
   ]);
   // Sent roster days win over the usual shift and weekly off.
   const rosterDay = new Map(roster.map((r) => [`${r.employeeId}:${r.date}`, r.sent!]));
   const holidaySet = new Map(holidays.map((h) => [h.date, h.name]));
   const shiftById = new Map(shifts.map((s) => [String(s._id), s]));
-  const defaultShift = shifts.find((s) => s.isDefault) ?? shifts[0];
+  const usualShift = usualShiftResolver(shifts, branches);
   const leaveIndex = new Map<string, { type: 'paid' | 'sick' | 'unpaid'; halfDay: boolean }>();
   for (const l of leaves) for (const d of dateRange(l.from, l.to)) leaveIndex.set(`${l.employeeId}:${d}`, { type: l.type as any, halfDay: !!l.halfDay });
   return {
@@ -302,13 +304,12 @@ export async function dayContext(companyId: Types.ObjectId, from: string, to: st
     shiftOf: (emp: any, d?: string) => {
       const r = d ? rosterDay.get(`${emp._id}:${d}`) : null;
       if (r?.kind === 'shift' && r.shiftId && shiftById.has(String(r.shiftId))) return shiftById.get(String(r.shiftId));
-      return (emp.shiftId && shiftById.get(String(emp.shiftId))) || defaultShift;
+      return usualShift(emp);
     },
     isWeekOff: (emp: any, d: string) => {
       const r = rosterDay.get(`${emp._id}:${d}`);
       if (r) return r.kind === 'off';
-      const sh = (emp.shiftId && shiftById.get(String(emp.shiftId))) || defaultShift;
-      return (sh?.weeklyOff ?? [0]).includes(weekdayOf(d));
+      return isShiftOff(usualShift(emp), d);
     },
     leaveOn: (empId: Types.ObjectId | string, d: string) => leaveIndex.get(`${empId}:${d}`) ?? null,
   };

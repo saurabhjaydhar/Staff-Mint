@@ -50,7 +50,7 @@ class ShiftsScreen extends ConsumerWidget {
                   subtitle: Text(
                     [
                       '${Dates.hhmmToDisplay(sh.start, s.languageCode)} – ${Dates.hhmmToDisplay(sh.end, s.languageCode)}',
-                      if (sh.weeklyOff.isNotEmpty) '${s.weeklyOff}: ${sh.weeklyOff.map(s.weekdayShort).join(', ')}',
+                      if (sh.weeklyOff.isNotEmpty) '${s.weeklyOff}: ${s.offDaysText(sh.weeklyOff, sh.weeklyOffWeeks)}',
                       if (sh.graceMinutes != null) '${s.graceMinutes}: ${sh.graceMinutes}',
                     ].join('\n'),
                   ),
@@ -79,6 +79,7 @@ class _ShiftFormState extends ConsumerState<_ShiftForm> {
   late String _start = widget.shift?.start ?? '09:00';
   late String _end = widget.shift?.end ?? '19:00';
   late List<int> _weeklyOff = [...?widget.shift?.weeklyOff];
+  late final Map<int, List<int>> _offWeeks = {...?widget.shift?.weeklyOffWeeks};
   bool _busy = false;
 
   @override
@@ -99,6 +100,10 @@ class _ShiftFormState extends ConsumerState<_ShiftForm> {
       'start': _start,
       'end': _end,
       'weeklyOff': _weeklyOff,
+      'weeklyOffWeeks': {
+        for (final d in _weeklyOff)
+          if (_offWeeks[d]?.isNotEmpty == true) '$d': _offWeeks[d],
+      },
       'graceMinutes': int.tryParse(_grace.text),
     };
     setState(() => _busy = true);
@@ -114,6 +119,43 @@ class _ShiftFormState extends ConsumerState<_ShiftForm> {
     setState(() => _busy = false);
     if (ok) Navigator.pop(context, true);
   }
+
+  Widget _offWeeksRow(S s, int day) {
+    final current = _offWeeks[day] ?? const <int>[];
+    final options = <List<int>>[
+      const [],
+      const [1, 3],
+      const [2, 4],
+      if (current.isNotEmpty && !(_sameList(current, const [1, 3]) || _sameList(current, const [2, 4]))) current,
+    ];
+    return Padding(
+      key: Key('offWeeks_$day'),
+      padding: const EdgeInsets.only(top: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(s.whichWeekdayOff(s.weekday(day)), style: const TextStyle(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 4),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              for (final o in options)
+                ChoiceChip(
+                  key: Key('offWeeks_${day}_${o.join('_')}'),
+                  label: Text(o.isEmpty ? s.everyWeek : s.weeksOfMonth(o)),
+                  selected: _sameList(current, o),
+                  onSelected: (_) => setState(() => _offWeeks[day] = o),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  static bool _sameList(List<int> a, List<int> b) =>
+      a.length == b.length && [for (var i = 0; i < a.length; i++) a[i] == b[i]].every((x) => x);
 
   @override
   Widget build(BuildContext context) {
@@ -152,6 +194,8 @@ class _ShiftFormState extends ConsumerState<_ShiftForm> {
           Text(s.weeklyOff, style: Theme.of(context).textTheme.titleSmall),
           const SizedBox(height: 6),
           WeekdayChips(selected: _weeklyOff, onChanged: (v) => setState(() => _weeklyOff = v)),
+          // Alternating offs, e.g. only the 1st and 3rd Saturday.
+          for (final d in _weeklyOff) _offWeeksRow(s, d),
           const SizedBox(height: 20),
           FilledButton(onPressed: _busy ? null : _save, child: Text(s.save)),
         ],

@@ -36,6 +36,7 @@ export type PlanFeature =
   | "branches"
   | "reports"
   | "roster"
+  | "roster_repeat"
   | "whatsapp_payslips"
   | "ca_access"
   | "priority_support";
@@ -135,6 +136,32 @@ export interface Shift {
   end: string;
   graceMinutes: number | null;
   weeklyOff: number[];
+  /** Alternating offs: weekday → weeks of the month it is off ({ "6": [1, 3] } = 1st and 3rd Saturday). */
+  weeklyOffWeeks?: Record<string, number[]>;
+  isDefault?: boolean;
+}
+
+export interface RosterCell {
+  date: string;
+  kind: "shift" | "off";
+  shiftId: string | null;
+  /** From the person's usual shift and weekly off, not the roster. */
+  usual: boolean;
+  /** Changed, not sent to staff yet. */
+  changed: boolean;
+  leave: string | null;
+  employed: boolean;
+}
+
+export interface RosterWeek {
+  weekStart: string;
+  days: { date: string; holiday: string | null }[];
+  shifts: Shift[];
+  staff: { id: string; name: string; designation: string | null; cells: RosterCell[] }[];
+  notSent: number;
+  problems: { type: "leave_working" | "no_day_off"; employeeId: string; name: string; date: string }[];
+  repeat: { mode: "same" | "rotate"; startWeek: string; autoSend: boolean; staff: number } | null;
+  repeatAllowed: boolean;
 }
 
 export type WageType = "monthly" | "daily";

@@ -128,7 +128,9 @@ companyRouter.patch('/branches/:id', authenticate, requireRole('owner'), async (
 });
 
 // Shifts
-const shiftSchema = z.object({ name: z.string().min(1).max(60), start: zTime, end: zTime, graceMinutes: z.number().int().min(0).max(240).nullable().optional(), weeklyOff: zWeekdays });
+// Alternating offs: weekday → weeks of the month it is off ({ '6': [1, 3] } = 1st and 3rd Saturday).
+const zOffWeeks = z.record(z.string().regex(/^[0-6]$/), z.array(z.number().int().min(1).max(5)).max(5));
+const shiftSchema = z.object({ name: z.string().min(1).max(60), start: zTime, end: zTime, graceMinutes: z.number().int().min(0).max(240).nullable().optional(), weeklyOff: zWeekdays, weeklyOffWeeks: zOffWeeks.optional() });
 companyRouter.get('/shifts', authenticate, requireRole('owner', 'manager', 'employee'), async (req, res) => res.json({ data: await svc.listShifts(ctxOf(req)) }));
 companyRouter.post('/shifts', authenticate, requireRole('owner'), async (req, res) => res.status(201).json({ data: await svc.createShift(ctxOf(req), body(req, shiftSchema)) }));
 companyRouter.patch('/shifts/:id', authenticate, requireRole('owner'), async (req, res) => res.json({ data: await svc.updateShift(ctxOf(req), param(req, 'id'), body(req, shiftSchema.partial())) }));

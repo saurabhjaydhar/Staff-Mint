@@ -81,6 +81,30 @@ class RosterProblem {
   );
 }
 
+/// "Repeat every week": `same` (next week = this week) or `rotate` (everyone moves to the next shift each week).
+class RosterRepeat {
+  const RosterRepeat({required this.mode, required this.startWeek, this.autoSend = false, this.staff = 0});
+  final String mode;
+  final String startWeek;
+
+  /// Sent to staff on its own every Thursday (otherwise owners are reminded).
+  final bool autoSend;
+  final int staff;
+
+  bool get swaps => mode == 'rotate';
+
+  static RosterRepeat? fromJson(Object? v) {
+    final j = asMapOrNull(v);
+    if (j == null) return null;
+    return RosterRepeat(
+      mode: asString(j['mode'], 'same'),
+      startWeek: asString(j['startWeek']),
+      autoSend: asBool(j['autoSend']),
+      staff: asInt(j['staff']),
+    );
+  }
+}
+
 class RosterWeek {
   const RosterWeek({
     required this.weekStart,
@@ -89,6 +113,8 @@ class RosterWeek {
     this.staff = const [],
     this.notSent = 0,
     this.problems = const [],
+    this.repeat,
+    this.repeatAllowed = false,
   });
   final String weekStart;
   final List<({String date, String? holiday})> days;
@@ -96,6 +122,10 @@ class RosterWeek {
   final List<RosterStaff> staff;
   final int notSent;
   final List<RosterProblem> problems;
+  final RosterRepeat? repeat;
+
+  /// The plan includes "Repeat every week" (Growth and up).
+  final bool repeatAllowed;
 
   Shift? shiftById(String? id) {
     for (final s in shifts) {
@@ -111,6 +141,8 @@ class RosterWeek {
     staff: asList(j['staff'], RosterStaff.fromJson),
     notSent: asInt(j['notSent']),
     problems: asList(j['problems'], RosterProblem.fromJson),
+    repeat: RosterRepeat.fromJson(j['repeat']),
+    repeatAllowed: asBool(j['repeatAllowed']),
   );
 }
 

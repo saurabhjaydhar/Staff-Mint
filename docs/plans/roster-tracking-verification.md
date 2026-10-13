@@ -1,6 +1,6 @@
 # Plan: Roster, live tracking for field staff, background verification
 
-Status (13 Oct 2026): **Roster round 1 is built** (owner day view, change-shift sheet, send with one-tap fixes, staff "My week"; attendance and salary follow the sent roster). Screenshots: [docs/screenshots/roster](../screenshots/roster/README.md). Verification and tracking are planned, not built. Round 0 mock-ups (step-by-step guides): [docs/mockups/roster-tracking-verification.html](../mockups/roster-tracking-verification.html).
+Status (13 Oct 2026): **Roster round 1 and round 2a are built** (owner day view, change-shift sheet, send with one-tap fixes, staff "My week"; attendance and salary follow the sent roster). Round 2a adds "Repeat every week", the whole-week view, alternating weekly offs and the web roster grid. Screenshots: [docs/screenshots/roster](../screenshots/roster/README.md). Verification and tracking are planned, not built. Round 0 mock-ups (step-by-step guides): [docs/mockups/roster-tracking-verification.html](../mockups/roster-tracking-verification.html).
 
 **Mock-up changes the owner approved (13 Oct):**
 - **Verification:** the staff consent screen is now **step 0 of the staff steps** (one flow: agree → Aadhaar → PAN → bank), not a separate screen.
@@ -114,7 +114,14 @@ Attendance (late, early, half day, overtime, auto-absent at 11:59 PM), the Today
   - Checks before sending, each with a one-tap fix: "on leave on a working day" → Make it Off; "no day off this week" → Give a day off.
   - App: Roster card at the top of the Staff tab; one day at a time; tap a person → big shift tiles, Day off, Usual shift, "Same shift all week"; Copy last week; Send to staff. Staff home shows "My week" (only when the shop uses the roster) with today highlighted and changed days tagged.
   - Existing plans in the database get `roster` added once by a seed migration (`features.added`); an admin can still remove it afterwards.
-- **R2:** "Repeat every week" (rotation patterns and the weekly fill), whole-week view, alternating weekly offs, swaps, minimum staff per shift, web grid, `roster_changed` message, Mint commands.
+- **R2a (built, 13 Oct):**
+  - **Repeat every week** (Growth and up): from the week on screen, "Yes, same every week" or "Yes, swap every week" (each person moves to the next shift used that week, in start-time order: Morning → Evening → Morning). Days off stay on the same days; days on the usual shift keep following it.
+  - Future weeks fill themselves once each, as not sent, when the owner opens them (up to 8 weeks ahead) and every Thursday from 10 AM for the next week. Thursday then sends it on its own if the owner chose that, or pushes "Next week's roster is ready" to owners. Days the owner already planned are never overwritten. Turning it off removes the unsent days it filled.
+  - **Whole-week view** in the app (Day | Week): one letter per shift, "–" for off, leave marked, unsent changes outlined; tap a box to change it, tap a day to open it.
+  - **Alternating weekly offs** on a shift ("1st & 3rd Saturday off"), in the app and web shift editors; attendance, salary, leave counting and the roster all follow it.
+  - **Web roster grid** (Roster in the sidebar): pick a shift in any box, Copy last week, Send to staff with one-tap fixes, Repeat every week.
+  - Also fixed: days with no punches now use the branch's shift when a person has none of their own (as check-in already did).
+- **R2b:** swaps between staff, minimum staff per shift, rest-hours and 48-hour checks, `roster_changed` message, Mint commands.
 
 ---
 
