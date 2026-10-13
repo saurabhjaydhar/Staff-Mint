@@ -14,3 +14,8 @@ final myLeaveBalancesProvider = FutureProvider.autoDispose<List<LeaveBalance>>(
 );
 
 final mySalaryProvider = FutureProvider.autoDispose<SalaryOverview>((ref) => ref.watch(meApiProvider).salary());
+
+/// This week's roster as the owner sent it (by any date in the week).
+final myRosterProvider = FutureProvider.autoDispose.family<MyRosterWeek, String>(
+  (ref, date) => ref.watch(rosterApiProvider).mine(date),
+);

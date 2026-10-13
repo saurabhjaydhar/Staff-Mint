@@ -36,6 +36,7 @@ const FEATURE_LABELS: Record<string, string> = {
   assistant: "Mint AI assistant",
   branches: "Multiple branches",
   reports: "Reports (PDF/Excel)",
+  roster: "Weekly roster (shifts)",
   whatsapp_payslips: "Salary slips on WhatsApp",
   whatsapp_assistant: "WhatsApp assistant",
   face_match: "Face check",

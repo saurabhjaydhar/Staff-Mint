@@ -14,6 +14,7 @@ import '../../../core/utils/location.dart';
 import '../../../core/utils/money.dart';
 import '../../../core/widgets/bilingual.dart';
 import '../../../core/widgets/common.dart';
+import '../../../core/widgets/shift_chip.dart';
 import '../../../core/widgets/skeleton.dart';
 import '../../../core/widgets/success_screen.dart';
 import '../../accounts/accounts_screen.dart' show AccountAlerts, BusinessSwitchChip;
@@ -287,6 +288,7 @@ class _EmployeeHomeScreenState extends ConsumerState<EmployeeHomeScreen> {
         child: RefreshableList(
           onRefresh: () async {
             ref.invalidate(employeeTodayProvider);
+            ref.invalidate(myRosterProvider);
             _prefetch().ignore();
             await ref.read(punchSyncProvider.notifier).syncNow();
             await ref.read(employeeTodayProvider.future);
@@ -412,6 +414,7 @@ class _EmployeeHomeScreenState extends ConsumerState<EmployeeHomeScreen> {
                   ),
                 ),
               ),
+            const _MyWeek(),
             const Padding(padding: EdgeInsets.fromLTRB(16, 18, 16, 0), child: _MonthSummary()),
           ],
         ),
@@ -588,6 +591,89 @@ class _InfoCard extends StatelessWidget {
 
 /// "October so far · ✓ 8 days present · ⏰ 1 late · ✕ 1 absent ·
 /// Earned till today: ₹3,387" — counts in words instead of codes.
+/// The week as the owner sent it: one line per day, today marked, changed days tagged.
+/// Shown only when the business uses the roster.
+class _MyWeek extends ConsumerWidget {
+  const _MyWeek();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = context.s;
+    final todayStr = Dates.toApiDate(DateTime.now());
+    final week = ref.watch(myRosterProvider(todayStr)).value;
+    if (week == null || !week.rostered) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
+      child: Material(
+        key: const Key('myWeek'),
+        color: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppColors.line, width: 1.5),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(s.myWeek, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+              const SizedBox(height: 6),
+              for (final d in week.days)
+                Container(
+                  key: Key('myWeek_${d.date}'),
+                  margin: const EdgeInsets.only(bottom: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: d.date == todayStr ? AppColors.mintLight : null,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 64,
+                        child: Text(
+                          d.date == todayStr ? s.today : s.weekdayShort(Dates.parseDate(d.date).weekday % 7),
+                          style: TextStyle(fontWeight: d.date == todayStr ? FontWeight.w800 : FontWeight.w600),
+                        ),
+                      ),
+                      Flexible(
+                        child: d.leave != null
+                            ? Text(
+                                s.onLeaveTag,
+                                style: const TextStyle(color: AppColors.muted, fontWeight: FontWeight.w700),
+                              )
+                            : d.holiday != null
+                            ? Text(
+                                d.holiday!,
+                                style: const TextStyle(color: AppColors.muted, fontWeight: FontWeight.w700),
+                              )
+                            : ShiftChip(shifts: week.shifts, shiftId: d.shiftId, off: d.kind == 'off'),
+                      ),
+                      if (d.changed) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.orangeLight,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            s.changedTag,
+                            style: const TextStyle(color: AppColors.orange, fontWeight: FontWeight.w800, fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _MonthSummary extends ConsumerWidget {
   const _MonthSummary();
 

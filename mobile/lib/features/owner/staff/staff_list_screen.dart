@@ -70,9 +70,20 @@ class _StaffListScreenState extends ConsumerState<StaffListScreen> {
                 const SizedBox(width: 8),
               ],
             ),
+            Card(
+              margin: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+              child: ListTile(
+                key: const Key('rosterTile'),
+                leading: const Icon(Icons.calendar_view_week_rounded, color: AppColors.mintDark),
+                title: Text(s.rosterTitle, style: const TextStyle(fontWeight: FontWeight.w800)),
+                subtitle: Text(s.rosterCardHint),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => context.push(Routes.ownerRoster),
+              ),
+            ),
             if (isOwner)
               Card(
-                margin: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                 child: ListTile(
                   key: const Key('teamAccessTile'),
                   leading: const Icon(Icons.key_rounded, color: AppColors.mintDark),

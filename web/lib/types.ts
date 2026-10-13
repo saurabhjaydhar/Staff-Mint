@@ -35,6 +35,7 @@ export type PlanFeature =
   | "assistant"
   | "branches"
   | "reports"
+  | "roster"
   | "whatsapp_payslips"
   | "ca_access"
   | "priority_support";

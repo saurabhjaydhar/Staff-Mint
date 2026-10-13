@@ -5,6 +5,7 @@ import '../i18n/locale_provider.dart';
 import '../storage/providers.dart';
 import 'api_client.dart';
 import 'services/accounts_api.dart';
+import 'services/roster_api.dart';
 import 'services/attendance_api.dart';
 import 'services/auth_api.dart';
 import 'services/company_api.dart';
@@ -32,6 +33,7 @@ final profileApiProvider = Provider((ref) => ProfileApi(ref.watch(apiClientProvi
 final companyApiProvider = Provider((ref) => CompanyApi(ref.watch(apiClientProvider)));
 final employeesApiProvider = Provider((ref) => EmployeesApi(ref.watch(apiClientProvider)));
 final attendanceApiProvider = Provider((ref) => AttendanceApi(ref.watch(apiClientProvider)));
+final rosterApiProvider = Provider((ref) => RosterApi(ref.watch(apiClientProvider)));
 final leaveApiProvider = Provider((ref) => LeaveApi(ref.watch(apiClientProvider)));
 final geoApiProvider = Provider((ref) => GeoApi(ref.watch(apiClientProvider)));
 final moneyApiProvider = Provider((ref) => MoneyApi(ref.watch(apiClientProvider)));

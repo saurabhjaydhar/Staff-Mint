@@ -4,7 +4,7 @@ import { AppError, notFound } from '../../lib/errors.js';
 import { distanceMeters, fromGeoPoint } from '../../lib/geo.js';
 import { localDateOf, monthDays, todayIn, weekdayOf, dateRange } from '../../lib/dates.js';
 import type { Ctx } from '../../lib/context.js';
-import { Attendance, Branch, Company, Employee, Holiday, Leave, Membership, Shift, type AttendanceStatus } from '../../models/index.js';
+import { Attendance, Branch, Company, Employee, Holiday, Leave, Membership, RosterEntry, Shift, type AttendanceStatus } from '../../models/index.js';
 import { computeDay, ownerMarksAttendance } from './rules.js';
 import { audit } from '../audit/service.js';
 import { employeeScope, assertEmployeeInScope } from '../employees/service.js';
@@ -29,13 +29,21 @@ export interface PunchInput {
 
 export type DisplayStatus = 'present' | 'late' | 'checked_in' | 'absent' | 'half_day' | 'leave' | 'holiday' | 'week_off' | 'not_marked';
 
-async function loadEmployeeSetup(companyId: Types.ObjectId, employeeId: Types.ObjectId) {
+/** The person's setup; with [date], the shift is that day's from the sent roster when there is one. */
+async function loadEmployeeSetup(companyId: Types.ObjectId, employeeId: Types.ObjectId, date?: string) {
   const [company, employee] = await Promise.all([Company.findById(companyId).lean(), Employee.findOne({ _id: employeeId, companyId }).lean()]);
   if (!company || !employee) throw notFound('Employee');
   const branch = employee.branchId ? await Branch.findOne({ _id: employee.branchId, companyId }).lean() : await Branch.findOne({ companyId, isDefault: true }).lean();
   const shiftId = employee.shiftId ?? branch?.shiftId;
-  const shift = (shiftId ? await Shift.findOne({ _id: shiftId, companyId }).lean() : null) ?? (await Shift.findOne({ companyId, isDefault: true }).lean());
+  const usual = (shiftId ? await Shift.findOne({ _id: shiftId, companyId }).lean() : null) ?? (await Shift.findOne({ companyId, isDefault: true }).lean());
+  const shift = (date ? await rosterShiftOn(companyId, employee._id, date) : null) ?? usual;
   return { company, employee, branch, shift };
+}
+
+/** The shift a sent roster gives this person on [date] (null: no roster shift that day). */
+export async function rosterShiftOn(companyId: Types.ObjectId, employeeId: Types.ObjectId, date: string) {
+  const r = await RosterEntry.findOne({ companyId, employeeId, date, 'sent.kind': 'shift' }).lean();
+  return r?.sent?.shiftId ? Shift.findOne({ _id: r.sent.shiftId, companyId }).lean() : null;
 }
 
 const shiftRules = (company: any, shift: any) => ({
@@ -188,7 +196,7 @@ export async function punch(ctx: Ctx, input: PunchInput, source: 'app' | 'offlin
     flags,
     approval,
   } as any);
-  applyRules(record, company, shift, date < today);
+  applyRules(record, company, (await rosterShiftOn(ctx.companyId, employee._id, date)) ?? shift, date < today);
   await record.save();
 
   if (approval === 'pending') {
@@ -273,12 +281,15 @@ export async function attendanceView(r: any) {
 
 /** Context needed to classify days without punches: holidays, week offs, approved leaves. */
 export async function dayContext(companyId: Types.ObjectId, from: string, to: string, employeeIds: Types.ObjectId[]) {
-  const [holidays, leaves, shifts, company] = await Promise.all([
+  const [holidays, leaves, shifts, company, roster] = await Promise.all([
     Holiday.find({ companyId, deletedAt: null, date: { $gte: from, $lte: to } }).lean(),
     Leave.find({ companyId, employeeId: { $in: employeeIds }, status: 'approved', deletedAt: null, from: { $lte: to }, to: { $gte: from } }).lean(),
     Shift.find({ companyId }).lean(),
     Company.findById(companyId).lean(),
+    RosterEntry.find({ companyId, employeeId: { $in: employeeIds }, date: { $gte: from, $lte: to }, sent: { $ne: null } }).lean(),
   ]);
+  // Sent roster days win over the usual shift and weekly off.
+  const rosterDay = new Map(roster.map((r) => [`${r.employeeId}:${r.date}`, r.sent!]));
   const holidaySet = new Map(holidays.map((h) => [h.date, h.name]));
   const shiftById = new Map(shifts.map((s) => [String(s._id), s]));
   const defaultShift = shifts.find((s) => s.isDefault) ?? shifts[0];
@@ -287,8 +298,15 @@ export async function dayContext(companyId: Types.ObjectId, from: string, to: st
   return {
     company: company!,
     holidayName: (d: string) => holidaySet.get(d) ?? null,
-    shiftOf: (emp: any) => (emp.shiftId && shiftById.get(String(emp.shiftId))) || defaultShift,
+    /** The usual shift, or with [d] that day's roster shift. */
+    shiftOf: (emp: any, d?: string) => {
+      const r = d ? rosterDay.get(`${emp._id}:${d}`) : null;
+      if (r?.kind === 'shift' && r.shiftId && shiftById.has(String(r.shiftId))) return shiftById.get(String(r.shiftId));
+      return (emp.shiftId && shiftById.get(String(emp.shiftId))) || defaultShift;
+    },
     isWeekOff: (emp: any, d: string) => {
+      const r = rosterDay.get(`${emp._id}:${d}`);
+      if (r) return r.kind === 'off';
       const sh = (emp.shiftId && shiftById.get(String(emp.shiftId))) || defaultShift;
       return (sh?.weeklyOff ?? [0]).includes(weekdayOf(d));
     },
@@ -335,7 +353,7 @@ export async function dayView(ctx: Ctx, date: string) {
   return Promise.all(
     emps.map(async (e) => {
       const r = byEmp.get(String(e._id)) ?? null;
-      const sh = dc.shiftOf(e);
+      const sh = dc.shiftOf(e, date);
       return {
         // linked/invitedAt: Home says "Hasn't installed the app · Invited" instead of a silent dash.
         employee: { id: String(e._id), name: e.name, phone: e.phone, designation: e.designation ?? null, linked: !!e.userId, invitedAt: e.invitedAt ?? null },
@@ -353,8 +371,9 @@ export async function dayView(ctx: Ctx, date: string) {
 
 export async function todayForEmployee(ctx: Ctx) {
   if (!ctx.employeeId) throw new AppError('FORBIDDEN', 'Staff only');
-  const { company, employee, branch, shift } = await loadEmployeeSetup(ctx.companyId, ctx.employeeId);
-  const date = todayIn(company.timezone);
+  const tz = (await Company.findById(ctx.companyId).select('timezone').lean())?.timezone ?? 'Asia/Kolkata';
+  const date = todayIn(tz);
+  const { company, employee, branch, shift } = await loadEmployeeSetup(ctx.companyId, ctx.employeeId, date);
   const r = await Attendance.findOne({ companyId: ctx.companyId, employeeId: employee._id, date }).lean();
   const dc = await dayContext(ctx.companyId, date, date, [employee._id]);
   const { branchView, shiftView } = await import('../views.js');
@@ -441,7 +460,7 @@ export async function clearOverride(ctx: Ctx, input: { employeeId: string; date:
   r.leaveType = null;
   r.lateMinutes = 0;
   if (r.punches.length) {
-    const { company, shift } = await loadEmployeeSetup(ctx.companyId, emp._id);
+    const { company, shift } = await loadEmployeeSetup(ctx.companyId, emp._id, input.date);
     applyRules(r, company, shift, input.date < todayIn(company.timezone));
   }
   await r.save();
@@ -458,7 +477,7 @@ export async function decidePunch(ctx: Ctx, attendanceId: string, punchId: strin
   if (p.approval !== 'pending') throw new AppError('CONFLICT', 'Already decided');
   const before = r.toObject();
   p.approval = approve ? 'approved' : 'rejected';
-  const { company, shift } = await loadEmployeeSetup(ctx.companyId, r.employeeId);
+  const { company, shift } = await loadEmployeeSetup(ctx.companyId, r.employeeId, r.date);
   applyRules(r, company, shift, r.date < todayIn(company.timezone));
   await r.save();
   await audit(ctx, { action: approve ? 'attendance.punch.approve' : 'attendance.punch.reject', entity: 'attendance', entityId: r._id, before, after: r });
@@ -489,7 +508,7 @@ export async function closeDay(companyId: Types.ObjectId, date: string) {
     const r = byEmp.get(String(e._id));
     if (r && r.punches.length) {
       if (!r.overridden) {
-        applyRules(r, company, dc.shiftOf(e), true);
+        applyRules(r, company, dc.shiftOf(e, date), true);
         await r.save();
       }
       continue;

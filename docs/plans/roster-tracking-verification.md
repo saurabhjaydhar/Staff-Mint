@@ -1,6 +1,10 @@
 # Plan: Roster, live tracking for field staff, background verification
 
-Status (13 Oct 2026): **Planned, not built.** Round 0 mock-ups are ready as step-by-step guides: [docs/mockups/roster-tracking-verification.html](../mockups/roster-tracking-verification.html). No code changes until they are approved.
+Status (13 Oct 2026): **Roster round 1 is built** (owner day view, change-shift sheet, send with one-tap fixes, staff "My week"; attendance and salary follow the sent roster). Screenshots: [docs/screenshots/roster](../screenshots/roster/README.md). Verification and tracking are planned, not built. Round 0 mock-ups (step-by-step guides): [docs/mockups/roster-tracking-verification.html](../mockups/roster-tracking-verification.html).
+
+**Mock-up changes the owner approved (13 Oct):**
+- **Verification:** the staff consent screen is now **step 0 of the staff steps** (one flow: agree → Aadhaar → PAN → bank), not a separate screen.
+- **Tracking:** "a person's day" (route, km, stops) opens as a **pop-up over the live map**, not a separate screen.
 
 **Keep it simple (owner feedback, 13 Oct):** each screen does one thing, and plain words replace jargon: "Send to staff" instead of Publish, "Not sent to staff yet" instead of Draft, "Repeat every week" instead of Rotation. Roster opens on **one day at a time** (tap a person to change their shift), with "Whole week" as a second view. Problems before sending come with **one-tap fixes**.
 
@@ -102,8 +106,15 @@ Attendance (late, early, half day, overtime, auto-absent at 11:59 PM), the Today
 - **Growth and up:** rotation patterns, swaps, auto-publish. This mirrors SalaryBox putting rotation on advanced plans.
 
 ### Rounds
-- **R1:** `shiftForDay` used by attendance and payroll, alternating offs, roster grid (app + web), draft/publish, checks, My week, push notices, tests (including payroll with roster days and overnight shifts).
-- **R2:** rotation patterns and the weekly job, WhatsApp roster messages, swaps, minimum staff per shift, Mint commands.
+- **R1 (built, 13 Oct):**
+  - Server: `RosterEntry` (what the owner is planning, plus a `sent` copy that attendance and salary use). The day's shift and day off come from the sent roster everywhere: late marks, auto-absent, payroll inputs, leave day counts, the month grid, check-in rules and the staff home.
+  - Re-checks past days that already have check-ins when a changed roster is sent (for example, late is cleared if the shift moved later).
+  - APIs: `GET /roster`, `PUT /roster/cells`, `POST /roster/copy-last-week`, `POST /roster/send`, `GET /roster/mine`. Starter and up; staff can read their own week on every plan.
+  - Sending tells only the staff whose days changed: push on the app, WhatsApp (`roster_published`) only for staff without the app.
+  - Checks before sending, each with a one-tap fix: "on leave on a working day" → Make it Off; "no day off this week" → Give a day off.
+  - App: Roster card at the top of the Staff tab; one day at a time; tap a person → big shift tiles, Day off, Usual shift, "Same shift all week"; Copy last week; Send to staff. Staff home shows "My week" (only when the shop uses the roster) with today highlighted and changed days tagged.
+  - Existing plans in the database get `roster` added once by a seed migration (`features.added`); an admin can still remove it afterwards.
+- **R2:** "Repeat every week" (rotation patterns and the weekly fill), whole-week view, alternating weekly offs, swaps, minimum staff per shift, web grid, `roster_changed` message, Mint commands.
 
 ---
 
