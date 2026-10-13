@@ -100,7 +100,7 @@ Cost is about $0.001 per comparison (about ₹0.08 per check-in). The feature is
 **iOS (when it ships):** ML Kit needs iOS 15.5+ (already set in the Xcode project) and the Podfile `platform :ios, '15.5'` plus excluding `armv7`, as the google_mlkit_face_detection README describes. Run `pod install` on a Mac.
 
 ### Documents check (Cashfree Verification Suite) (🟡 to sell background checks)
-Set `VERIFICATION_PROVIDER=cashfree`. Until then the mock provider answers (OTP `123456`; PAN starting `ZZ` = not found, ending `Z` = another person's name; bank account ending `0000` = not found, ending `9` = shorter name).
+Set `VERIFICATION_PROVIDER=cashfree`. Until then the mock provider answers (OTP `123456`; PAN starting `ZZ` = not found, ending `Z` = another person's name; bank account ending `0000` = not found, ending `9` = shorter name; licence, voter ID and UAN ending `0000` = not found, ending `9` = another person's name; licence with date of birth 2000-01-01 = not found).
 
 | Variable | Notes |
 |---|---|
@@ -108,7 +108,7 @@ Set `VERIFICATION_PROVIDER=cashfree`. Until then the mock provider answers (OTP 
 | `CASHFREE_VERIFY_ENV` | `sandbox` while testing, `production` to go live |
 | IP whitelisting | Cashfree production calls only work from whitelisted server IPs: add your API server's outbound IP in the Cashfree dashboard |
 
-The adapter (`backend/src/providers/verification/cashfree.ts`) follows Cashfree's API reference (PAN, bank account sync, offline Aadhaar OTP). **Run each check once with sandbox keys before going live.** Approximate cost per check: PAN ₹1–3, bank ₹2–5, Aadhaar ₹10–20. Have a lawyer review the consent text (`CONSENT_TEXT` in `backend/src/modules/verification/service.ts`) under the DPDP Act before launch.
+The adapter (`backend/src/providers/verification/cashfree.ts`) follows Cashfree's API reference (PAN, bank account sync, offline Aadhaar OTP, driving licence, voter ID, and UAN employment history via `/advance-employment`). The licence, voter ID and especially the UAN response fields are the least certain: enable these products on the Cashfree account and compare one sandbox response with the mapping in the adapter. **Run each check once with sandbox keys before going live.** Approximate cost per check: PAN ₹1–3, bank ₹2–5, Aadhaar ₹10–20, licence / voter ID ₹2–5, UAN ₹5–10. Have a lawyer review the consent text (`CONSENT_TEXT` in `backend/src/modules/verification/service.ts`) under the DPDP Act before launch.
 
 ### Mint AI (Google Gemini) (🟡)
 Set `LLM_PROVIDER=gemini` and `SPEECH_PROVIDER=gemini` (voice notes).

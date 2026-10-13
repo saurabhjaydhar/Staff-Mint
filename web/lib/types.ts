@@ -783,7 +783,7 @@ export type ReportType = "attendance" | "salary" | "advances" | "late";
 export type ReportFormat = "pdf" | "xlsx";
 
 // ---------- Documents check and staff documents ----------
-export type VerifyKind = "aadhaar" | "pan" | "bank" | "face";
+export type VerifyKind = "aadhaar" | "pan" | "dl" | "voter" | "bank" | "uan" | "face";
 
 export interface VerifyCheck {
   id: string;
@@ -794,6 +794,8 @@ export interface VerifyCheck {
   matchScore: number | null;
   override: { reason: string; at: string } | null;
   details: Record<string, string> | null;
+  /** UAN: past jobs on the PF record, newest first. */
+  employers?: { name: string; joined: string | null; left: string | null }[] | null;
   attempts: number;
 }
 
