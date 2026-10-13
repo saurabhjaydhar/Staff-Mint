@@ -146,3 +146,90 @@ class MyVerification {
     );
   }
 }
+
+/// A staff member's document (photos or a PDF). Only the last 4 characters of its number are kept.
+class StaffDoc {
+  const StaffDoc({
+    required this.id,
+    required this.kind,
+    this.label,
+    this.numberLast4,
+    this.mimes = const [],
+    this.expiresOn,
+    this.expiry,
+    this.addedBy = 'staff',
+    this.hasSlip = false,
+  });
+  final String id;
+
+  /// aadhaar · pan · dl · voter · passport · bank_proof · address · police · experience · other
+  final String kind;
+
+  /// The name of an "other" document.
+  final String? label;
+  final String? numberLast4;
+  final List<String> mimes;
+
+  /// "2027-03-31" or null.
+  final String? expiresOn;
+
+  /// ok · soon · expired, or null when it doesn't expire.
+  final String? expiry;
+
+  /// staff · owner
+  final String addedBy;
+  final bool hasSlip;
+
+  int get pages => mimes.length;
+  bool get isPdf => mimes.isNotEmpty && mimes.every((m) => m == 'application/pdf');
+
+  factory StaffDoc.fromJson(Json j) => StaffDoc(
+    id: asString(j['id']),
+    kind: asString(j['kind'], 'other'),
+    label: asStringOrNull(j['label']),
+    numberLast4: asStringOrNull(j['numberLast4']),
+    mimes: [for (final f in (j['files'] as List? ?? const [])) asString(asMap(f)['mime'])],
+    expiresOn: asStringOrNull(j['expiresOn']),
+    expiry: asStringOrNull(j['expiry']),
+    addedBy: asString(j['addedBy'], 'staff'),
+    hasSlip: asBool(j['hasSlip']),
+  );
+}
+
+class StaffDocs {
+  const StaffDocs({this.documents = const [], this.agreementOnFile = false});
+  final List<StaffDoc> documents;
+
+  /// The person agreed before (in the app, or a signed slip), so the owner needn't add a slip again.
+  final bool agreementOnFile;
+
+  factory StaffDocs.fromJson(Json j) => StaffDocs(
+    documents: [for (final d in (j['documents'] as List? ?? const [])) StaffDoc.fromJson(asMap(d))],
+    agreementOnFile: asBool(j['agreementOnFile']),
+  );
+}
+
+/// A file to upload: base64 and its type.
+class DocFile {
+  const DocFile({required this.data, required this.mime});
+  final String data;
+  final String mime;
+  Json toJson() => {'data': data, 'mime': mime};
+}
+
+/// Short-lived links to open a document's files.
+class OpenedDoc {
+  const OpenedDoc({this.files = const [], this.slip});
+  final List<({String url, String mime})> files;
+  final ({String url, String mime})? slip;
+
+  static ({String url, String mime}) _f(Object? v) {
+    final j = asMap(v);
+    return (url: asString(j['url']), mime: asString(j['mime']));
+  }
+
+  factory OpenedDoc.fromJson(Json j) => OpenedDoc(
+    files: [for (final f in (j['files'] as List? ?? const [])) _f(f)],
+    slip: j['slip'] == null ? null : _f(j['slip']),
+  );
+}

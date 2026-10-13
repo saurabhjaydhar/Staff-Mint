@@ -56,4 +56,5 @@ class Routes {
   static const employeeSalary = '/employee/salary';
   static const employeeProfile = '/employee/profile';
   static const employeeFace = '/employee/profile/face';
+  static const employeeDocuments = '/employee/profile/documents';
 }
