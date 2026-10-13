@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useI18n, useToast } from "@/components/providers";
 import { TrialBanner } from "@/components/TrialBanner";
-import { Alert, Badge, Button, Card, EmptyState, Loading, PageHeader, Stat } from "@/components/ui";
+import { Alert, Badge, Button, Card, EmptyState, Loading, Modal, PageHeader, Stat } from "@/components/ui";
 import { useAction, useAsync } from "@/hooks/useAsync";
 import { api } from "@/lib/api";
 import { fill } from "@/lib/i18n";
@@ -247,15 +247,15 @@ function needOk(t: (k: DictKey) => string, n: number) {
 /** "Let's get your shop running · 2 of 5": each step ticks itself; hidden per business. */
 function SetupChecklist({ setup, onChanged }: { setup: NonNullable<DashboardToday["setup"]>; onChanged: () => void }) {
   const { t } = useI18n();
-  const toast = useToast();
   const action = useAction();
   const key = "sm_setup_hidden";
   const [hidden, setHidden] = useState(() => typeof window !== "undefined" && window.localStorage.getItem(key) === "1");
+  const [result, setResult] = useState<RemindResult | null>(null);
   if (hidden || setup.done >= setup.total) return null;
   async function remind() {
-    const res = await action.run("remind", () => api.post<{ sent: number }>("/employees/remind-invites"));
+    const res = await action.run("remind", () => api.post<RemindResult>("/employees/remind-invites"));
     if (res.ok) {
-      toast(res.value.sent ? fill(t("remind_sent"), { n: res.value.sent }) : t("remind_none"));
+      setResult(res.value);
       onChanged();
     }
   }
@@ -286,6 +286,9 @@ function SetupChecklist({ setup, onChanged }: { setup: NonNullable<DashboardToda
         </Button>
       }
     >
+      <Modal open={!!result} title={t("invite_title")} onClose={() => setResult(null)}>
+        {result && <InviteResults result={result} />}
+      </Modal>
       {setup.notJoined > 0 && (
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">
           {fill(t("invited_joined"), { n: setup.staff, j: setup.joined })}
@@ -331,5 +334,44 @@ function QuickLink({ href, title, body }: { href: string; title: string; body: s
       <div className="font-medium text-slate-900">{title}</div>
       <div className="text-sm text-slate-500">{body}</div>
     </Link>
+  );
+}
+
+interface RemindResult {
+  sent: number;
+  failed: number;
+  whatsappConnected: boolean;
+  people: { employeeId: string; name: string; phone: string; status: "sent" | "recent" | "failed"; shareText: string }[];
+}
+
+/** After "Remind": what happened per person, and a WhatsApp link to send it from the owner's own phone. */
+function InviteResults({ result }: { result: RemindResult }) {
+  const { t } = useI18n();
+  const help = !result.whatsappConnected ? t("invite_not_connected") : result.failed ? t("invite_some_failed") : t("invite_own_whatsapp");
+  return (
+    <div className="space-y-3" data-testid="invite-results">
+      <p className={`rounded-lg p-3 text-sm font-medium ${!result.whatsappConnected || result.failed ? "bg-amber-50 text-amber-900" : "bg-mint-50 text-slate-800"}`}>{help}</p>
+      <ul className="divide-y divide-slate-100">
+        {result.people.map((p) => (
+          <li key={p.employeeId} className="flex items-center gap-3 py-2">
+            <div className="flex-1">
+              <div className="font-medium">{p.name}</div>
+              <div className={`text-sm ${p.status === "failed" ? "text-red-600" : "text-slate-500"}`}>
+                {p.phone}
+                {result.whatsappConnected && ` · ${t(`invite_${p.status}` as DictKey)}`}
+              </div>
+            </div>
+            <a
+              className="rounded-lg bg-mint-50 px-3 py-1.5 text-sm font-semibold text-mint-700 ring-1 ring-mint-200"
+              href={`https://wa.me/${p.phone.replace(/\D/g, "")}?text=${encodeURIComponent(p.shareText)}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              WhatsApp
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

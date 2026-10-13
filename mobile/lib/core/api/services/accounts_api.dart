@@ -1,6 +1,7 @@
 import '../../models/models.dart';
 import '../../utils/json.dart';
 import '../api_client.dart';
+import '../api_exception.dart';
 import 'auth_api.dart';
 
 /// Account-level actions (PRD F14): leave, close/restore, device change,
@@ -65,8 +66,29 @@ class AccountsApi {
   Future<DateTime?> invite(String employeeId) async =>
       asDateTimeOrNull(asMap(await _c.post('/employees/$employeeId/invite'))['invitedAt']);
 
-  /// Re-sends the app invite to every staff member who hasn't joined. Returns how many were sent.
-  Future<int> remindNotJoined() async => asInt(asMap(await _c.post('/employees/remind-invites'))['sent']);
+  /// Re-sends the app invite to every staff member who hasn't joined, and says per person what happened.
+  Future<RemindResult> remindNotJoined() async =>
+      RemindResult.fromJson(asMap(await _c.post('/employees/remind-invites')));
+
+  /// One person's invite. Sent a few minutes ago: status `recent` (nothing re-sent).
+  Future<RemindResult> inviteOne(Employee e) async {
+    Json j;
+    String status;
+    try {
+      j = asMap(await _c.post('/employees/${e.id}/invite'));
+      status = asBool(j['delivered'], true) ? 'sent' : 'failed';
+    } on ApiException catch (err) {
+      if (err.statusCode != 429) rethrow;
+      j = asMapOrNull(err.details) ?? const {};
+      status = 'recent';
+    }
+    return RemindResult(
+      sent: status == 'sent' ? 1 : 0,
+      failed: status == 'failed' ? 1 : 0,
+      whatsappConnected: asBool(j['whatsappConnected'], true),
+      people: [InvitePerson(name: e.name, phone: e.phone, status: status, shareText: asString(j['shareText']))],
+    );
+  }
 
   // ---------------------------------------------------------------- Phase 3
 

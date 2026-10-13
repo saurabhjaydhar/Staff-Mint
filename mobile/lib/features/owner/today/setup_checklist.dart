@@ -2,15 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/api/providers.dart';
 import '../../../core/i18n/strings.dart';
 import '../../../core/models/models.dart';
 import '../../../core/router/routes.dart';
 import '../../../core/storage/providers.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/widgets/common.dart';
+import '../staff/invite_sheet.dart';
 import '../../auth/auth_controller.dart';
-import '../providers/owner_providers.dart';
 
 /// "Let's get your shop running · 2 of 5": tells a new owner exactly what to
 /// do next. Each step opens the right screen and ticks itself when done.
@@ -182,16 +180,5 @@ class InviteStatusBanner extends ConsumerWidget {
         ],
       ),
     );
-  }
-}
-
-Future<void> remindNotJoined(BuildContext context, WidgetRef ref) async {
-  final s = context.s;
-  try {
-    final sent = await ref.read(accountsApiProvider).remindNotJoined();
-    if (context.mounted) showSnack(context, s.remindSent(sent));
-    ref.invalidate(dashboardProvider);
-  } catch (e) {
-    if (context.mounted) showError(context, e);
   }
 }
