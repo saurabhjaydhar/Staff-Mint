@@ -14,6 +14,7 @@ import '../../../core/widgets/skeleton.dart';
 import '../../../core/widgets/pickers.dart';
 import '../../auth/auth_controller.dart';
 import '../../documents/documents.dart';
+import '../../tracking/tracking_widgets.dart';
 import '../attendance/month_summary.dart' show MonthTally, PersonMonthScreen;
 import '../../profile/profile_screen.dart' show BankCard;
 import '../../profile/profile_sheets.dart';
@@ -106,6 +107,8 @@ class StaffProfileScreen extends ConsumerWidget {
               // Only the owner sees document checks (they include date of birth and names on records).
               if (canEditBank) VerifyCard(employee: e),
               if (canEditBank) DocumentsCard(employee: e),
+              if (ref.read(authControllerProvider).user?.isOwner ?? false)
+                FieldStaffSwitch(employee: e, onChanged: invalidate),
               const SizedBox(height: 10),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),

@@ -7,6 +7,10 @@
     <!-- GPS at check-in / shop pin. Only captured at the moment of a punch. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <!-- Field staff: location is shared during the shift from a foreground service with a fixed notification. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <!-- Phone screen lock (fingerprint / face / PIN) at check-in. The app only learns pass or fail. -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
     <!-- Voice messages to the Mint assistant. -->

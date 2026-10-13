@@ -40,6 +40,7 @@ export type PlanFeature =
   | "roster_swaps"
   | "verification"
   | "documents"
+  | "tracking"
   | "whatsapp_payslips"
   | "ca_access"
   | "priority_support";
@@ -207,6 +208,8 @@ export interface Employee {
   appRole?: "employee" | "manager";
   /** Documents check (Aadhaar, PAN, bank): the badge for the staff list. */
   verification?: "none" | "asked" | "in_progress" | "verified" | "needs_attention";
+  /** Field staff: shares location during the shift (enabled by the owner; consented = they agreed). */
+  tracking?: { enabled: boolean; consented: boolean };
 }
 
 export interface EmployeeInput {

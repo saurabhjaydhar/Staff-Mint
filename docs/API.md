@@ -216,6 +216,21 @@ Photos (JPG, PNG) and PDFs, up to 3 files per document, 4 MB each and 7 MB toget
 
 Driving licences, passports and police certificates ask for a "valid till" date. From 10 AM each day, documents that run out within 30 days (or already have) push the owner and the staff member once per date (`document_expiring`).
 
+### Field staff location (tracking)
+Feature `tracking` (Pro) to turn it on. The owner (or a manager, for their branches) makes someone field staff; nothing is shared until that person agrees in the app (consent text version recorded). Sharing starts with the first point after check-in and stops at check-out, at shift end + 2 hours, or at 11:59 PM, whichever is first; never off-shift. Points are deleted `tracking.keepDays` (90) after they were taken (TTL index). Config: `tracking.intervalSec` (120), `tracking.distanceM` (100), `tracking.staleMinutes` (20).
+
+| Method | Path | Body / query | Response |
+|---|---|---|---|
+| PUT | /tracking/employees/:id | `{enabled}` (owner/manager; `tracking` to turn on) | `{enabled, consented}`. Turning on asks the person (push `tracking_request`); turning off ends today's sharing. Audited |
+| GET | /tracking/live | (owner/manager) | `[{employeeId, name, status:'waiting_consent'\|'not_started'\|'live'\|'recent'\|'stale'\|'ended', lastPingAt, lat, lng, battery, distanceM, endReason, lastEvent}]` for each field staff member (live < 5 min, recent < 15, stale older) |
+| GET | /tracking/day | `?employeeId&date` (owner/manager; staff: their own, without `employeeId`) | `{name, date, distanceM, route: {at, lat, lng}[], stops: {lat, lng, from, to, minutes}[], punches, sessions: {startedAt, endedAt, endReason, events}[]}`. Distance and stops skip points worse than 100 m and GPS jumps (faster than 150 km/h); a stop is 10+ minutes within 100 m |
+| GET | /tracking/me | (staff) | `{businessName, enabled, consented, shouldShare, sharing, endsBy, distanceM, intervalSec, minDistanceM, consentText: {en, hi}}` |
+| POST / DELETE | /tracking/me/consent | (staff) | Me. Agree, or withdraw: today's sharing ends and owners are told |
+| POST | /tracking/pings | `{points: {at, lat, lng, accuracyM?, speed?, battery?, mock?}[]}` (staff, up to 500, also from offline) | `{accepted, stop, reason}`. `stop: true` with `reason` `no_consent`, `turned_off`, `checked_out`, `shift_end` or `midnight` tells the phone to stop |
+| POST | /tracking/events | `{events: {at, type:'location_off'\|'location_on'\|'permission_removed'\|'mock_location'\|'low_battery'\|'stopped'}[]}` (staff) | `{ok}`. Location off, permission removed and fake location tell owners once per day (daytime only) |
+
+The scheduler closes sessions past their end and tells owners once when someone's location hasn't updated for `tracking.staleMinutes` (7 AM–10 PM only). Check-out ends the session at the punch time.
+
 ### Leave
 | GET | /leaves | `?status&employeeId` (employee → own) | `Leave[]` |
 | POST | /leaves | `{type, from, to, halfDay?, reason?, employeeId?}` (employeeId only for owner applying on behalf) | `Leave` |

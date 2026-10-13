@@ -41,6 +41,7 @@ const FEATURE_LABELS: Record<string, string> = {
   roster_swaps: "Staff swap shifts (you approve)",
   verification: "Documents check (Aadhaar, PAN, bank)",
   documents: "Staff documents (photos, PDFs, expiry reminders)",
+  tracking: "Field staff location during the shift",
   whatsapp_payslips: "Salary slips on WhatsApp",
   whatsapp_assistant: "WhatsApp assistant",
   face_match: "Face check",
