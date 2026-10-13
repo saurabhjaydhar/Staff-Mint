@@ -1,7 +1,7 @@
 import { Schema, model } from 'mongoose';
 import { tenantFields, tenantPlugin } from './tenant.js';
 
-export const VERIFICATION_KINDS = ['aadhaar', 'pan', 'bank', 'face'] as const;
+export const VERIFICATION_KINDS = ['aadhaar', 'pan', 'dl', 'voter', 'bank', 'uan', 'face'] as const;
 export type VerificationKind = (typeof VERIFICATION_KINDS)[number];
 
 /**

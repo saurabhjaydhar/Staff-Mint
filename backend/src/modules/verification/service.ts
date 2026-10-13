@@ -6,7 +6,7 @@ import type { Ctx } from '../../lib/context.js';
 import { logger } from '../../lib/logger.js';
 import { Company, Employee, VerificationCheck, VerificationRequest, type VerificationKind } from '../../models/index.js';
 import { provider } from '../../providers/registry.js';
-import type { VerifyRecord } from '../../providers/types.js';
+import type { PastEmployer, VerifyRecord } from '../../providers/types.js';
 import { assertEmployeeInScope } from '../employees/service.js';
 import { audit } from '../audit/service.js';
 import { notifyEmployee, notifyOwners } from '../notifications/service.js';
@@ -17,32 +17,39 @@ import { classify } from '../face/service.js';
 import { idPhotoFor, link, store, type FileInput } from './documents.js';
 
 /** Bumped when the consent wording changes; each request records which version the person agreed to. */
-export const CONSENT_VERSION = '2026-10';
+export const CONSENT_VERSION = '2026-10b';
 
-export const CONSENT_TEXT = {
-  en: [
-    'Your employer will check your documents against government records.',
-    'Aadhaar: your name and date of birth, with an OTP sent to your Aadhaar mobile. We never save your full Aadhaar number, only the last 4 digits.',
-    'PAN: that it is valid and the name on it.',
-    'Bank account: we send ₹1 to check the account is yours. Your salary goes here.',
-    'Selfie: matched with the photo on your ID. The selfie is not kept.',
-    'Only the owner sees the results. They are deleted 180 days after you leave.',
-  ],
-  hi: [
-    'आपके मालिक आपके दस्तावेज़ सरकारी रिकॉर्ड से जाँचेंगे।',
-    'आधार: आपका नाम और जन्म तारीख़, आधार वाले मोबाइल पर OTP से। पूरा आधार नंबर कभी सेव नहीं होता, सिर्फ़ आख़िरी 4 अंक।',
-    'PAN: कि वह सही है और उस पर किसका नाम है।',
-    'बैंक खाता: खाता आपका है यह जाँचने के लिए ₹1 भेजते हैं। सैलरी इसी में आएगी।',
-    'सेल्फ़ी: आपके पहचान पत्र की फ़ोटो से मिलाई जाती है। सेल्फ़ी रखी नहीं जाती।',
-    'नतीजे सिर्फ़ मालिक देखते हैं। काम छोड़ने के 180 दिन बाद हटा दिए जाते हैं।',
-  ],
-};
+/** What each check looks at, in plain words. Staff see only the lines for what was asked. */
+const CONSENT_LINES: { kind: VerificationKind | null; en: string; hi: string }[] = [
+  { kind: null, en: 'Your employer will check your documents against government records.', hi: 'आपके मालिक आपके दस्तावेज़ सरकारी रिकॉर्ड से जाँचेंगे।' },
+  {
+    kind: 'aadhaar',
+    en: 'Aadhaar: your name and date of birth, with an OTP sent to your Aadhaar mobile. We never save your full Aadhaar number, only the last 4 digits.',
+    hi: 'आधार: आपका नाम और जन्म तारीख़, आधार वाले मोबाइल पर OTP से। पूरा आधार नंबर कभी सेव नहीं होता, सिर्फ़ आख़िरी 4 अंक।',
+  },
+  { kind: 'pan', en: 'PAN: that it is valid and the name on it.', hi: 'PAN: कि वह सही है और उस पर किसका नाम है।' },
+  { kind: 'dl', en: 'Driving licence: that it is valid, the name on it and till when.', hi: 'ड्राइविंग लाइसेंस: कि वह सही है, उस पर किसका नाम है और कब तक चलेगा।' },
+  { kind: 'voter', en: 'Voter ID: that it is valid and the name on it.', hi: 'वोटर कार्ड: कि वह सही है और उस पर किसका नाम है।' },
+  { kind: 'bank', en: 'Bank account: we send ₹1 to check the account is yours. Your salary goes here.', hi: 'बैंक खाता: खाता आपका है यह जाँचने के लिए ₹1 भेजते हैं। सैलरी इसी में आएगी।' },
+  { kind: 'uan', en: 'PF number (UAN): the name on it and the places you worked before, from the PF office.', hi: 'PF नंबर (UAN): उस पर किसका नाम है और आप पहले कहाँ काम करते थे, PF दफ़्तर के रिकॉर्ड से।' },
+  { kind: 'face', en: 'Selfie: matched with the photo on your ID. The selfie is not kept.', hi: 'सेल्फ़ी: आपके पहचान पत्र की फ़ोटो से मिलाई जाती है। सेल्फ़ी रखी नहीं जाती।' },
+  { kind: null, en: 'Only the owner sees the results. They are deleted 180 days after you leave.', hi: 'नतीजे सिर्फ़ मालिक देखते हैं। काम छोड़ने के 180 दिन बाद हटा दिए जाते हैं।' },
+];
+
+/** The consent wording for these checks (all of them when nothing is asked yet). */
+export function consentText(kinds?: VerificationKind[]) {
+  const lines = CONSENT_LINES.filter((l) => !l.kind || !kinds?.length || kinds.includes(l.kind));
+  return { en: lines.map((l) => l.en), hi: lines.map((l) => l.hi) };
+}
 
 const OPEN = ['asked', 'in_progress'] as const;
 const STEP_NAME: Record<VerificationKind, [string, string]> = {
   aadhaar: ['Aadhaar OTP', 'आधार OTP'],
   pan: ['PAN', 'PAN'],
   bank: ['bank account', 'बैंक खाता'],
+  dl: ['driving licence', 'ड्राइविंग लाइसेंस'],
+  voter: ['voter ID', 'वोटर कार्ड'],
+  uan: ['PF number (UAN)', 'PF नंबर (UAN)'],
   face: ['a selfie', 'एक सेल्फ़ी'],
 };
 const MAX_ATTEMPTS = 5;
@@ -80,9 +87,12 @@ const settled = (c: { status: string; override?: unknown }) => c.status === 'ver
 
 function checkView(c: any, withDetails: boolean) {
   let details: Record<string, string> | null = null;
+  let employers: PastEmployer[] | null = null;
   if (withDetails && c.detailsEnc) {
     try {
-      details = JSON.parse(decryptField(c.detailsEnc));
+      const { employers: jobs, ...rest } = JSON.parse(decryptField(c.detailsEnc));
+      details = rest;
+      employers = Array.isArray(jobs) ? jobs : null;
     } catch {
       details = null;
     }
@@ -96,6 +106,8 @@ function checkView(c: any, withDetails: boolean) {
     matchScore: c.matchScore ?? null,
     override: c.override ? { reason: c.override.reason ?? '', at: c.override.at } : null,
     details,
+    /** UAN: past jobs on the PF record, newest first. */
+    employers,
     attempts: c.attempts ?? 0,
     checkedAt: c.checkedAt ?? null,
   };
@@ -149,7 +161,7 @@ export async function ownerView(ctx: Ctx, employeeId: string) {
   };
 }
 
-const KIND_ORDER: VerificationKind[] = ['aadhaar', 'pan', 'bank', 'face'];
+const KIND_ORDER: VerificationKind[] = ['aadhaar', 'pan', 'dl', 'voter', 'bank', 'uan', 'face'];
 const order = <T extends { kind: string }>(list: T[]) => [...list].sort((a, b) => KIND_ORDER.indexOf(a.kind as VerificationKind) - KIND_ORDER.indexOf(b.kind as VerificationKind));
 
 /** Ask a staff member to verify their documents. Counts against the month's allowance. */
@@ -230,7 +242,17 @@ export async function askAgain(ctx: Ctx, checkId: string) {
   await c.save();
   await VerificationRequest.updateOne({ _id: c.requestId, companyId: ctx.companyId }, { $set: { status: 'in_progress', doneAt: null } });
   await refresh(ctx.companyId, c.requestId, { notify: false });
-  const label = ({ aadhaar: ['Aadhaar', 'आधार'], pan: ['PAN', 'PAN'], bank: ['bank account', 'बैंक खाता'], face: ['selfie', 'सेल्फ़ी'] } as const)[c.kind as VerificationKind];
+  const label = (
+    {
+      aadhaar: ['Aadhaar', 'आधार'],
+      pan: ['PAN', 'PAN'],
+      dl: ['driving licence', 'ड्राइविंग लाइसेंस'],
+      voter: ['voter ID', 'वोटर कार्ड'],
+      bank: ['bank account', 'बैंक खाता'],
+      uan: ['PF number (UAN)', 'PF नंबर (UAN)'],
+      face: ['selfie', 'सेल्फ़ी'],
+    } as const
+  )[c.kind as VerificationKind];
   await notifyEmployee(ctx.companyId, c.employeeId, {
     template: 'verification_again',
     title: `Please do the ${label[0]} step again`,
@@ -288,7 +310,7 @@ export async function myVerification(ctx: Ctx) {
   if (!ctx.employeeId) throw new AppError('FORBIDDEN', 'Staff only');
   const r = await VerificationRequest.findOne({ companyId: ctx.companyId, employeeId: ctx.employeeId, status: { $ne: 'cancelled' } }).sort({ createdAt: -1 }).lean();
   const company = (await Company.findById(ctx.companyId).select('name').lean())!;
-  const emp = (await Employee.findOne({ _id: ctx.employeeId, companyId: ctx.companyId }).select('bankDetailsEnc').lean())!;
+  const emp = (await Employee.findOne({ _id: ctx.employeeId, companyId: ctx.companyId }).select('bankDetailsEnc uan').lean())!;
   let savedBank: { last4: string; ifsc: string } | null = null;
   if (emp.bankDetailsEnc) {
     try {
@@ -303,8 +325,10 @@ export async function myVerification(ctx: Ctx) {
     businessName: company.name,
     request: r ? requestView(r) : null,
     checks: order(checks).map((c) => checkView(c, false)),
-    consentText: CONSENT_TEXT,
+    consentText: consentText(r?.kinds as VerificationKind[] | undefined),
     savedBank,
+    /** The UAN already in their profile (last 4), so they needn't type it. */
+    savedUanLast4: emp.uan ? String(emp.uan).slice(-4) : null,
     /** They have a photo ID uploaded (needed for the selfie check). */
     idPhoto: !!(await idPhotoFor(ctx.companyId, ctx.employeeId)),
   };
@@ -343,7 +367,8 @@ async function finish(ctx: Ctx, c: any, rec: VerifyRecord, providerName: string)
   Object.assign(c, {
     nameOnRecord: rec.nameOnRecord,
     matchScore: score,
-    detailsEnc: rec.details && Object.keys(rec.details).length ? encryptField(JSON.stringify(rec.details)) : null,
+    detailsEnc:
+      (rec.details && Object.keys(rec.details).length) || rec.employers?.length ? encryptField(JSON.stringify({ ...rec.details, ...(rec.employers?.length ? { employers: rec.employers } : {}) })) : null,
     provider: providerName,
     providerRef: rec.providerRef,
     costPaise: (c.costPaise ?? 0) + rec.costPaise,
@@ -440,6 +465,64 @@ export async function verifyBank(ctx: Ctx, input: { accountNumber?: string; ifsc
     await finish(ctx, c, rec, p.name);
     // Only an account in their own name becomes the salary account.
     if (c.status === 'verified' && typed) await setBank(ctx, emp._id, { holderName: rec.nameOnRecord ?? emp.name, accountNumber, ifsc });
+  } catch (err) {
+    await failed(ctx, c, err);
+  }
+  return myVerification(ctx);
+}
+
+const DL_RE = /^[A-Z]{2}[0-9A-Z]{8,14}$/;
+const EPIC_RE = /^[A-Z]{3}\d{7}$/;
+const UAN_RE = /^\d{12}$/;
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Driving licence number and date of birth (the lookup needs both). */
+export async function verifyDl(ctx: Ctx, input: { number: string; dob: string }) {
+  const number = input.number.replace(/[\s-]/g, '').toUpperCase();
+  if (!DL_RE.test(number)) throw new AppError('VALIDATION_ERROR', 'Enter the licence number as on the card, like DL0420191234567');
+  if (!DATE_RE.test(input.dob) || input.dob > todayIn('Asia/Kolkata')) throw new AppError('VALIDATION_ERROR', 'Enter the date of birth');
+  const c = await myCheck(ctx, 'dl');
+  const emp = (await Employee.findOne({ _id: ctx.employeeId, companyId: ctx.companyId }).select('name').lean())!;
+  const p = await provider('verification');
+  c.attempts = (c.attempts ?? 0) + 1;
+  c.last4 = number.slice(-4);
+  try {
+    await finish(ctx, c, await p.verifyDl({ number, dob: input.dob, name: emp.name }), p.name);
+  } catch (err) {
+    await failed(ctx, c, err);
+  }
+  return myVerification(ctx);
+}
+
+/** Voter ID (EPIC), 3 letters and 7 digits. */
+export async function verifyVoter(ctx: Ctx, epicRaw: string) {
+  const epic = epicRaw.replace(/[\s-]/g, '').toUpperCase();
+  if (!EPIC_RE.test(epic)) throw new AppError('VALIDATION_ERROR', 'Enter the 10-character voter ID number, like ABC1234567');
+  const c = await myCheck(ctx, 'voter');
+  const emp = (await Employee.findOne({ _id: ctx.employeeId, companyId: ctx.companyId }).select('name').lean())!;
+  const p = await provider('verification');
+  c.attempts = (c.attempts ?? 0) + 1;
+  c.last4 = epic.slice(-4);
+  try {
+    await finish(ctx, c, await p.verifyVoter({ epic, name: emp.name }), p.name);
+  } catch (err) {
+    await failed(ctx, c, err);
+  }
+  return myVerification(ctx);
+}
+
+/** UAN: the name on the PF record and past employers. A verified UAN fills their profile if it was empty. */
+export async function verifyUan(ctx: Ctx, uanRaw?: string) {
+  const emp = (await Employee.findOne({ _id: ctx.employeeId, companyId: ctx.companyId }).select('name phone uan').lean())!;
+  const uan = (uanRaw || emp.uan || '').replace(/\s/g, '');
+  if (!UAN_RE.test(uan)) throw new AppError('VALIDATION_ERROR', 'Enter the 12-digit UAN from the PF slip');
+  const c = await myCheck(ctx, 'uan');
+  const p = await provider('verification');
+  c.attempts = (c.attempts ?? 0) + 1;
+  c.last4 = uan.slice(-4);
+  try {
+    await finish(ctx, c, await p.verifyUan({ uan, name: emp.name, phone: emp.phone }), p.name);
+    if (c.status === 'verified' && !emp.uan) await Employee.updateOne({ _id: emp._id, companyId: ctx.companyId }, { $set: { uan } });
   } catch (err) {
     await failed(ctx, c, err);
   }

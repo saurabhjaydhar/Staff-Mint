@@ -7,11 +7,15 @@ import { useAction, useAsync } from "@/hooks/useAsync";
 import { api } from "@/lib/api";
 import { fill, type DictKey } from "@/lib/i18n";
 import { formatDate } from "@/lib/format";
+import { saveBlob } from "@/lib/download";
 import type { DocumentKind, Employee, OpenedDoc, OwnerVerification, StaffDoc, StaffDocs, VerifyCheck, VerifyKind } from "@/lib/types";
 
 const DOC_KINDS: DocumentKind[] = ["aadhaar", "pan", "dl", "voter", "passport", "bank_proof", "address", "police", "experience", "other"];
 const EXPIRING = new Set<DocumentKind>(["dl", "passport", "police"]);
-const VERIFY_KINDS: VerifyKind[] = ["aadhaar", "pan", "bank", "face"];
+/** Ticked to begin with; the rest are under "More checks". */
+const MAIN_KINDS: VerifyKind[] = ["aadhaar", "pan", "bank", "face"];
+const MORE_KINDS: VerifyKind[] = ["dl", "voter", "uan"];
+const ORDER: VerifyKind[] = ["aadhaar", "pan", "dl", "voter", "bank", "uan", "face"];
 const MIMES = ["image/jpeg", "image/png", "application/pdf"];
 
 /** Owner: one person's documents check (results) and their documents (upload, open, remove). */
@@ -36,7 +40,7 @@ function CheckPanel({ employee, onChanged }: { employee: Employee; onChanged: ()
   const toast = useToast();
   const action = useAction();
   const data = useAsync(() => api.get<OwnerVerification>(`/verification/employees/${employee.id}`), `verify:${employee.id}`);
-  const [kinds, setKinds] = useState<VerifyKind[]>(VERIFY_KINDS);
+  const [kinds, setKinds] = useState<VerifyKind[]>(MAIN_KINDS);
   const [accepting, setAccepting] = useState<VerifyCheck | null>(null);
   const [reason, setReason] = useState("");
   const [slipUrl, setSlipUrl] = useState<string | null>(null);
@@ -45,6 +49,11 @@ function CheckPanel({ employee, onChanged }: { employee: Employee; onChanged: ()
   async function openSlip() {
     const res = await action.run("slip", () => api.post<{ url: string }>(`/verification/employees/${employee.id}/slip/open`));
     if (res.ok) setSlipUrl(res.value.url);
+  }
+
+  async function downloadReport() {
+    const res = await action.run("report", () => api.download(`/verification/employees/${employee.id}/report.pdf`, {}, "documents-check.pdf"));
+    if (res.ok) saveBlob(res.value.blob, res.value.filename);
   }
 
   async function run(key: string, fn: () => Promise<OwnerVerification>, done?: string) {
@@ -70,16 +79,21 @@ function CheckPanel({ employee, onChanged }: { employee: Employee; onChanged: ()
       {!r || r.status === "cancelled" ? (
         <div className="mt-2 space-y-2">
           <p className="text-sm text-slate-600">{t("vcheck_none")}</p>
-          <div className="flex flex-wrap gap-4">
-            {VERIFY_KINDS.map((k) => (
-              <Checkbox
-                key={k}
-                label={t(`vk_${k}` as DictKey)}
-                checked={kinds.includes(k)}
-                onChange={(e) => setKinds((ks) => (e.target.checked ? [...ks, k] : ks.filter((x) => x !== k)))}
-              />
-            ))}
-          </div>
+          {[MAIN_KINDS, MORE_KINDS].map((group, i) => (
+            <div key={i}>
+              {i === 1 && <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">{t("vcheck_more")}</div>}
+              <div className="flex flex-wrap gap-4">
+                {group.map((k) => (
+                  <Checkbox
+                    key={k}
+                    label={t(`vk_${k}` as DictKey)}
+                    checked={kinds.includes(k)}
+                    onChange={(e) => setKinds((ks) => (e.target.checked ? [...ks, k] : ks.filter((x) => x !== k)))}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
           <p className="text-sm text-slate-600">
             {v.quota.limit === 0
               ? t("vcheck_no_plan")
@@ -93,7 +107,7 @@ function CheckPanel({ employee, onChanged }: { employee: Employee; onChanged: ()
           <Button
             disabled={!kinds.length || left === 0}
             loading={action.busy === "ask"}
-            onClick={() => run("ask", () => api.post<OwnerVerification>(`/verification/employees/${employee.id}`, { kinds }), t("vcheck_sent"))}
+            onClick={() => run("ask", () => api.post<OwnerVerification>(`/verification/employees/${employee.id}`, { kinds: ORDER.filter((k) => kinds.includes(k)) }), t("vcheck_sent"))}
           >
             {fill(t("vcheck_send"), { name: employee.name })}
           </Button>
@@ -125,6 +139,18 @@ function CheckPanel({ employee, onChanged }: { employee: Employee; onChanged: ()
                 <div className="min-w-0 flex-1">
                   <div className="font-medium text-slate-900">{t(`vk_${c.kind}` as DictKey)}</div>
                   <div className="text-sm text-slate-600">{checkLine(c, t)}</div>
+                  {!!c.employers?.length && (
+                    <div className="mt-1 text-sm text-slate-600" data-jobs={c.kind}>
+                      <div className="font-medium text-slate-700">{t("v_past_jobs")}</div>
+                      <ul className="list-disc pl-5">
+                        {c.employers.map((j, i) => (
+                          <li key={i}>
+                            {j.name} · {j.joined ? formatDate(j.joined) : "?"} – {j.left ? formatDate(j.left) : t("v_job_now")}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
                 {c.status === "mismatch" && !c.override && (
                   <Button size="sm" variant="secondary" onClick={() => (setAccepting(c), setReason(t("vcheck_accept_default")))}>
@@ -162,6 +188,11 @@ function CheckPanel({ employee, onChanged }: { employee: Employee; onChanged: ()
               </Button>
             </form>
           )}
+          {r.consented && (
+            <Button size="sm" variant="secondary" loading={action.busy === "report"} onClick={downloadReport}>
+              {t("vcheck_report")}
+            </Button>
+          )}
           {(r.status === "asked" || r.status === "in_progress") && (
             <Button
               size="sm"
@@ -189,6 +220,7 @@ function checkLine(c: VerifyCheck, t: (k: DictKey) => string) {
   if (c.nameOnRecord && c.status !== "verified") parts.push(fill(t("v_on_record"), { name: c.nameOnRecord }));
   if (c.last4) parts.push(fill(t("v_ending"), { last4: c.last4 }));
   if (c.details?.dob) parts.push(fill(t("v_born"), { date: formatDate(c.details.dob) }));
+  if (c.details?.validTill) parts.push(fill(t("v_valid_till"), { date: formatDate(c.details.validTill) }));
   return parts.join(" · ");
 }
 

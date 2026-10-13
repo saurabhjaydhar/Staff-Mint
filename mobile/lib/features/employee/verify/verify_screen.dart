@@ -8,6 +8,7 @@ import '../../../core/api/services/verification_api.dart';
 import '../../../core/i18n/strings.dart';
 import '../../../core/models/models.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/dates.dart';
 import '../../../core/widgets/common.dart';
 import '../../documents/documents.dart';
 import '../../profile/profile_screen.dart' show photoPickerProvider;
@@ -37,7 +38,12 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
   final _pan = TextEditingController();
   final _account = TextEditingController();
   final _ifsc = TextEditingController();
+  final _dl = TextEditingController();
+  final _voter = TextEditingController();
+  final _uan = TextEditingController();
+  DateTime? _dob;
   bool _otherBank = false;
+  bool _otherUan = false;
   bool _busy = false;
   bool _agreed = false;
   DocFile? _slip;
@@ -50,7 +56,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
 
   @override
   void dispose() {
-    for (final c in [_aadhaar, _otp, _pan, _account, _ifsc]) {
+    for (final c in [_aadhaar, _otp, _pan, _account, _ifsc, _dl, _voter, _uan]) {
       c.dispose();
     }
     super.dispose();
@@ -344,6 +350,91 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
             ),
             const SizedBox(height: 10),
             _go('verifyPanGo', s.checkPan, () => _do((api) => api.pan(_pan.text.trim(), employeeId: _for))),
+          ],
+        );
+      case 'dl':
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              key: const Key('verifyDl'),
+              controller: _dl,
+              textCapitalization: TextCapitalization.characters,
+              inputFormatters: [LengthLimitingTextInputFormatter(20)],
+              decoration: InputDecoration(labelText: s.dlLabel, hintText: 'DL04 2019 1234567'),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              key: const Key('verifyDob'),
+              onPressed: () async {
+                final now = DateTime.now();
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: _dob ?? DateTime(now.year - 25),
+                  firstDate: DateTime(1940),
+                  lastDate: DateTime(now.year - 14, now.month, now.day),
+                  helpText: s.dobHintDl,
+                );
+                if (picked != null) setState(() => _dob = picked);
+              },
+              icon: const Icon(Icons.cake_rounded),
+              label: Text(
+                _dob == null
+                    ? s.pickDob
+                    : '${s.dobLabel}: ${Dates.prettyApiDate(Dates.toApiDate(_dob!), s.languageCode)}',
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                key: const Key('verifyDlGo'),
+                onPressed: _busy || _dob == null
+                    ? null
+                    : () => _do((api) => api.dl(_dl.text.trim(), Dates.toApiDate(_dob!), employeeId: _for)),
+                child: Text(s.checkDl),
+              ),
+            ),
+          ],
+        );
+      case 'voter':
+        return Column(
+          children: [
+            TextField(
+              key: const Key('verifyVoter'),
+              controller: _voter,
+              textCapitalization: TextCapitalization.characters,
+              inputFormatters: [LengthLimitingTextInputFormatter(12)],
+              decoration: InputDecoration(labelText: s.voterLabel, hintText: 'ABC1234567'),
+            ),
+            const SizedBox(height: 10),
+            _go('verifyVoterGo', s.checkVoter, () => _do((api) => api.voter(_voter.text.trim(), employeeId: _for))),
+          ],
+        );
+      case 'uan':
+        if (v.savedUanLast4 != null && !_otherUan) {
+          return Column(
+            children: [
+              _go('verifyUanSaved', s.uanUseSaved(v.savedUanLast4!), () => _do((api) => api.uan(employeeId: _for))),
+              TextButton(
+                key: const Key('verifyUanOther'),
+                onPressed: () => setState(() => _otherUan = true),
+                child: Text(s.uanOther),
+              ),
+            ],
+          );
+        }
+        return Column(
+          children: [
+            TextField(
+              key: const Key('verifyUan'),
+              controller: _uan,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(12)],
+              decoration: InputDecoration(labelText: s.uanLabel, hintText: '100123456789'),
+            ),
+            const SizedBox(height: 10),
+            _go('verifyUanGo', s.checkUan, () => _do((api) => api.uan(uan: _uan.text.trim(), employeeId: _for))),
           ],
         );
       default:

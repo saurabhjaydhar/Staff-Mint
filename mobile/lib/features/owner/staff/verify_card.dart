@@ -15,7 +15,11 @@ import '../../../core/widgets/common.dart';
 import '../../employee/verify/verify_screen.dart';
 import '../providers/owner_providers.dart';
 
-const verifyKinds = ['aadhaar', 'pan', 'bank', 'face'];
+const verifyKinds = ['aadhaar', 'pan', 'dl', 'voter', 'bank', 'uan', 'face'];
+
+/// Ticked to begin with; the rest are under "More checks".
+const _mainKinds = ['aadhaar', 'pan', 'bank', 'face'];
+const _moreKinds = ['dl', 'voter', 'uan'];
 
 final ownerVerificationProvider = FutureProvider.autoDispose.family<OwnerVerification, String>(
   (ref, employeeId) => ref.watch(verificationApiProvider).forEmployee(employeeId),
@@ -147,15 +151,31 @@ class VerifyCard extends ConsumerWidget {
                     ],
                   ),
                 ),
-              if (r.open)
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    key: const Key('verifyCancel'),
-                    onPressed: () => run(() => ref.read(verificationApiProvider).cancel(employee.id)),
-                    child: Text(s.cancelCheck),
-                  ),
-                ),
+              Row(
+                children: [
+                  if (r.consented)
+                    TextButton.icon(
+                      key: const Key('verifyReport'),
+                      onPressed: () async {
+                        String? url;
+                        final ok = await runGuarded(
+                          context,
+                          () async => url = await ref.read(verificationApiProvider).reportUrl(employee.id),
+                        );
+                        if (ok && url != null && context.mounted) await openUrl(context, url!);
+                      },
+                      icon: const Icon(Icons.picture_as_pdf_rounded),
+                      label: Text(s.reportPdf),
+                    ),
+                  const Spacer(),
+                  if (r.open)
+                    TextButton(
+                      key: const Key('verifyCancel'),
+                      onPressed: () => run(() => ref.read(verificationApiProvider).cancel(employee.id)),
+                      child: Text(s.cancelCheck),
+                    ),
+                ],
+              ),
             ],
           ],
         ),
@@ -198,7 +218,9 @@ class _CheckRow extends StatelessWidget {
       if (c.kind == 'face' && c.details['idKind'] != null) s.faceWithId(s.fileKind(c.details['idKind']!)),
       if (c.last4 != null && c.status != 'waiting') s.endingIn(c.last4!),
       if (c.details['dob'] != null) s.docBorn(_dob(c.details['dob']!, s.languageCode)),
+      if (c.details['validTill'] != null) s.validTillDate(_dob(c.details['validTill']!, s.languageCode)),
     ];
+    String day(String? d) => d == null ? '?' : _dob(d, s.languageCode);
     return Padding(
       key: Key('verifyRow_${c.kind}'),
       padding: const EdgeInsets.only(top: 10),
@@ -213,6 +235,22 @@ class _CheckRow extends StatelessWidget {
               children: [
                 Text(s.docKind(c.kind), style: const TextStyle(fontWeight: FontWeight.w800)),
                 Text(lines.join(' · '), style: TextStyle(color: c.needsLook ? AppColors.amberDark : AppColors.muted)),
+                if (c.employers.isNotEmpty)
+                  Padding(
+                    key: Key('verifyJobs_${c.kind}'),
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(s.pastJobs, style: const TextStyle(fontWeight: FontWeight.w700)),
+                        for (final j in c.employers)
+                          Text(
+                            '• ${j.name} · ${day(j.joined)} – ${j.left == null ? s.jobNow : day(j.left)}',
+                            style: const TextStyle(color: AppColors.muted),
+                          ),
+                      ],
+                    ),
+                  ),
                 if (c.needsLook || c.status == 'failed')
                   Wrap(
                     spacing: 8,
@@ -303,7 +341,7 @@ class _CheckSheet extends ConsumerStatefulWidget {
 }
 
 class _CheckSheetState extends ConsumerState<_CheckSheet> {
-  final _kinds = {'aadhaar', 'pan', 'bank', 'face'};
+  final _kinds = {..._mainKinds};
   bool _busy = false;
 
   Future<void> _send() async {
@@ -319,6 +357,15 @@ class _CheckSheetState extends ConsumerState<_CheckSheet> {
     setState(() => _busy = false);
     if (ok) Navigator.pop(context, true);
   }
+
+  Widget _kind(S s, String k) => CheckboxListTile(
+    key: Key('verifyKind_$k'),
+    contentPadding: EdgeInsets.zero,
+    value: _kinds.contains(k),
+    onChanged: (on) => setState(() => on == true ? _kinds.add(k) : _kinds.remove(k)),
+    title: Text(s.docKind(k), style: const TextStyle(fontWeight: FontWeight.w700)),
+    subtitle: Text(s.docKindHint(k)),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -337,15 +384,15 @@ class _CheckSheetState extends ConsumerState<_CheckSheet> {
           ),
           Text(s.checkSheetHint, style: const TextStyle(color: AppColors.muted)),
           const SizedBox(height: 10),
-          for (final k in verifyKinds)
-            CheckboxListTile(
-              key: Key('verifyKind_$k'),
-              contentPadding: EdgeInsets.zero,
-              value: _kinds.contains(k),
-              onChanged: (on) => setState(() => on == true ? _kinds.add(k) : _kinds.remove(k)),
-              title: Text(s.docKind(k), style: const TextStyle(fontWeight: FontWeight.w700)),
-              subtitle: Text(s.docKindHint(k)),
+          for (final k in _mainKinds) _kind(s, k),
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              s.moreChecks,
+              style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.muted),
             ),
+          ),
+          for (final k in _moreKinds) _kind(s, k),
           const SizedBox(height: 6),
           Container(
             key: const Key('verifyQuota'),

@@ -2307,8 +2307,10 @@ class S {
   // ---------------------------------------------------------------- Documents check (background verification)
   String get docCheckTitle => _t('Documents check', 'दस्तावेज़ जाँच');
   String get docCheckNone => _t('Not checked yet', 'अभी जाँच नहीं हुई');
-  String get docCheckNoneHint =>
-      _t('Aadhaar, PAN and bank, against government records', 'आधार, PAN और बैंक, सरकारी रिकॉर्ड से');
+  String get docCheckNoneHint => _t(
+    'Aadhaar, PAN, licence, PF and bank, against government records',
+    'आधार, PAN, लाइसेंस, PF और बैंक, सरकारी रिकॉर्ड से',
+  );
   String get checkNow => _t('Check now', 'अभी जाँचें');
   String docAsked(String name) => _t('Waiting for $name to agree', '$name की अनुमति का इंतज़ार');
   String docInProgress(String name) => _t('$name is doing the steps', '$name क़दम पूरे कर रहे हैं');
@@ -2318,15 +2320,35 @@ class S {
   String docKind(String kind) => switch (kind) {
     'aadhaar' => _t('Aadhaar', 'आधार'),
     'pan' => _t('PAN', 'PAN'),
+    'dl' => _t('Driving licence', 'ड्राइविंग लाइसेंस'),
+    'voter' => _t('Voter ID', 'वोटर कार्ड'),
+    'uan' => _t('PF number (UAN)', 'PF नंबर (UAN)'),
     'face' => _t('Selfie', 'सेल्फ़ी'),
     _ => _t('Bank account', 'बैंक खाता'),
   };
   String docKindHint(String kind) => switch (kind) {
     'aadhaar' => _t('Name and date of birth, with an OTP', 'नाम और जन्म तारीख़, OTP से'),
     'pan' => _t('Valid PAN and the name on it', 'सही PAN और उस पर नाम'),
+    'dl' => _t('Valid, the name on it and till when', 'सही है, किसका नाम है और कब तक चलेगा'),
+    'voter' => _t('Valid voter ID and the name on it', 'सही वोटर कार्ड और उस पर नाम'),
+    'uan' => _t('Name and past jobs, from the PF office', 'नाम और पहले की नौकरियाँ, PF दफ़्तर से'),
     'face' => _t('Matched with the photo on their ID', 'पहचान पत्र की फ़ोटो से मिलान'),
     _ => _t('₹1 test to their salary account', 'सैलरी खाते में ₹1 टेस्ट'),
   };
+  String get moreChecks => _t('More checks', 'और जाँच');
+  String get pastJobs => _t('Past jobs (PF record)', 'पहले की नौकरियाँ (PF रिकॉर्ड)');
+  String get jobNow => _t('now', 'अभी तक');
+  String get reportPdf => _t('Report (PDF)', 'रिपोर्ट (PDF)');
+  String get dlLabel => _t('Licence number', 'लाइसेंस नंबर');
+  String get dobLabel => _t('Date of birth', 'जन्म तारीख़');
+  String get pickDob => _t('Pick date of birth', 'जन्म तारीख़ चुनें');
+  String get dobHintDl => _t('As on the licence', 'जैसी लाइसेंस पर है');
+  String get checkDl => _t('Check licence', 'लाइसेंस जाँचें');
+  String get voterLabel => _t('Voter ID number', 'वोटर कार्ड नंबर');
+  String get checkVoter => _t('Check voter ID', 'वोटर कार्ड जाँचें');
+  String uanUseSaved(String last4) => _t('Use UAN ending $last4', 'आख़िरी $last4 वाला UAN');
+  String get uanOther => _t('Use a different UAN', 'दूसरा UAN');
+  String get checkUan => _t('Check UAN', 'UAN जाँचें');
   String checkSheetTitle(String name) => _t('Check $name’s documents', '$name के दस्तावेज़ जाँचें');
   String get checkSheetHint =>
       _t('They finish it on their phone in about 3 minutes.', 'वे अपने फ़ोन पर लगभग 3 मिनट में पूरा करेंगे।');
