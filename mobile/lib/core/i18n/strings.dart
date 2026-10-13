@@ -1274,6 +1274,12 @@ class S {
   );
   String todayIs(String status) => _t('Today: $status', 'आज: $status');
   String get rowYouMark => _t('You mark · tap to mark', 'आप लगाते हैं · लगाने के लिए टैप करें');
+  String rowJoinsOn(String date) =>
+      _t('Joining date $date · tap if they worked', 'जॉइनिंग $date · काम किया हो तो टैप करें');
+  String joiningMoves(String joining, String day) => _t(
+    'Their joining date is $joining. Marking this day moves it to $day.',
+    'इनकी जॉइनिंग $joining है। यह दिन लगाने पर जॉइनिंग $day हो जाएगी।',
+  );
   String chipToMarkN(int n) => _t('$n to mark', '$n लगानी बाकी');
   String get rowAutoPresent => _t('Counted present automatically', 'अपने-आप हाज़िर लगी');
   String get rowPresentByDefault => _t('Present unless you change it', 'हाज़िर लगेगा, जब तक आप न बदलें');

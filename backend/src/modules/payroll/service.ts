@@ -126,17 +126,43 @@ async function computeInto(ctx: Ctx, run: any) {
   return run;
 }
 
+/** One recompute at a time per run, so two screens opening it together don't double the payslips. */
+const refreshing = new Map<string, Promise<unknown>>();
+
+/**
+ * A draft always shows today's numbers: attendance, new staff, salary changes and advances since it was
+ * prepared are counted when it's opened. Approved and paid runs never change.
+ */
+async function fresh(ctx: Ctx, run: any) {
+  if (run.status !== 'draft') return run;
+  const key = String(run._id);
+  const pending = refreshing.get(key);
+  if (pending) {
+    await pending;
+    return PayrollRun.findOne({ _id: run._id, companyId: ctx.companyId });
+  }
+  const job = computeInto(ctx, run).finally(() => refreshing.delete(key));
+  refreshing.set(key, job);
+  return job;
+}
+
 export async function listRuns(ctx: Ctx, month?: string) {
   const f: any = { companyId: ctx.companyId, deletedAt: null };
   if (month) f.month = month;
-  const runs = await PayrollRun.find(f).sort({ month: -1, revision: -1 }).limit(48).lean();
-  return Promise.all(runs.map((r) => runView(r, false, ctx.language)));
+  const runs = await PayrollRun.find(f).sort({ month: -1, revision: -1 }).limit(48);
+  for (let i = 0; i < runs.length; i++) if (runs[i].status === 'draft') runs[i] = (await fresh(ctx, runs[i])) ?? runs[i];
+  return Promise.all(runs.map((r) => runView(r.toObject(), false, ctx.language)));
 }
 
 export async function getRun(ctx: Ctx, id: string) {
   const run = await PayrollRun.findOne({ _id: id, companyId: ctx.companyId, deletedAt: null });
   if (!run) throw notFound('Payroll run');
   return run;
+}
+
+/** For showing a run: a draft is recomputed first (see [fresh]). */
+export async function getFreshRun(ctx: Ctx, id: string) {
+  return (await fresh(ctx, await getRun(ctx, id))) ?? getRun(ctx, id);
 }
 
 /** Create the month's draft, or recompute it if it is still a draft. */

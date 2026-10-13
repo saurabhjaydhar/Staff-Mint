@@ -3,9 +3,9 @@ import { endOpenSession } from '../tracking/service.js';
 import { randomUUID } from 'node:crypto';
 import { AppError, notFound } from '../../lib/errors.js';
 import { distanceMeters, fromGeoPoint } from '../../lib/geo.js';
-import { localDateOf, monthDays, todayIn, dateRange } from '../../lib/dates.js';
+import { addDays, localDateOf, monthDays, todayIn, dateRange } from '../../lib/dates.js';
 import type { Ctx } from '../../lib/context.js';
-import { Attendance, Branch, Company, Employee, Holiday, Leave, Membership, RosterEntry, Shift, type AttendanceStatus } from '../../models/index.js';
+import { Attendance, Branch, Company, Employee, Holiday, Leave, Membership, RosterEntry, SalaryStructure, Shift, type AttendanceStatus } from '../../models/index.js';
 import { computeDay, ownerMarksAttendance } from './rules.js';
 import { audit } from '../audit/service.js';
 import { employeeScope, assertEmployeeInScope } from '../employees/service.js';
@@ -347,10 +347,18 @@ const lastValidPunch = (r: any) =>
 
 const employedOn = (e: any, d: string) => (!e.joiningDate || e.joiningDate <= d) && (!e.exitDate || e.exitDate >= d);
 
+/** Days before someone's joining date (up to this far back) still list them, so missed days can be filled in. */
+const BEFORE_JOINING_DAYS = 45;
+
+/** Joined later than [date], but recently enough that the owner may be filling in days they forgot. */
+const joinsSoonAfter = (e: any, date: string) => !!e.joiningDate && e.joiningDate > date && addDays(e.joiningDate, -BEFORE_JOINING_DAYS) <= date;
+
 export async function dayView(ctx: Ctx, date: string) {
   const company = await Company.findById(ctx.companyId).lean();
+  const today = todayIn(company!.timezone);
   const emps = (await Employee.find({ ...employeeScope(ctx), status: { $in: ['active', 'inactive'] } }).sort({ name: 1 }).lean()).filter(
-    (e) => employedOn(e, date) && (e.status === 'active' || (e.exitDate && e.exitDate >= date)),
+    (e) =>
+      (employedOn(e, date) || (date <= today && joinsSoonAfter(e, date) && e.status === 'active')) && (e.status === 'active' || (e.exitDate && e.exitDate >= date)),
   );
   const records = await Attendance.find({ companyId: ctx.companyId, date, employeeId: { $in: emps.map((e) => e._id) } }).lean();
   const byEmp = new Map(records.map((r) => [String(r.employeeId), r]));
@@ -368,6 +376,8 @@ export async function dayView(ctx: Ctx, date: string) {
         record: r ? await attendanceView(r) : null,
         displayStatus: displayStatusOf(r, implicitStatus(dc, e, date), closed),
         holidayName: dc.holidayName(date) ?? null,
+        // Before their joining date: listed so a forgotten day can be marked (that moves the joining date back).
+        joinsOn: e.joiningDate && e.joiningDate > date ? e.joiningDate : null,
         // "Shift starts at 9:00 AM" on Home before anyone is due.
         shift: sh ? { start: sh.start, end: sh.end } : null,
       };
@@ -437,8 +447,27 @@ export async function monthGrid(ctx: Ctx, month: string, employeeId?: string) {
 }
 
 /** Reason is optional: the owner picks what happened first, and may say why. */
+/** Present, absent and half day can only be marked for days that have happened; leave, holidays and week offs can be planned. */
+const WORKED = new Set<string>(['present', 'absent', 'half_day']);
+
 export async function overrideDay(ctx: Ctx, input: { employeeId: string; date: string; status: AttendanceStatus; leaveType?: 'paid' | 'sick' | 'unpaid'; reason?: string | null }) {
   const emp = await assertEmployeeInScope(ctx, input.employeeId);
+  const company = (await Company.findById(ctx.companyId).select('timezone').lean())!;
+  if (WORKED.has(input.status) && input.date > todayIn(company.timezone)) {
+    throw new AppError('VALIDATION_ERROR', 'That day hasn’t come yet. You can mark leave or a holiday ahead, but not present or absent.', { reason: 'future_date' });
+  }
+  // Marking a day before their joining date means they started earlier: move the joining date (and first salary) back.
+  if (emp.joiningDate && input.date < emp.joiningDate && input.status !== 'holiday' && input.status !== 'week_off') {
+    const before = emp.joiningDate;
+    await Employee.updateOne({ _id: emp._id, companyId: ctx.companyId }, { $set: { joiningDate: input.date } });
+    const first = await SalaryStructure.findOne({ companyId: ctx.companyId, employeeId: emp._id }).sort({ effectiveFrom: 1 });
+    if (first && first.effectiveFrom > input.date) {
+      first.effectiveFrom = input.date;
+      await first.save();
+    }
+    emp.joiningDate = input.date;
+    await audit(ctx, { action: 'employee.update', entity: 'employee', entityId: emp._id, before: { joiningDate: before }, after: { joiningDate: input.date } });
+  }
   if (input.status === 'leave' && !input.leaveType) input.leaveType = 'paid';
   let r = await Attendance.findOne({ companyId: ctx.companyId, employeeId: emp._id, date: input.date });
   const before = r?.toObject() ?? null;

@@ -160,6 +160,7 @@ class DayRow {
     this.shiftStart,
     this.shiftEnd,
     this.ownerMarks = false,
+    this.joinsOn,
   });
   final EmployeeRef employee;
   final Attendance? record;
@@ -173,6 +174,9 @@ class DayRow {
   /// The owner or a manager marks this person (no check-in on their phone).
   final bool ownerMarks;
 
+  /// This day is before their joining date ("2026-10-13"): marking it moves the joining date back.
+  final String? joinsOn;
+
   /// Row rebuilt from a fresh record (e.g. the response of an override).
   /// Holiday / week-off / leave rows without a record keep [fallback].
   DayRow withRecord(Attendance? r, {String? fallback}) => DayRow(
@@ -183,6 +187,7 @@ class DayRow {
     shiftStart: shiftStart,
     shiftEnd: shiftEnd,
     ownerMarks: ownerMarks,
+    joinsOn: joinsOn,
   );
 
   /// Mirrors the server's `displayStatus` for a single record.
@@ -225,6 +230,7 @@ class DayRow {
     shiftStart: asStringOrNull(asMap(j['shift'])['start']),
     shiftEnd: asStringOrNull(asMap(j['shift'])['end']),
     ownerMarks: asBool(j['ownerMarks']),
+    joinsOn: asStringOrNull(j['joinsOn']),
   );
 }
 

@@ -102,6 +102,20 @@ class _QuickSheetState extends State<_QuickSheet> {
               ),
             ],
           ),
+          if (row.joinsOn != null && row.record == null)
+            Container(
+              key: const Key('joiningMoves'),
+              margin: const EdgeInsets.only(top: 12),
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: AppColors.amberLight, borderRadius: BorderRadius.circular(12)),
+              child: Text(
+                s.joiningMoves(
+                  Dates.prettyApiDate(row.joinsOn!, s.languageCode),
+                  Dates.prettyApiDate(widget.date, s.languageCode),
+                ),
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
           const SizedBox(height: 14),
           Text(s.whatHappened, style: Theme.of(context).textTheme.titleSmall),
           const SizedBox(height: 8),

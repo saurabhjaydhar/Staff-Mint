@@ -299,6 +299,8 @@ export interface DayRow {
   employee: { id: string; name: string; phone: string; designation?: string };
   record: Attendance | null;
   displayStatus: DisplayStatus;
+  /** Before their joining date: listed so a missed day can be filled in (marking it moves the joining date back). */
+  joinsOn?: string | null;
 }
 
 export interface MonthGrid {
