@@ -230,7 +230,15 @@ class DayRow {
 
 /// `GET /attendance/today` for employees.
 class TodayInfo {
-  const TodayInfo({required this.date, this.record, this.shift, this.branch, this.displayStatus, this.ownerMarks});
+  const TodayInfo({
+    required this.date,
+    this.record,
+    this.shift,
+    this.branch,
+    this.displayStatus,
+    this.ownerMarks,
+    this.fieldStaff = false,
+  });
   final String date;
   final Attendance? record;
   final Shift? shift;
@@ -240,6 +248,9 @@ class TodayInfo {
   /// The owner or a manager marks attendance; null when the server didn't say (older cache).
   final bool? ownerMarks;
 
+  /// Field staff check in from anywhere (the shop area doesn't apply).
+  final bool fieldStaff;
+
   factory TodayInfo.fromJson(Json j) => TodayInfo(
     date: asString(j['date']),
     record: j['record'] is Map ? Attendance.fromJson(asMap(j['record'])) : null,
@@ -247,6 +258,7 @@ class TodayInfo {
     branch: j['branch'] is Map ? Branch.fromJson(asMap(j['branch'])) : null,
     displayStatus: asStringOrNull(j['displayStatus']),
     ownerMarks: j['ownerMarks'] is bool ? j['ownerMarks'] as bool : null,
+    fieldStaff: asBool(j['fieldStaff']),
   );
 }
 

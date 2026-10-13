@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Types } from 'mongoose';
 import { api, auth, V, createOwner, addEmployee, employeeSession, nextPhone, mocks, punchBody } from './helpers.js';
-import { AuditLog, Employee, LocationPing, Notification, Shift, TrackingSession } from '../src/models/index.js';
+import { Attendance, AuditLog, Employee, LocationPing, Notification, Shift, TrackingSession } from '../src/models/index.js';
 import { addEvents, addPings, trackingTick } from '../src/modules/tracking/service.js';
 import { cleanPoints, distanceOf, stopsOf } from '../src/modules/tracking/route.js';
 import { describe as describeLog } from '../src/modules/audit/describe.js';
@@ -200,6 +200,10 @@ describe('field staff check-in and place names', () => {
     const r = await api().post(`${V}/attendance/check-in`).set(auth(staff.token)).send(punchBody(staff.deviceId, far)).expect(201);
     expect(r.body.data.punch).toMatchObject({ approval: 'not_required', insideGeofence: null });
 
+    // Checked in 40 minutes ago; a point from before that is left out.
+    await Attendance.updateOne({ companyId: owner.companyId, employeeId: emp.id, 'punches.type': 'in' }, { $set: { 'punches.$[].clientTime': new Date(Date.now() - 40 * 60_000) } });
+    const early = await send(staff.token, [{ at: new Date(Date.now() - 60 * 60_000).toISOString(), lat: 28.6, lng: 77.2 }]).expect(200);
+    expect(early.body.data.accepted).toBe(0);
     // A stop at Karol Bagh gets its place name, and so does the live list.
     const base = Date.now() - 30 * 60_000;
     const pts = Array.from({ length: 8 }, (_, i) => ({ at: new Date(base + i * 2 * 60_000).toISOString(), lat: 28.6514 + i * 0.00002, lng: 77.1907, accuracyM: 10 }));

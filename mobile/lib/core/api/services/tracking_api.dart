@@ -13,6 +13,12 @@ class TrackingApi {
     return (enabled: asBool(j['enabled']), consented: asBool(j['consented']));
   }
 
+  Future<List<LiveStaff>> live() async => asList(await _c.get('/tracking/live'), LiveStaff.fromJson);
+
+  /// [employeeId] null: the staff member's own day.
+  Future<TrackDay> day(String date, {String? employeeId}) async =>
+      TrackDay.fromJson(asMap(await _c.get('/tracking/day', query: {'date': date, 'employeeId': ?employeeId})));
+
   // ---- Staff
   Future<MyTracking> me() async => MyTracking.fromJson(asMap(await _c.get('/tracking/me')));
   Future<MyTracking> consent() async => MyTracking.fromJson(asMap(await _c.post('/tracking/me/consent')));

@@ -22,7 +22,8 @@ export async function placeName(lat: number, lng: number, lang: 'en' | 'hi' = 'e
   let name: string | null;
   try {
     const { address } = await (await provider('geo')).reverseGeocode(lat, lng, lang);
-    name = address ? address.split(',').slice(0, 2).join(',').trim() : null;
+    // No real place, just coordinates back: show nothing rather than numbers.
+    name = address && !/^-?\d+\.\d+,\s*-?\d+\.\d+$/.test(address.trim()) ? address.split(',').slice(0, 2).join(',').trim() : null;
   } catch (err) {
     logger.warn({ err }, 'reverse geocode failed');
     return null;
@@ -84,12 +85,14 @@ async function endsByFor(company: { _id: Types.ObjectId; timezone: string }, emp
   return by < midnight ? { at: by, reason: 'shift_end' as const } : { at: midnight, reason: 'midnight' as const };
 }
 
-/** Last check-in/out today, ignoring rejected ones. */
-async function checkedIn(companyId: Types.ObjectId, employeeId: Types.ObjectId, date: string) {
+/** When they checked in, if their last check-in/out today (ignoring rejected ones) is a check-in; else null. */
+async function checkedInAt(companyId: Types.ObjectId, employeeId: Types.ObjectId, date: string): Promise<Date | null> {
   const a = await Attendance.findOne({ companyId, employeeId, date }).lean();
   const punches = (a?.punches ?? []).filter((p: any) => p.approval !== 'rejected').sort((x: any, y: any) => +new Date(x.clientTime) - +new Date(y.clientTime));
-  return punches[punches.length - 1]?.type === 'in';
+  const last = punches[punches.length - 1];
+  return last?.type === 'in' ? new Date(last.clientTime) : null;
 }
+const checkedIn = async (companyId: Types.ObjectId, employeeId: Types.ObjectId, date: string) => !!(await checkedInAt(companyId, employeeId, date));
 
 async function openSession(companyId: Types.ObjectId, employeeId: Types.ObjectId) {
   return TrackingSession.findOne({ companyId, employeeId, endedAt: null }).sort({ startedAt: -1 });
@@ -301,7 +304,8 @@ export async function addPings(ctx: Ctx, input: PingInput[], now = new Date()) {
     await endOpenSession(ctx.companyId, employeeId, 'midnight', s.endsBy);
     s = null;
   }
-  if (!(await checkedIn(ctx.companyId, employeeId, today))) {
+  const inAt = await checkedInAt(ctx.companyId, employeeId, today);
+  if (!inAt) {
     if (s) await endOpenSession(ctx.companyId, employeeId, 'punch_out', now);
     return stop('checked_out');
   }
@@ -316,7 +320,8 @@ export async function addPings(ctx: Ctx, input: PingInput[], now = new Date()) {
     return stop(reason);
   }
   const cfg = await settings(ctx.companyId);
-  const dayStart = zonedInstant(today, '00:00', company.timezone);
+  // Nothing from before they checked in (a few minutes' leeway for the phone clock).
+  const dayStart = new Date(Math.max(zonedInstant(today, '00:00', company.timezone).getTime(), inAt.getTime() - 5 * 60_000));
   const pts = input
     .slice(0, MAX_BATCH)
     .map((p) => ({ ...p, atDate: new Date(p.at) }))

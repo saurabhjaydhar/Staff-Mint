@@ -2522,6 +2522,37 @@ class S {
   String get fieldStaffOff => _t('See where they are while checked in', 'चेक-इन रहते हुए देखें वे कहाँ हैं');
   String fieldStaffWaiting(String name) => _t('Waiting for $name to agree', '$name की सहमति का इंतज़ार');
   String get fieldStaffOn => _t('On: shares while checked in', 'चालू: चेक-इन रहते हुए शेयर');
+  String get fieldCheckInAnywhere => _t('Check in from anywhere', 'कहीं से भी चेक-इन करें');
+  String get fieldCheckInHint => _t(
+    'You are field staff. Your location is shared while you are checked in.',
+    'आप फ़ील्ड स्टाफ़ हैं। चेक-इन रहते हुए आपकी लोकेशन शेयर होती है।',
+  );
+  String get fieldMapTitle => _t('Field staff', 'फ़ील्ड स्टाफ़');
+  String fieldMapCard(int n) => _t('$n field staff · see where they are now', '$n फ़ील्ड स्टाफ़ · देखें अभी कहाँ हैं');
+  String get fieldNone => _t(
+    'No field staff yet. Turn it on in a staff profile: "Field staff: share location during shift".',
+    'अभी कोई फ़ील्ड स्टाफ़ नहीं। स्टाफ़ प्रोफ़ाइल में चालू करें: "फ़ील्ड स्टाफ़: शिफ़्ट में लोकेशन शेयर"।',
+  );
+  String minAgo(int m) => m < 1 ? _t('just now', 'अभी') : _t('$m min ago', '$m मिनट पहले');
+  String hoursAgo(int h) => _t('$h h ago', '$h घंटे पहले');
+  String liveStatus(String status) => switch (status) {
+    'waiting_consent' => _t('Hasn’t agreed yet', 'अभी सहमति नहीं दी'),
+    'not_started' => _t('Not checked in', 'चेक-इन नहीं किया'),
+    'ended' => _t('Checked out', 'चेक-आउट किया'),
+    _ => '',
+  };
+  String nearPlace(String place) => _t('near $place', '$place के पास');
+  String kmShort(String km) => _t('$km km', '$km किमी');
+  String get myRoute => _t('My route today', 'आज मेरा रास्ता');
+  String get dayKm => _t('Travelled', 'कुल चले');
+  String get dayStops => _t('Stops', 'रुके');
+  String stopLine(String from, String to, int minutes) =>
+      _t('$from – $to · $minutes min', '$from – $to · $minutes मिनट');
+  String stopN(int n) => _t('Stop $n', 'रुकाव $n');
+  String get noRouteYet => _t('No route for this day.', 'इस दिन का कोई रास्ता नहीं।');
+  String get checkedInHere => _t('Checked in', 'चेक-इन');
+  String get checkedOutHere => _t('Checked out', 'चेक-आउट');
+  String get locationOffEvent => _t('Turned off location', 'लोकेशन बंद की');
 
   // ---------------------------------------------------------------- Misc
   String get thisMonth => _t('This month', 'इस महीने');

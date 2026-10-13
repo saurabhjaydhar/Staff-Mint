@@ -450,7 +450,7 @@ class _EmployeeHomeScreenState extends ConsumerState<EmployeeHomeScreen> {
   num? _awayMeters(TodayInfo? info) {
     final g = info?.branch?.location;
     final loc = _loc;
-    if (g == null || loc == null) return null;
+    if (g == null || loc == null || (info?.fieldStaff ?? false)) return null;
     final d = distanceMeters(loc.lat, loc.lng, g.lat, g.lng);
     return d <= (info?.branch?.radiusM ?? 100) ? null : d;
   }
@@ -458,6 +458,15 @@ class _EmployeeHomeScreenState extends ConsumerState<EmployeeHomeScreen> {
   /// Where they are, and why it matters: "You're at the shop ✓ · We check
   /// this so attendance is fair", or "You're 400 m from the shop" with a fix.
   Widget _locationCard(S s, TodayInfo? info) {
+    if (info?.fieldStaff ?? false) {
+      return _InfoCard(
+        key: const Key('fieldStaffCard'),
+        icon: Icons.share_location_rounded,
+        color: AppColors.mintDark,
+        title: s.fieldCheckInAnywhere,
+        body: s.fieldCheckInHint,
+      );
+    }
     final loc = _loc;
     final g = info?.branch?.location;
     final askOwner = ref.read(authControllerProvider).company?.settings.outsideGeofencePolicy == 'request_approval';

@@ -14,6 +14,8 @@ import 'package:staffmint/core/utils/json.dart';
 import 'package:staffmint/features/tracking/tracking_controller.dart';
 import 'package:staffmint/features/tracking/tracking_engine.dart';
 import 'package:staffmint/features/tracking/tracking_widgets.dart';
+import 'package:staffmint/features/tracking/field_staff_screens.dart';
+import 'package:staffmint/core/widgets/track_map.dart';
 
 class _Source implements LocationSource {
   final fixesCtl = StreamController<TrackFix>.broadcast();
@@ -74,6 +76,19 @@ class _Api implements TrackingApi {
 
   @override
   Future<({bool enabled, bool consented})> setFor(String employeeId, bool enabled) async => setResult;
+
+  List<LiveStaff> liveList = const [];
+  TrackDay? dayResult;
+  final dayCalls = <String>[];
+
+  @override
+  Future<List<LiveStaff>> live() async => liveList;
+
+  @override
+  Future<TrackDay> day(String date, {String? employeeId}) async {
+    dayCalls.add('${employeeId ?? 'me'}:$date');
+    return dayResult ?? TrackDay(name: 'Raju', date: date);
+  }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -151,6 +166,8 @@ void main() {
     });
   });
 
+  setUpAll(() => TrackMap.showTiles = false);
+
   group('screens', () {
     Future<(_Api, _Source)> pump(WidgetTester tester, Widget child, {String lang = 'en', _Api? api}) async {
       SharedPreferences.setMockInitialValues({'sm_language': lang});
@@ -223,6 +240,63 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Waiting for Raju to agree'), findsOneWidget);
       expect(changed, 1);
+    });
+
+    testWidgets('owner: field staff on the map with how long ago, where and km; tap opens their day', (tester) async {
+      final now = DateTime.now();
+      final api = _Api()
+        ..liveList = [
+          LiveStaff(
+            employeeId: 'e1',
+            name: 'Raju Kumar',
+            status: 'live',
+            lastPingAt: now.subtract(const Duration(minutes: 3)),
+            lat: 28.65,
+            lng: 77.19,
+            distanceM: 18200,
+            near: 'Ajmal Khan Road, Karol Bagh',
+          ),
+          const LiveStaff(employeeId: 'e2', name: 'Amit', status: 'waiting_consent'),
+        ]
+        ..dayResult = TrackDay(
+          name: 'Raju Kumar',
+          date: '2026-10-13',
+          distanceM: 18200,
+          route: [
+            TrackPoint(at: now, lat: 28.63, lng: 77.21),
+            TrackPoint(at: now, lat: 28.65, lng: 77.19),
+          ],
+          stops: [
+            TrackStop(
+              lat: 28.65,
+              lng: 77.19,
+              from: DateTime(2026, 10, 13, 10, 12),
+              to: DateTime(2026, 10, 13, 10, 40),
+              minutes: 28,
+              place: 'Ajmal Khan Road, Karol Bagh',
+            ),
+          ],
+          punches: [(type: 'in', at: TrackPoint(at: DateTime(2026, 10, 13, 9, 2), lat: 28.63, lng: 77.21))],
+        );
+      await pump(tester, const FieldStaffMapScreen(), api: api);
+      expect(find.byKey(const Key('liveMap')), findsOneWidget);
+      expect(find.text('3 min ago · near Ajmal Khan Road, Karol Bagh · 18 km'), findsOneWidget);
+      expect(find.text('Hasn’t agreed yet'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('live_e1')));
+      await tester.pumpAndSettle();
+      expect(api.dayCalls.single, startsWith('e1:'));
+      expect(find.text('18 km'), findsOneWidget);
+      expect(find.text('Ajmal Khan Road, Karol Bagh'), findsOneWidget);
+      expect(find.text('10:12 AM – 10:40 AM · 28 min'), findsOneWidget);
+      // Yesterday.
+      await tester.tap(find.byKey(const Key('dayPrev')));
+      await tester.pumpAndSettle();
+      expect(api.dayCalls, hasLength(2));
+    });
+
+    testWidgets('owner: no field staff yet', (tester) async {
+      await pump(tester, const FieldStaffMapScreen());
+      expect(find.textContaining('No field staff yet'), findsOneWidget);
     });
 
     testWidgets('Hindi consent', (tester) async {
