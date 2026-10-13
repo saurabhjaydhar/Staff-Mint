@@ -60,6 +60,7 @@ export const DEFAULT_PLANS = [
       'roster_swaps',
       'verification',
       'documents',
+      'tracking',
       'branches',
       'whatsapp_payslips',
       'whatsapp_assistant',
@@ -81,6 +82,7 @@ export const ADDED_FEATURES: Record<string, string[]> = {
   roster_swaps: ['growth', 'pro'],
   verification: ['growth', 'pro'],
   documents: ['starter', 'growth', 'pro'],
+  tracking: ['pro'],
 };
 
 export const DEFAULT_CONFIG: Record<string, unknown> = {
@@ -103,6 +105,13 @@ export const DEFAULT_CONFIG: Record<string, unknown> = {
   'verification.nameMatchMin': 80,
   /** Selfie vs the photo on their ID: at least this similarity (0–100) is a match; below it the owner looks. */
   'verification.faceMatchMin': 80,
+  /** Field staff location: a point every this many seconds or this many metres, whichever comes first. */
+  'tracking.intervalSec': 120,
+  'tracking.distanceM': 100,
+  /** Location points are deleted this many days after they were taken. */
+  'tracking.keepDays': 90,
+  /** No point for this many minutes during sharing: the owner is told once. */
+  'tracking.staleMinutes': 20,
   /** Checks and results are deleted this long after the person leaves. */
   'verification.retentionDays': 180,
   /** Sent in staff invites. Replace with the real Play Store link at launch. */

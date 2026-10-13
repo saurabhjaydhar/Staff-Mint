@@ -24,6 +24,7 @@ const FEATURE_LABELS: Record<string, { en: string; hi: string }> = {
   roster_swaps: { en: 'shift swaps', hi: 'शिफ़्ट अदला-बदली' },
   verification: { en: 'background checks', hi: 'बैकग्राउंड जाँच' },
   documents: { en: 'staff documents', hi: 'स्टाफ़ के दस्तावेज़' },
+  tracking: { en: 'field staff location', hi: 'फ़ील्ड स्टाफ़ की लोकेशन' },
   branches: { en: 'more branches', hi: 'ज़्यादा ब्रांच' },
   whatsapp_payslips: { en: 'payslips on WhatsApp', hi: 'WhatsApp पर सैलरी स्लिप' },
   whatsapp_assistant: { en: 'the WhatsApp assistant', hi: 'WhatsApp असिस्टेंट' },

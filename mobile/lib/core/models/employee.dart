@@ -20,6 +20,8 @@ class Employee {
     this.consentAt,
     this.faceStatus = 'none',
     this.verification = 'none',
+    this.trackingEnabled = false,
+    this.trackingConsented = false,
     this.hasDevice = false,
     this.linked = false,
     this.invitedAt,
@@ -51,6 +53,10 @@ class Employee {
 
   /// Background check badge: none · asked · in_progress · verified · needs_attention.
   final String verification;
+
+  /// Field staff: shares location during the shift (owner turned it on; [trackingConsented] = they agreed).
+  final bool trackingEnabled;
+  final bool trackingConsented;
   final bool hasDevice;
 
   /// Has opened StaffMint for this business; when the app invite was last sent.
@@ -97,6 +103,8 @@ class Employee {
       consentAt: asStringOrNull(consent['at']),
       faceStatus: asString(asMap(j['face'])['status'], 'none'),
       verification: asString(j['verification'], 'none'),
+      trackingEnabled: asBool(asMap(j['tracking'])['enabled']),
+      trackingConsented: asBool(asMap(j['tracking'])['consented']),
       hasDevice: asBool(j['hasDevice']),
       linked: asBool(j['linked']),
       appRole: asString(j['appRole'], 'employee'),

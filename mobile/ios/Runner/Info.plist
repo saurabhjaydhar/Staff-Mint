@@ -7,7 +7,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>StaffMint takes a selfie when you check in or check out.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>StaffMint records your location only at the moment you check in or check out, to confirm you are at work.</string>
+	<string>StaffMint records your location when you check in or check out. For field staff who agreed, it also shares your location while you are checked in, and stops when you check out.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>StaffMint asks you to unlock with Face ID when you check in. Your face never leaves your phone.</string>
 	<key>NSMicrophoneUsageDescription</key>
@@ -18,6 +18,7 @@
 	<string>StaffMint needs access to save or pick photos.</string>
 	<key>UIBackgroundModes</key>
 	<array>
+		<string>location</string>
 		<string>remote-notification</string>
 	</array>
 	<key>CADisableMinimumFrameDurationOnPhone</key>

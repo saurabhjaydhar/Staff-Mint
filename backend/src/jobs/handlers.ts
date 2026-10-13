@@ -3,6 +3,7 @@ import { DateTime } from 'luxon';
 import { Attendance, Company, Employee, RosterRepeat } from '../models/index.js';
 import { purgeDocuments, remindExpiring } from '../modules/verification/documents.js';
 import { purgeVerification } from '../modules/verification/service.js';
+import { trackingTick } from '../modules/tracking/service.js';
 import { getConfig } from '../modules/config/service.js';
 import { logger } from '../lib/logger.js';
 import { previousMonth, todayIn, addDays } from '../lib/dates.js';
@@ -166,6 +167,9 @@ export async function schedulerTick(now = new Date()) {
         await remindExpiring(c, now);
         updates['jobState.lastDocExpiryDate'] = today;
       }
+
+      // Field staff location: close sessions past shift end, tell owners when someone stopped updating.
+      await trackingTick(c, now);
 
       // Retention purge at ~3 AM.
       if (local.hour === 3 && local.minute < 15) await purgeRetention(c, now);

@@ -671,6 +671,8 @@ class S {
         return _t('Documents check', 'दस्तावेज़ जाँच');
       case 'documents':
         return _t('Staff documents', 'स्टाफ़ के दस्तावेज़');
+      case 'tracking':
+        return _t('Field staff location', 'फ़ील्ड स्टाफ़ की लोकेशन');
       case 'whatsapp_payslips':
         return _t('Salary slips on WhatsApp', 'WhatsApp पर सैलरी स्लिप');
       case 'whatsapp_assistant':
@@ -2493,6 +2495,33 @@ class S {
   String get signedSlip => _t('Signed consent slip', 'साइन की हुई सहमति पर्ची');
   String get couldNotLoadFile =>
       _t('Couldn’t load. Pull down to try again.', 'लोड नहीं हुआ। नीचे खींचकर फिर कोशिश करें।');
+
+  // ---------------------------------------------------------------- Field staff location
+  String get trackAskTitle => _t('Share location during work?', 'काम के दौरान लोकेशन शेयर करें?');
+  String trackAskHint(String business) =>
+      _t('$business asked. Only while you are checked in.', '$business ने कहा है। सिर्फ़ चेक-इन रहते हुए।');
+  String get trackRead => _t('Read and agree', 'पढ़ें और हाँ कहें');
+  String get trackConsentTitle => _t('Location during work', 'काम के दौरान लोकेशन');
+  String get trackAgree => _t('I agree', 'मैं सहमत हूँ');
+  String get trackNotNow => _t('Not now', 'अभी नहीं');
+  String get trackAgreed =>
+      _t('Thanks. Sharing starts when you check in.', 'धन्यवाद। चेक-इन करने पर शेयर होना शुरू होगा।');
+  String get trackSharingNow => _t('Sharing location until you check out', 'चेक-आउट तक लोकेशन शेयर हो रही है');
+  String trackKmToday(String km) => _t('$km km today', 'आज $km किमी');
+  String get trackNotifTitle => _t('StaffMint: sharing location', 'StaffMint: लोकेशन शेयर हो रही है');
+  String get trackNotifText => _t('Until you check out', 'चेक-आउट तक');
+  String get trackProfileOn => _t('On while checked in', 'चेक-इन रहते हुए चालू');
+  String get trackProfileAsk => _t('Your employer asked. Tap to read.', 'मालिक ने कहा है। पढ़ने के लिए दबाएँ।');
+  String get trackStop => _t('Stop sharing', 'शेयर करना बंद करें');
+  String get trackStopConfirm => _t(
+    'Your employer will be told. You can agree again later.',
+    'मालिक को बताया जाएगा। आप बाद में फिर हाँ कह सकते हैं।',
+  );
+  String get trackStopped => _t('Location sharing stopped', 'लोकेशन शेयर करना बंद हुआ');
+  String get fieldStaff => _t('Field staff: share location during shift', 'फ़ील्ड स्टाफ़: शिफ़्ट में लोकेशन शेयर');
+  String get fieldStaffOff => _t('See where they are while checked in', 'चेक-इन रहते हुए देखें वे कहाँ हैं');
+  String fieldStaffWaiting(String name) => _t('Waiting for $name to agree', '$name की सहमति का इंतज़ार');
+  String get fieldStaffOn => _t('On: shares while checked in', 'चालू: चेक-इन रहते हुए शेयर');
 
   // ---------------------------------------------------------------- Misc
   String get thisMonth => _t('This month', 'इस महीने');

@@ -46,6 +46,13 @@ const employeeSchema = new Schema(
       status: { type: String, enum: ['none', 'asked', 'in_progress', 'verified', 'needs_attention'], default: 'none' },
       at: { type: Date, default: null },
     },
+    /** Field staff: share location during the shift (owner turns it on; the person must agree first). */
+    tracking: {
+      enabled: { type: Boolean, default: false },
+      enabledAt: { type: Date, default: null },
+      consentAt: { type: Date, default: null },
+      consentVersion: { type: String, default: null },
+    },
     pfExempt: { type: Boolean, default: false },
     esiExempt: { type: Boolean, default: false },
     importSessionId: { type: Schema.Types.ObjectId, ref: 'ImportSession', default: null },

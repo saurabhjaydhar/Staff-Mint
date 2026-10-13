@@ -11,6 +11,8 @@ import 'core/push/push_service.dart';
 import 'core/storage/providers.dart';
 import 'features/employee/punch/punch_providers.dart';
 import 'features/employee/punch/punch_queue.dart';
+import 'features/tracking/tracking_controller.dart';
+import 'features/tracking/tracking_engine.dart';
 
 Future<void> main() async {
   if (Env.apiBaseUrl.isEmpty) {
@@ -25,6 +27,7 @@ Future<void> main() async {
   await Hive.initFlutter();
   final punchBox = await Hive.openBox<dynamic>(HivePunchQueueStore.boxName);
   final cacheBox = await Hive.openBox<dynamic>('cache');
+  final trackBox = await Hive.openBox<dynamic>(HivePointBuffer.boxName);
   final prefs = await SharedPreferences.getInstance();
 
   // Push is optional: a placeholder Firebase config must never crash the app.
@@ -39,6 +42,7 @@ Future<void> main() async {
         sharedPreferencesProvider.overrideWithValue(prefs),
         punchQueueBoxProvider.overrideWithValue(punchBox),
         cacheBoxProvider.overrideWithValue(cacheBox),
+        trackBoxProvider.overrideWithValue(trackBox),
         pushServiceProvider.overrideWithValue(push),
       ],
       child: const StaffMintApp(),

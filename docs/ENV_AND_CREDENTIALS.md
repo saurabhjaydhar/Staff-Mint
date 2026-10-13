@@ -71,6 +71,7 @@ Webhook URL to register: `https://<api>/api/v1/webhooks/messaging/meta` (or `/ai
 | `staff_invite` | staff name, business name, staff phone, app link | Invite sent when an owner adds staff (and "Resend invite"). The app link is config `app.downloadUrl` — set the real Play Store URL at launch (`PUT /admin/config`) |
 | `roster_published` | staff name, business name, week (e.g. "5 Oct – 11 Oct"), the week in one line ("Mon 5 Morning 09:00–17:00 · … · Sun 11 Off", changed days marked) | Roster sent; only to staff who haven't joined the app (others get a push) |
 | `roster_changed` | staff name, business name, week (e.g. "19 Oct – 25 Oct"), the changed days in one line ("Wed 21 Off · Thu 22 Evening 14:00–21:00") | A roster they already had for that week changed; only to staff who haven't joined the app |
+| `tracking_alert` | (not used yet) | Location alerts go to owners as app notifications only for now |
 | `verification_request` | staff name, business name | The owner asked for a documents check; only to staff who haven't joined the app (it should carry the app link) |
 
 ### Push notifications (🟡)
@@ -168,6 +169,8 @@ Set `PAYMENT_PROVIDER=razorpay`.
 | App icon and splash | 🟡 Still the Flutter defaults; send a 1024×1024 logo |
 | Play Console account ($25) | 🔴 For release; store listing in Hindi and English |
 | iOS (later) | Apple developer account, signing team, APNs key, `GoogleService-Info.plist` |
+| Play Console: foreground service declaration (field staff location) | 🔴 Before releasing the build with field staff location: Play Console → App content → **Foreground service permissions** → declare type **location** ("Sharing the employee's location with their employer while they are checked in for work, which the user starts by checking in"), with a short video: owner turns on Field staff → staff reads and agrees → checks in → the notification "StaffMint: sharing location" → checks out and it stops. Also update the Data safety form (precise location, collected, shared with the employer, deleted after 90 days). Review can take 1–2 weeks |
+| iOS: background location | Already set (`UIBackgroundModes: location`, "while using" permission). App Review notes should say location is shared only during the work shift the employee started |
 
 ## 4. Product decisions still open (PRD §28). Current defaults, all editable without a release
 | Question | Current default | Where to change |

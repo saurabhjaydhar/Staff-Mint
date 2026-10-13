@@ -1,4 +1,5 @@
 import { Types } from 'mongoose';
+import { endOpenSession } from '../tracking/service.js';
 import { randomUUID } from 'node:crypto';
 import { AppError, notFound } from '../../lib/errors.js';
 import { distanceMeters, fromGeoPoint } from '../../lib/geo.js';
@@ -199,6 +200,8 @@ export async function punch(ctx: Ctx, input: PunchInput, source: 'app' | 'offlin
   } as any);
   applyRules(record, company, (await rosterShiftOn(ctx.companyId, employee._id, date)) ?? shift, date < today);
   await record.save();
+  // Field staff: checking out ends today's location sharing.
+  if (input.type === 'out' && employee.tracking?.enabled) await endOpenSession(ctx.companyId, employee._id, 'punch_out', effective);
 
   if (approval === 'pending') {
     await notifyOwners(ctx.companyId, {

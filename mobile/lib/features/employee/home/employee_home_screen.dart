@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../tracking/tracking_controller.dart';
+import '../../tracking/tracking_widgets.dart';
 import '../../../core/api/api_exception.dart';
 import '../../../core/i18n/strings.dart';
 import '../../../core/models/models.dart';
@@ -52,7 +56,19 @@ class _EmployeeHomeScreenState extends ConsumerState<EmployeeHomeScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _prefetch());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _prefetch();
+      _track();
+    });
+  }
+
+  /// Field staff: start or stop sharing location (after check-in / check-out, and when the app opens).
+  Future<void> _track({bool checkedOut = false}) async {
+    if (!mounted) return;
+    final s = context.s;
+    final c = ref.read(trackingControllerProvider.notifier);
+    if (checkedOut) await c.checkedOut();
+    await c.refresh(title: s.trackNotifTitle, text: s.trackNotifText);
   }
 
   Future<void> _prefetch() async {
@@ -152,6 +168,7 @@ class _EmployeeHomeScreenState extends ConsumerState<EmployeeHomeScreen> {
         case PunchSucceeded(:final response):
           ref.invalidate(employeeTodayProvider);
           ref.invalidate(myMonthProvider);
+          unawaited(_track(checkedOut: type == 'out'));
           final bi = type == 'in' ? s.checkedInBi : s.checkedOutBi;
           final late = response.record.lateMinutes;
           await showSuccessScreen(
@@ -418,6 +435,7 @@ class _EmployeeHomeScreenState extends ConsumerState<EmployeeHomeScreen> {
                   ),
                 ),
               ),
+            const TrackingHomeCard(),
             const _VerifyCard(),
             const _MyWeek(),
             const _Swaps(),

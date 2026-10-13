@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
+import '../tracking/tracking_widgets.dart';
 import '../../core/api/providers.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/models/models.dart';
@@ -328,6 +329,7 @@ class _ProfileBody extends ConsumerWidget {
                   ),
           ),
         ],
+        if (p.isStaff) const TrackingProfileTile(),
         if (p.isStaff)
           _Section(
             title: s.myDocumentsBi,
