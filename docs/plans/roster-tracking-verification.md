@@ -1,6 +1,8 @@
 # Plan: Roster, live tracking for field staff, background verification
 
-Status (13 Oct 2026): **Planned, not built.** Round 0 mock-ups are ready: [docs/mockups/roster-tracking-verification.html](../mockups/roster-tracking-verification.html). No code changes until they are approved.
+Status (13 Oct 2026): **Planned, not built.** Round 0 mock-ups are ready as step-by-step guides: [docs/mockups/roster-tracking-verification.html](../mockups/roster-tracking-verification.html). No code changes until they are approved.
+
+**Keep it simple (owner feedback, 13 Oct):** each screen does one thing, and plain words replace jargon: "Send to staff" instead of Publish, "Not sent to staff yet" instead of Draft, "Repeat every week" instead of Rotation. Roster opens on **one day at a time** (tap a person to change their shift), with "Whole week" as a second view. Problems before sending come with **one-tap fixes**.
 
 This document covers three features that SalaryBox has and StaffMint doesn't. Each one is built in rounds, one PR per round.
 
