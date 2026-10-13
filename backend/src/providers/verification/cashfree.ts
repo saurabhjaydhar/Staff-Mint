@@ -1,4 +1,5 @@
-import type { VerificationProvider, VerifyRecord } from '../types.js';
+import { randomUUID } from 'node:crypto';
+import type { PastEmployer, VerificationProvider, VerifyRecord } from '../types.js';
 
 /**
  * Cashfree Verification Suite ("Secure ID"). Built from Cashfree's API reference
@@ -59,5 +60,48 @@ export class CashfreeVerificationProvider implements VerificationProvider {
     if (d.gender) details.gender = String(d.gender);
     if (d.split_address?.state) details.state = String(d.split_address.state);
     return { found: ok, nameOnRecord: d.name ?? null, providerRef: ref, costPaise: 1500, details };
+  }
+
+  /** Cashfree wants our own unique id on the newer endpoints. */
+  private vid() {
+    return `sm_${randomUUID().replace(/-/g, '').slice(0, 24)}`;
+  }
+
+  async verifyDl({ number, dob }: { number: string; dob: string; name: string }): Promise<VerifyRecord> {
+    const d = await this.post('/driving-license', { verification_id: this.vid(), dl_number: number, dob });
+    const till = d.dl_validity?.non_transport?.to ?? d.dl_validity?.transport?.to ?? null;
+    const details: Record<string, string> = {};
+    if (till) details.validTill = String(till);
+    if (d.details_of_driving_licence?.address_list?.[0]?.split_address?.state?.[0]) details.state = String(d.details_of_driving_licence.address_list[0].split_address.state[0]);
+    return { found: d.status === 'VALID', nameOnRecord: d.details_of_driving_licence?.name ?? d.name ?? null, providerRef: d.reference_id != null ? String(d.reference_id) : null, costPaise: 300, details };
+  }
+
+  async verifyVoter({ epic, name }: { epic: string; name: string }): Promise<VerifyRecord> {
+    const d = await this.post('/voter-id', { verification_id: this.vid(), epic_number: epic, name });
+    return {
+      found: d.status === 'VALID',
+      nameOnRecord: d.name ?? null,
+      providerRef: d.reference_id != null ? String(d.reference_id) : null,
+      costPaise: 300,
+      details: d.state ? { state: String(d.state) } : undefined,
+    };
+  }
+
+  async verifyUan({ uan, phone }: { uan: string; name: string; phone?: string }): Promise<VerifyRecord> {
+    // Employment history from the UAN. Field names are from Cashfree's reference; confirm with sandbox keys.
+    const d = await this.post('/advance-employment', { verification_id: this.vid(), uan, ...(phone ? { phone: phone.replace(/^\+91/, '') } : {}) });
+    const list: any[] = d.employment_history ?? d.data?.employment_history ?? [];
+    const employers: PastEmployer[] = list.map((e) => ({
+      name: String(e.establishment_name ?? e.employer_name ?? ''),
+      joined: e.date_of_joining ?? null,
+      left: e.date_of_exit ?? null,
+    }));
+    return {
+      found: d.status === 'VALID' || d.status === 'SUCCESS',
+      nameOnRecord: d.name ?? list[0]?.name ?? null,
+      providerRef: d.reference_id != null ? String(d.reference_id) : null,
+      costPaise: 800,
+      employers: employers.filter((e) => e.name),
+    };
   }
 }

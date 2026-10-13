@@ -150,7 +150,15 @@ function diff(
   return out;
 }
 
-const DOC_KIND: Record<string, [string, string]> = { aadhaar: ['Aadhaar', 'आधार'], pan: ['PAN', 'PAN'], bank: ['bank account', 'बैंक खाता'], face: ['selfie vs ID photo', 'सेल्फ़ी और पहचान पत्र की फ़ोटो'] };
+const DOC_KIND: Record<string, [string, string]> = {
+  aadhaar: ['Aadhaar', 'आधार'],
+  pan: ['PAN', 'PAN'],
+  dl: ['driving licence', 'ड्राइविंग लाइसेंस'],
+  voter: ['voter ID', 'वोटर कार्ड'],
+  bank: ['bank account', 'बैंक खाता'],
+  uan: ['PF number (UAN)', 'PF नंबर (UAN)'],
+  face: ['selfie vs ID photo', 'सेल्फ़ी और पहचान पत्र की फ़ोटो'],
+};
 const FILE_KIND: Record<string, [string, string]> = {
   aadhaar: ['Aadhaar', 'आधार'],
   pan: ['PAN', 'PAN'],
@@ -331,6 +339,8 @@ export function describe(
       return r(t(`${emp}: salary account saved`, `${emp}: सैलरी खाता सेव हुआ`), 'staff');
     case 'verification.request':
       return r(t(`${emp}: asked to verify documents`, `${emp}: दस्तावेज़ जाँचने को कहा`), 'staff');
+    case 'verification.report':
+      return r(t(`${emp}: documents check report downloaded`, `${emp}: दस्तावेज़ जाँच रिपोर्ट डाउनलोड की`), 'staff');
     case 'verification.cancel':
       return r(t(`${emp}: document check cancelled`, `${emp}: दस्तावेज़ जाँच रद्द की`), 'staff');
     case 'verification.consent':

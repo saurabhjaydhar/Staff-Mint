@@ -178,6 +178,16 @@ export interface VerifyRecord {
   costPaise: number;
   /** Extra details worth keeping (encrypted at rest), e.g. Aadhaar date of birth. Never a full Aadhaar number. */
   details?: Record<string, string>;
+  /** UAN: jobs on the EPFO record, newest first. */
+  employers?: PastEmployer[];
+}
+
+export interface PastEmployer {
+  name: string;
+  /** "2022-04-15" */
+  joined: string | null;
+  /** null while still working there. */
+  left: string | null;
 }
 
 export interface VerificationProvider {
@@ -188,6 +198,12 @@ export interface VerificationProvider {
   /** Aadhaar OTP to the mobile linked with Aadhaar. Returns the reference to verify with. */
   aadhaarSendOtp(input: { aadhaar: string }): Promise<{ ref: string }>;
   aadhaarVerifyOtp(input: { ref: string; otp: string }): Promise<VerifyRecord>;
+  /** Driving licence: valid, the name on it and till when (date of birth "1995-04-12" is part of the lookup). */
+  verifyDl(input: { number: string; dob: string; name: string }): Promise<VerifyRecord>;
+  /** Voter ID (EPIC): valid and the name on it. */
+  verifyVoter(input: { epic: string; name: string }): Promise<VerifyRecord>;
+  /** UAN (EPFO): the name on it and past employers, so job history can be checked. */
+  verifyUan(input: { uan: string; name: string; phone?: string }): Promise<VerifyRecord>;
 }
 
 export interface FaceProvider {

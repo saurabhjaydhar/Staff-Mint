@@ -5,6 +5,7 @@ import { authenticate, ctxOf, requireFeature, requireRole } from '../../middlewa
 import { DOCUMENT_KINDS, VERIFICATION_KINDS } from '../../models/index.js';
 import * as svc from './service.js';
 import * as docs from './documents.js';
+import { reportPdf } from './report.js';
 
 export const verificationRouter = Router();
 
@@ -21,6 +22,12 @@ verificationRouter.delete('/employees/:id', ...owner, async (req, res) => res.js
 verificationRouter.post('/checks/:id/accept', ...owner, async (req, res) => {
   const b = body(req, z.object({ reason: z.string().trim().min(1).max(200) }));
   res.json({ data: await svc.acceptMismatch(ctxOf(req), param(req, 'id'), b.reason) });
+});
+verificationRouter.get('/employees/:id/report.pdf', ...owner, async (req, res) => {
+  const file = await reportPdf(ctxOf(req), param(req, 'id'));
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="${file.filename}"`);
+  res.send(file.data);
 });
 verificationRouter.post('/checks/:id/ask-again', ...owner, async (req, res) => res.json({ data: await svc.askAgain(ctxOf(req), param(req, 'id')) }));
 
@@ -75,6 +82,20 @@ verificationRouter.post('/employees/:id/on-behalf/face', ...owner, async (req, r
   const b = body(req, z.object({ selfie: z.string().min(8) }));
   res.json({ data: await svc.verifyFace(await forStaff(req), b.selfie) });
 });
+
+// Driving licence, voter ID and UAN: the same steps for staff (/mine/…) and for the owner doing it with them (/employees/:id/on-behalf/…).
+const dlBody = z.object({ number: z.string().min(8).max(24), dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) });
+const voterBody = z.object({ epic: z.string().min(10).max(14) });
+const uanBody = z.object({ uan: z.string().max(16).optional() });
+for (const [path, who] of [
+  ['/mine', staff],
+  ['/employees/:id/on-behalf', owner],
+] as const) {
+  const as = async (req: any) => (path === '/mine' ? ctxOf(req) : forStaff(req));
+  verificationRouter.post(`${path}/dl`, ...who, async (req, res) => res.json({ data: await svc.verifyDl(await as(req), body(req, dlBody)) }));
+  verificationRouter.post(`${path}/voter`, ...who, async (req, res) => res.json({ data: await svc.verifyVoter(await as(req), body(req, voterBody).epic) }));
+  verificationRouter.post(`${path}/uan`, ...who, async (req, res) => res.json({ data: await svc.verifyUan(await as(req), body(req, uanBody).uan) }));
+}
 verificationRouter.post('/employees/:id/slip/open', ...owner, async (req, res) => res.json({ data: await svc.openSlip(ctxOf(req), param(req, 'id')) }));
 
 // Documents (photos and PDFs, encrypted). Owners see everyone's; staff see and add their own.
