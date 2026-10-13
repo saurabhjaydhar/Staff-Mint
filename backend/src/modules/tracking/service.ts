@@ -11,6 +11,26 @@ import { notifyEmployee, notifyOwners } from '../notifications/service.js';
 import { rosterShiftOn } from '../attendance/service.js';
 import { companyPlan } from '../billing/plans.js';
 import { distanceOf, simplify, stopsOf } from './route.js';
+import { provider } from '../../providers/registry.js';
+import { logger } from '../../lib/logger.js';
+
+/** Short place names ("Ajmal Khan Road, Karol Bagh") for points, cached by ~100 m so each place is looked up once. */
+const placeCache = new Map<string, string | null>();
+export async function placeName(lat: number, lng: number, lang: 'en' | 'hi' = 'en') {
+  const key = `${lat.toFixed(3)},${lng.toFixed(3)},${lang}`;
+  if (placeCache.has(key)) return placeCache.get(key)!;
+  let name: string | null = null;
+  try {
+    const { address } = await (await provider('geo')).reverseGeocode(lat, lng, lang);
+    name = address ? address.split(',').slice(0, 2).join(',').trim() : null;
+  } catch (err) {
+    logger.warn({ err }, 'reverse geocode failed');
+    return null;
+  }
+  if (placeCache.size > 5000) placeCache.clear();
+  placeCache.set(key, name);
+  return name;
+}
 
 /** Bumped when the consent wording changes; the person's agreement records which version they saw. */
 export const CONSENT_VERSION = '2026-10';
@@ -120,7 +140,7 @@ export async function live(ctx: Ctx, now = new Date()) {
   if (ctx.role === 'manager' && ctx.branchIds.length) f.branchId = { $in: ctx.branchIds };
   const emps = await Employee.find(f).select('name tracking branchId').sort({ name: 1 }).lean();
   const sessions = await TrackingSession.find({ companyId: ctx.companyId, date: today, employeeId: { $in: emps.map((e) => e._id) } }).sort({ startedAt: 1 }).lean();
-  return emps.map((e) => {
+  const rows = emps.map((e) => {
     const mine = sessions.filter((s) => String(s.employeeId) === String(e._id));
     const s = mine[mine.length - 1];
     const ageMin = s?.lastPingAt ? (now.getTime() - s.lastPingAt.getTime()) / 60_000 : null;
@@ -146,8 +166,11 @@ export async function live(ctx: Ctx, now = new Date()) {
       distanceM: mine.reduce((n, x) => n + (x.distanceM ?? 0), 0),
       endReason: s?.endReason ?? null,
       lastEvent: s?.events?.length ? s.events[s.events.length - 1] : null,
+      near: null as string | null,
     };
   });
+  for (const r of rows) if (r.lat != null && r.lng != null) r.near = await placeName(r.lat, r.lng, ctx.language);
+  return rows;
 }
 
 /** One person's day: route, stops, distance, check-in/out and what happened. Staff may see their own. */
@@ -174,7 +197,7 @@ export async function day(ctx: Ctx, employeeId: string | null, date: string) {
     date,
     distanceM: distanceOf(pings),
     route: route.map((p) => ({ at: p.at, lat: p.lat, lng: p.lng })),
-    stops: stopsOf(pings),
+    stops: await Promise.all(stopsOf(pings).map(async (s) => ({ ...s, place: await placeName(s.lat, s.lng, ctx.language) }))),
     punches: (att?.punches ?? [])
       .filter((p: any) => p.approval !== 'rejected' && p.geo?.lat != null)
       .map((p: any) => ({ type: p.type, at: p.clientTime, lat: p.geo.lat, lng: p.geo.lng })),

@@ -118,10 +118,12 @@ export async function punch(ctx: Ctx, input: PunchInput, source: 'app' | 'offlin
   let insideGeofence: boolean | null = null;
   let approval: 'not_required' | 'pending' = 'not_required';
   const center = fromGeoPoint(branch?.geo as any);
+  // Field staff work away from the shop: the distance is kept, but the shop area doesn't apply to them.
+  const fieldStaff = !!employee.tracking?.enabled;
   if (center && input.geo) {
     distanceM = distanceMeters(center, input.geo);
-    insideGeofence = distanceM <= (branch?.radiusM ?? 100);
-  } else if (center && !input.geo) {
+    insideGeofence = fieldStaff ? null : distanceM <= (branch?.radiusM ?? 100);
+  } else if (center && !input.geo && !fieldStaff) {
     insideGeofence = false;
     flags.push('no_location');
   }
@@ -388,6 +390,8 @@ export async function todayForEmployee(ctx: Ctx) {
     nextAction: r && lastValidPunch(r)?.type === 'in' ? 'check_out' : 'check_in',
     /** Staff can't check in themselves; the app shows their status only. */
     ownerMarks: ownerMarksAttendance(company.settings, employee),
+    /** Field staff: check in from anywhere (the shop area doesn't apply). */
+    fieldStaff: !!employee.tracking?.enabled,
     shift: shift ? shiftView(shift) : null,
     branch: branch ? branchView(branch) : null,
   };

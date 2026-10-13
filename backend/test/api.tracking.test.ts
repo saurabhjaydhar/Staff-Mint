@@ -182,3 +182,31 @@ describe('field staff location', () => {
     void staff;
   });
 });
+
+describe('field staff check-in and place names', () => {
+  it('field staff check in away from the shop without approval; others still need it', async () => {
+    const { owner, emp, staff } = await setup();
+    const far = { geo: { lat: 28.6514, lng: 77.1907, accuracyM: 10 } };
+    // Not field staff yet: away from the shop needs the owner's approval.
+    const before = await api().post(`${V}/attendance/check-in`).set(auth(staff.token)).send(punchBody(staff.deviceId, far));
+    expect([201, 422]).toContain(before.status);
+    if (before.status === 201) expect(before.body.data.punch.approval).toBe('pending');
+    await api().post(`${V}/attendance/check-out`).set(auth(staff.token)).send(punchBody(staff.deviceId, far));
+
+    await api().put(`${V}/tracking/employees/${emp.id}`).set(auth(owner.token)).send({ enabled: true }).expect(200);
+    await api().post(`${V}/tracking/me/consent`).set(auth(staff.token)).expect(200);
+    const today = (await api().get(`${V}/attendance/today`).set(auth(staff.token)).expect(200)).body.data;
+    expect(today.fieldStaff).toBe(true);
+    const r = await api().post(`${V}/attendance/check-in`).set(auth(staff.token)).send(punchBody(staff.deviceId, far)).expect(201);
+    expect(r.body.data.punch).toMatchObject({ approval: 'not_required', insideGeofence: null });
+
+    // A stop at Karol Bagh gets its place name, and so does the live list.
+    const base = Date.now() - 30 * 60_000;
+    const pts = Array.from({ length: 8 }, (_, i) => ({ at: new Date(base + i * 2 * 60_000).toISOString(), lat: 28.6514 + i * 0.00002, lng: 77.1907, accuracyM: 10 }));
+    await send(staff.token, pts).expect(200);
+    const live = (await api().get(`${V}/tracking/live`).set(auth(owner.token)).expect(200)).body.data;
+    expect(live[0].near).toBe('Ajmal Khan Road, Karol Bagh');
+    const day = (await api().get(`${V}/tracking/day?employeeId=${emp.id}&date=${todayIn(TZ)}`).set(auth(owner.token)).expect(200)).body.data;
+    expect(day.stops).toEqual([expect.objectContaining({ minutes: 14, place: 'Ajmal Khan Road, Karol Bagh' })]);
+  });
+});
