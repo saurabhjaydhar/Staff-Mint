@@ -1,6 +1,14 @@
 # Plan: Roster, live tracking for field staff, background verification
 
-Status (13 Oct 2026): **Planned, not built.** This document covers three features that SalaryBox has and StaffMint doesn't. Each one is built in rounds, one PR per round. No code changes until the mock-ups (round 0) are approved.
+Status (13 Oct 2026): **Planned, not built.** Round 0 mock-ups are ready: [docs/mockups/roster-tracking-verification.html](../mockups/roster-tracking-verification.html). No code changes until they are approved.
+
+This document covers three features that SalaryBox has and StaffMint doesn't. Each one is built in rounds, one PR per round.
+
+**Decisions (13 Oct 2026, owner approved the recommendations):**
+- **Order:** Roster, then Background verification, then Live tracking.
+- **Live tracking:** included in **Pro**; **₹49 per field staff per month** add-on on **Growth**.
+- **Verification:** **3 full checks a month on Growth, 10 on Pro**, then **₹149 per staff**.
+- **Verification provider:** **Cashfree Secure ID**, with fake keys until the business KYC is done.
 
 | | Roster | Live tracking (field staff) | Background verification |
 |---|---|---|---|
