@@ -2548,6 +2548,17 @@ class S {
   String get dayStops => _t('Stops', 'रुके');
   String stopLine(String from, String to, int minutes) =>
       _t('$from – $to · $minutes min', '$from – $to · $minutes मिनट');
+  String get travelAllowance => _t('Travel allowance for field staff', 'फ़ील्ड स्टाफ़ का यात्रा भत्ता');
+  String get travelOff => _t('Off', 'बंद');
+  String perKm(String rs) => _t('$rs / km', '$rs / किमी');
+  String travelExample(String rs, String total) => _t(
+    'Raju travelled 420 km during shifts this month → $total added to their salary ($rs per km).',
+    'राजू इस महीने शिफ़्ट में 420 किमी चले → सैलरी में $total जुड़ेंगे ($rs प्रति किमी)।',
+  );
+  String get travelOffHint => _t(
+    'Only km tracked while field staff are checked in count.',
+    'सिर्फ़ चेक-इन रहते हुए ट्रैक हुए किमी गिने जाते हैं।',
+  );
   String stopN(int n) => _t('Stop $n', 'रुकाव $n');
   String get noRouteYet => _t('No route for this day.', 'इस दिन का कोई रास्ता नहीं।');
   String get checkedInHere => _t('Checked in', 'चेक-इन');

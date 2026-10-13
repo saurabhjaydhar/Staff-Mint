@@ -258,6 +258,17 @@ function SettingsForm({ settings, onSaved }: { settings: CompanySettings; onSave
           <Field label="Max phone clock difference (minutes)">
             {(id) => <Input id={id} type="number" min={0} value={d.maxDeviceTimeDriftMin} onChange={(e) => set("maxDeviceTimeDriftMin", e.target.value)} />}
           </Field>
+          <Field label={t("set_travel")} hint={t("set_travel_hint")}>
+            {(id) => (
+              <Select id={id} value={String(d.travelRatePaisePerKm ?? 0)} onChange={(e) => set("travelRatePaisePerKm", Number(e.target.value))}>
+                {[0, 300, 500, 800, 1000].map((p) => (
+                  <option key={p} value={p}>
+                    {p === 0 ? t("set_travel_off") : fill(t("set_travel_rate"), { rs: p / 100 })}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
           <Field label="Keep selfies for (days)">
             {(id) => <Input id={id} type="number" min={1} value={d.selfieRetentionDays} onChange={(e) => set("selfieRetentionDays", e.target.value)} />}
           </Field>

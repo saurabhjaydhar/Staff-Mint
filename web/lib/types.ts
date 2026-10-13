@@ -83,6 +83,8 @@ export interface CompanySettings {
   language: Lang;
   digestTime: string;
   roundToRupee: boolean;
+  /** Field staff: travel allowance per km tracked during shifts (paise; 0 = off). */
+  travelRatePaisePerKm?: number;
   selfieRequired: boolean;
   maxDeviceTimeDriftMin: number;
   selfieRetentionDays: number;

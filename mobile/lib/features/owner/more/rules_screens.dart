@@ -268,6 +268,28 @@ class SalaryRulesScreen extends StatelessWidget {
               ],
             ),
           ),
+          _Rule(
+            title: s.travelAllowance,
+            example: (d['travelRatePaisePerKm'] as num? ?? 0) > 0
+                ? s.travelExample(
+                    Money.format((d['travelRatePaisePerKm'] as num).toInt()),
+                    Money.format((d['travelRatePaisePerKm'] as num).toInt() * 420),
+                  )
+                : s.travelOffHint,
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final p in const [0, 300, 500, 800, 1000])
+                  ChoiceChip(
+                    key: Key('travel_$p'),
+                    label: Text(p == 0 ? s.travelOff : s.perKm(Money.format(p))),
+                    selected: (d['travelRatePaisePerKm'] as num? ?? 0).toInt() == p,
+                    onSelected: (_) => set('travelRatePaisePerKm', p),
+                  ),
+              ],
+            ),
+          ),
           Card(
             child: ListTile(
               leading: const Icon(Icons.account_balance_rounded),
