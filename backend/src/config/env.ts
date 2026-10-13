@@ -45,6 +45,7 @@ const schema = z.object({
   GEO_PROVIDER: z.enum(['mock', 'google']).default('mock'),
   ANALYTICS_PROVIDER: z.enum(['mock', 'posthog']).default('mock'),
   FACE_PROVIDER: z.enum(['mock', 'rekognition']).default('mock'),
+  VERIFICATION_PROVIDER: z.enum(['mock', 'cashfree']).default('mock'),
 
   // OTP
   OTP_MOCK_CODE: z.string().default('123456'),
@@ -104,6 +105,11 @@ const schema = z.object({
   FACE_MATCH_THRESHOLD: z.coerce.number().min(50).max(100).default(90),
   /** Below the match threshold but at or above this is "unsure"; lower is a mismatch. */
   FACE_UNSURE_THRESHOLD: z.coerce.number().min(0).max(100).default(75),
+
+  // Background verification (Cashfree Secure ID / Verification Suite)
+  CASHFREE_VERIFY_CLIENT_ID: z.string().default('CF_FAKE_VERIFY_CLIENT_ID'),
+  CASHFREE_VERIFY_CLIENT_SECRET: z.string().default('cf_fake_verify_client_secret'),
+  CASHFREE_VERIFY_ENV: z.enum(['sandbox', 'production']).default('sandbox'),
 
   // Observability
   SENTRY_DSN: z.string().default(''),

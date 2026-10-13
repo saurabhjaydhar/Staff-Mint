@@ -56,6 +56,12 @@ The redesign follows [docs/design](../design/README.md): a warm paper ledger, Hi
 |---|---|---|
 | <img src="roster/en-2-day.jpg" width="240"><br>Roster: one day at a time ([all roster screens](roster/README.md)) | <img src="roster/en-5-send.jpg" width="240"><br>Send to staff, with one-tap fixes | <img src="roster/en-7-my-week.jpg" width="240"><br>Staff home: My week |
 
+### Documents check
+
+| | | |
+|---|---|---|
+| <img src="verification/en-o2-check-sheet.jpg" width="240"><br>Owner: "Check now" ([all screens](verification/README.md)) | <img src="verification/en-s2-consent.jpg" width="240"><br>Staff agree first | <img src="verification/en-o5-results.jpg" width="240"><br>Results: accept a name or ask again |
+
 ## Web dashboard
 
 ### My profile

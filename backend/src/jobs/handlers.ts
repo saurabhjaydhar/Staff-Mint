@@ -1,6 +1,7 @@
 import { Types } from 'mongoose';
 import { DateTime } from 'luxon';
-import { Attendance, Company, RosterRepeat } from '../models/index.js';
+import { Attendance, Company, Employee, RosterRepeat, VerificationCheck, VerificationRequest } from '../models/index.js';
+import { getConfig } from '../modules/config/service.js';
 import { logger } from '../lib/logger.js';
 import { previousMonth, todayIn, addDays } from '../lib/dates.js';
 import { closeDay, dashboardToday } from '../modules/attendance/service.js';
@@ -63,6 +64,15 @@ export async function purgeRetention(company: any, now: Date) {
   }
   const geoCutoff = DateTime.fromJSDate(now).minus({ months: company.settings?.locationRetentionMonths ?? 12 }).toISODate()!;
   await Attendance.updateMany({ companyId: company._id, date: { $lt: geoCutoff }, 'punches.geo.lat': { $exists: true } }, { $unset: { 'punches.$[].geo': '' } });
+  // Background checks: gone 180 days after the person leaves (DPDP).
+  const leftBefore = DateTime.fromJSDate(now).minus({ days: await getConfig<number>('verification.retentionDays', company._id) }).toISODate()!;
+  const gone = await Employee.find({ companyId: company._id, exitDate: { $ne: null, $lt: leftBefore }, 'verification.status': { $ne: 'none' } }).select('_id').lean();
+  if (gone.length) {
+    const ids = gone.map((e) => e._id);
+    await VerificationCheck.deleteMany({ companyId: company._id, employeeId: { $in: ids } });
+    await VerificationRequest.deleteMany({ companyId: company._id, employeeId: { $in: ids } });
+    await Employee.updateMany({ companyId: company._id, _id: { $in: ids } }, { $set: { verification: { status: 'none', at: now } } });
+  }
   return removed;
 }
 

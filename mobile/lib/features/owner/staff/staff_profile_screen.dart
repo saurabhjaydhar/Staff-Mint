@@ -20,6 +20,7 @@ import '../providers/owner_providers.dart';
 import '../salary/money_dialogs.dart';
 import '../salary/advances_view.dart';
 import 'slip_details_sheet.dart';
+import 'verify_card.dart';
 
 class StaffProfileScreen extends ConsumerWidget {
   const StaffProfileScreen({super.key, required this.employeeId});
@@ -101,6 +102,8 @@ class StaffProfileScreen extends ConsumerWidget {
                   ),
                 ),
               ),
+              // Only the owner sees document checks (they include date of birth and names on records).
+              if (canEditBank) VerifyCard(employee: e),
               const SizedBox(height: 10),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),

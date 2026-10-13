@@ -34,7 +34,7 @@ export const DEFAULT_PLANS = [
     extraStaffPricePaise: 0,
     maxStaffHardCap: 30,
     trialDays: 14,
-    features: ['attendance', 'leave', 'digest', 'payroll', 'advances', 'payslips', 'assistant', 'reports', 'roster', 'roster_repeat', 'roster_swaps', 'branches', 'whatsapp_payslips', 'whatsapp_assistant', 'face_match'],
+    features: ['attendance', 'leave', 'digest', 'payroll', 'advances', 'payslips', 'assistant', 'reports', 'roster', 'roster_repeat', 'roster_swaps', 'verification', 'branches', 'whatsapp_payslips', 'whatsapp_assistant', 'face_match'],
     sort: 2,
   },
   {
@@ -58,6 +58,7 @@ export const DEFAULT_PLANS = [
       'roster',
       'roster_repeat',
       'roster_swaps',
+      'verification',
       'branches',
       'whatsapp_payslips',
       'whatsapp_assistant',
@@ -77,6 +78,7 @@ export const ADDED_FEATURES: Record<string, string[]> = {
   roster: ['starter', 'growth', 'pro'],
   roster_repeat: ['growth', 'pro'],
   roster_swaps: ['growth', 'pro'],
+  verification: ['growth', 'pro'],
 };
 
 export const DEFAULT_CONFIG: Record<string, unknown> = {
@@ -92,6 +94,13 @@ export const DEFAULT_CONFIG: Record<string, unknown> = {
   /** Roster checks before sending: rest between two shifts, and hours in a week (Shops & Establishments). */
   'roster.minRestHours': 8,
   'roster.maxWeeklyHours': 48,
+  /** Background checks included each month, by plan; more cost `verification.extraPricePaise` each (paid checks come later). */
+  'verification.monthly': { growth: 3, pro: 10 },
+  'verification.extraPricePaise': 14900,
+  /** Below this name match (0–100) a check shows "Name doesn't match" for the owner to look at. */
+  'verification.nameMatchMin': 80,
+  /** Checks and results are deleted this long after the person leaves. */
+  'verification.retentionDays': 180,
   /** Sent in staff invites. Replace with the real Play Store link at launch. */
   'app.downloadUrl': 'https://play.google.com/store/apps/details?id=app.staffmint',
   /** Days an owner can restore a business they closed. */

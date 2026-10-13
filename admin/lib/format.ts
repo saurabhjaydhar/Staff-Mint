@@ -95,6 +95,7 @@ export const FEATURE_LABELS: Record<string, string> = {
   roster: "Roster",
   roster_repeat: "Repeat roster every week",
   roster_swaps: "Shift swaps",
+  verification: "Documents check",
   branches: "Multiple branches",
   whatsapp_payslips: "Payslips on WhatsApp",
   whatsapp_assistant: "WhatsApp assistant",

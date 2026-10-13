@@ -38,6 +38,7 @@ export type PlanFeature =
   | "roster"
   | "roster_repeat"
   | "roster_swaps"
+  | "verification"
   | "whatsapp_payslips"
   | "ca_access"
   | "priority_support";
@@ -203,6 +204,8 @@ export interface Employee {
   language: Lang;
   /** 'manager' marks attendance and approves leave; can't see salary or billing. */
   appRole?: "employee" | "manager";
+  /** Documents check (Aadhaar, PAN, bank): the badge for the staff list. */
+  verification?: "none" | "asked" | "in_progress" | "verified" | "needs_attention";
 }
 
 export interface EmployeeInput {

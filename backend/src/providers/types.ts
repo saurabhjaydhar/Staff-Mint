@@ -168,6 +168,28 @@ export interface FaceCompareResult {
   faces: number;
 }
 
+// ---------- Background verification ----------
+/** What a government record says. `found: false` = no such PAN / account; errors throw. */
+export interface VerifyRecord {
+  found: boolean;
+  nameOnRecord: string | null;
+  providerRef: string | null;
+  /** What this call cost us, as the provider charges it. */
+  costPaise: number;
+  /** Extra details worth keeping (encrypted at rest), e.g. Aadhaar date of birth. Never a full Aadhaar number. */
+  details?: Record<string, string>;
+}
+
+export interface VerificationProvider {
+  readonly name: string;
+  verifyPan(input: { pan: string; name: string }): Promise<VerifyRecord>;
+  /** ₹1 test transfer to the account ("penny drop"), returns the name the bank has. */
+  verifyBank(input: { accountNumber: string; ifsc: string; name: string; phone?: string }): Promise<VerifyRecord>;
+  /** Aadhaar OTP to the mobile linked with Aadhaar. Returns the reference to verify with. */
+  aadhaarSendOtp(input: { aadhaar: string }): Promise<{ ref: string }>;
+  aadhaarVerifyOtp(input: { ref: string; otp: string }): Promise<VerifyRecord>;
+}
+
 export interface FaceProvider {
   readonly name: string;
   /** Compares a check-in selfie (probe) with the employee's enrolled reference photo. */

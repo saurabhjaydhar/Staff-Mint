@@ -19,6 +19,7 @@ class Employee {
     this.locationConsent = false,
     this.consentAt,
     this.faceStatus = 'none',
+    this.verification = 'none',
     this.hasDevice = false,
     this.linked = false,
     this.invitedAt,
@@ -47,6 +48,9 @@ class Employee {
 
   /// Face check photo: none | pending (owner to approve) | approved.
   final String faceStatus;
+
+  /// Background check badge: none · asked · in_progress · verified · needs_attention.
+  final String verification;
   final bool hasDevice;
 
   /// Has opened StaffMint for this business; when the app invite was last sent.
@@ -92,6 +96,7 @@ class Employee {
       locationConsent: asBool(consent['location']),
       consentAt: asStringOrNull(consent['at']),
       faceStatus: asString(asMap(j['face'])['status'], 'none'),
+      verification: asString(j['verification'], 'none'),
       hasDevice: asBool(j['hasDevice']),
       linked: asBool(j['linked']),
       appRole: asString(j['appRole'], 'employee'),

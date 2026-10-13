@@ -12,6 +12,7 @@ import type {
   PushProvider,
   SpeechProvider,
   StorageProvider,
+  VerificationProvider,
 } from './types.js';
 import { MockOtpProvider } from './otp/mock.js';
 import { Msg91OtpProvider } from './otp/msg91.js';
@@ -33,6 +34,7 @@ import { GoogleGeoProvider } from './geo/google.js';
 import { MockAnalyticsProvider } from './analytics/mock.js';
 import { PostHogAnalyticsProvider } from './analytics/posthog.js';
 import { MockFaceProvider } from './face/mock.js';
+import { MockVerificationProvider } from './verification/mock.js';
 
 export interface Providers {
   otp: OtpProvider;
@@ -49,6 +51,7 @@ export interface Providers {
   geo: GeoProvider;
   analytics: AnalyticsProvider;
   face: FaceProvider;
+  verification: VerificationProvider;
 }
 
 type Factories = { [K in keyof Providers]: Record<string, () => Providers[K] | Promise<Providers[K]>> };
@@ -115,6 +118,15 @@ const factories: Factories = {
     rekognition: async () =>
       new (await import('./face/rekognition.js')).RekognitionFaceProvider({ region: env.AWS_REGION, accessKeyId: env.AWS_ACCESS_KEY_ID, secretAccessKey: env.AWS_SECRET_ACCESS_KEY }),
   },
+  verification: {
+    mock: () => new MockVerificationProvider(),
+    cashfree: async () =>
+      new (await import('./verification/cashfree.js')).CashfreeVerificationProvider({
+        clientId: env.CASHFREE_VERIFY_CLIENT_ID,
+        clientSecret: env.CASHFREE_VERIFY_CLIENT_SECRET,
+        env: env.CASHFREE_VERIFY_ENV,
+      }),
+  },
 };
 
 const selected: { [K in keyof Providers]: string } = {
@@ -131,6 +143,7 @@ const selected: { [K in keyof Providers]: string } = {
   geo: env.GEO_PROVIDER,
   analytics: env.ANALYTICS_PROVIDER,
   face: env.FACE_PROVIDER,
+  verification: env.VERIFICATION_PROVIDER,
 };
 
 const cache = new Map<string, unknown>();

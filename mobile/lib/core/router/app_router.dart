@@ -43,6 +43,7 @@ import '../../features/setup/setup_screen.dart';
 import '../../features/setup/setup_staff_screen.dart';
 import 'redirect.dart';
 import 'routes.dart';
+import '../../features/employee/verify/verify_screen.dart';
 
 final _rootKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
@@ -159,7 +160,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       StatefulShellRoute.indexedStack(
         builder: (_, _, shell) => EmployeeShell(navigationShell: shell),
         branches: [
-          StatefulShellBranch(routes: [r(Routes.employeeHome, (_) => const EmployeeHomeScreen())]),
+          StatefulShellBranch(
+            routes: [
+              r(
+                Routes.employeeHome,
+                (_) => const EmployeeHomeScreen(),
+                routes: [GoRoute(path: 'verify', builder: (_, _) => const VerifyScreen())],
+              ),
+            ],
+          ),
           StatefulShellBranch(routes: [r(Routes.employeeAttendance, (_) => const EmployeeAttendanceScreen())]),
           StatefulShellBranch(routes: [r(Routes.employeeLeave, (_) => const EmployeeLeaveScreen())]),
           StatefulShellBranch(routes: [r(Routes.employeeSalary, (_) => const EmployeeSalaryScreen())]),

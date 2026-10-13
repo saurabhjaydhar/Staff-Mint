@@ -667,6 +667,8 @@ class S {
         return _t('Repeat roster every week', 'रोस्टर हर हफ़्ते दोहराना');
       case 'roster_swaps':
         return _t('Shift swaps', 'शिफ़्ट अदला-बदली');
+      case 'verification':
+        return _t('Documents check', 'दस्तावेज़ जाँच');
       case 'whatsapp_payslips':
         return _t('Salary slips on WhatsApp', 'WhatsApp पर सैलरी स्लिप');
       case 'whatsapp_assistant':
@@ -2074,6 +2076,7 @@ class S {
     'roster' => _t('Weekly roster (shifts)', 'हफ़्ते का रोस्टर (शिफ़्ट)'),
     'roster_repeat' => _t('Roster repeats every week', 'रोस्टर हर हफ़्ते अपने-आप'),
     'roster_swaps' => _t('Staff swap shifts (you approve)', 'स्टाफ़ शिफ़्ट बदलें (आप मंज़ूर करें)'),
+    'verification' => _t('Documents check (Aadhaar, PAN, bank)', 'दस्तावेज़ जाँच (आधार, PAN, बैंक)'),
     'mint' => _t('Ask Mint (voice)', 'Mint से पूछें (आवाज़)'),
     'branches' => _t('More branches', 'कई ब्रांच'),
     'whatsapp' => _t('Slips & helper on WhatsApp', 'WhatsApp पर स्लिप, सहायक'),
@@ -2296,6 +2299,83 @@ class S {
   String get swapAccepted => _t('Accepted. Your owner will approve it.', 'हाँ कह दिया। मालिक मंज़ूर करेंगे।');
   String get swapDeclined => _t('Told them you can’t.', 'उन्हें बता दिया कि नहीं हो पाएगा।');
   String get myWeek => _t('My week', 'मेरा हफ़्ता');
+
+  // ---------------------------------------------------------------- Documents check (background verification)
+  String get docCheckTitle => _t('Documents check', 'दस्तावेज़ जाँच');
+  String get docCheckNone => _t('Not checked yet', 'अभी जाँच नहीं हुई');
+  String get docCheckNoneHint =>
+      _t('Aadhaar, PAN and bank, against government records', 'आधार, PAN और बैंक, सरकारी रिकॉर्ड से');
+  String get checkNow => _t('Check now', 'अभी जाँचें');
+  String docAsked(String name) => _t('Waiting for $name to agree', '$name की अनुमति का इंतज़ार');
+  String docInProgress(String name) => _t('$name is doing the steps', '$name क़दम पूरे कर रहे हैं');
+  String get docVerified => _t('Verified ✓', 'जाँच पूरी ✓');
+  String get docNeedsLook => _t('Needs your look', 'आप एक बार देख लें');
+  String get cancelCheck => _t('Cancel request', 'अर्ज़ी रद्द करें');
+  String docKind(String kind) => switch (kind) {
+    'aadhaar' => _t('Aadhaar', 'आधार'),
+    'pan' => _t('PAN', 'PAN'),
+    _ => _t('Bank account', 'बैंक खाता'),
+  };
+  String docKindHint(String kind) => switch (kind) {
+    'aadhaar' => _t('Name and date of birth, with an OTP', 'नाम और जन्म तारीख़, OTP से'),
+    'pan' => _t('Valid PAN and the name on it', 'सही PAN और उस पर नाम'),
+    _ => _t('₹1 test to their salary account', 'सैलरी खाते में ₹1 टेस्ट'),
+  };
+  String checkSheetTitle(String name) => _t('Check $name’s documents', '$name के दस्तावेज़ जाँचें');
+  String get checkSheetHint =>
+      _t('They finish it on their phone in about 3 minutes.', 'वे अपने फ़ोन पर लगभग 3 मिनट में पूरा करेंगे।');
+  String checksLeft(int left, int limit) =>
+      _t('Included in your plan: $left of $limit left this month', 'आपके प्लान में: इस महीने $limit में से $left बाकी');
+  String checksUsedUp(int limit, String price) => _t(
+    'All $limit checks used this month. More at $price each are coming soon.',
+    'इस महीने की सभी $limit जाँच हो गईं। ज़्यादा जाँच $price में जल्द आएगी।',
+  );
+  String sendToPerson(String name) => _t('Send to $name', '$name को भेजें');
+  String docSent(String name) =>
+      _t('Sent to $name. We’ll tell you when it’s done.', '$name को भेज दिया। पूरा होने पर बताएँगे।');
+  String get checkNeedsPlan =>
+      _t('Document checks come with Growth and up', 'दस्तावेज़ जाँच Growth और उससे ऊपर के प्लान में');
+  String get resVerified => _t('Verified', 'सही');
+  String resMismatch(String name) => _t('Name on record: $name', 'रिकॉर्ड में नाम: $name');
+  String get resNotFound => _t('Not found', 'नहीं मिला');
+  String get resFailed => _t('Couldn’t check yet', 'अभी जाँच नहीं हो पाई');
+  String get resWaiting => _t('Not done yet', 'अभी बाकी');
+  String get resOtpSent => _t('Waiting for the OTP', 'OTP का इंतज़ार');
+  String resAccepted(String reason) => _t('You accepted: $reason', 'आपने माना: $reason');
+  String get thisIsFine => _t('This is fine', 'यह ठीक है');
+  String get askAgainBtn => _t('Ask again', 'फिर से माँगें');
+  String get acceptTitle => _t('Why is this fine?', 'यह ठीक क्यों है?');
+  String get acceptDefault => _t('Same person, name written differently', 'वही व्यक्ति, नाम अलग तरह लिखा');
+  String docBorn(String dob) => _t('Born $dob', 'जन्म $dob');
+  String endingIn(String last4) => _t('ending $last4', 'आख़िरी $last4');
+  String get askedAgain => _t('Asked them to do it again', 'उन्हें फिर से करने को कहा');
+  String get docBadgeVerified => _t('Verified', 'जाँचे गए');
+  String get docBadgeLook => _t('Check docs', 'दस्तावेज़ देखें');
+  // Staff side
+  String get verifyCardTitle => _t('Verify your documents', 'अपने दस्तावेज़ जाँचें');
+  String verifyCardHint(String business) =>
+      _t('$business asked. About 3 minutes.', '$business ने कहा है। लगभग 3 मिनट।');
+  String get verifyStart => _t('Start', 'शुरू करें');
+  String get verifyConsentTitle => _t('Before we start', 'शुरू करने से पहले');
+  String get allowStart => _t('Allow and start', 'अनुमति दें, शुरू करें');
+  String stepOf(int n, int total) => _t('Step $n of $total', 'क़दम $n / $total');
+  String get aadhaarLabel => _t('Aadhaar number', 'आधार नंबर');
+  String get sendOtp => _t('Send OTP', 'OTP भेजें');
+  String get otpSentAadhaar => _t('OTP sent to your Aadhaar mobile', 'आधार वाले मोबाइल पर OTP भेजा');
+  String get otpLabel => _t('OTP', 'OTP');
+  String get verifyBtn => _t('Verify', 'जाँचें');
+  String get checkPan => _t('Check PAN', 'PAN जाँचें');
+  String bankUseSaved(String last4, String ifsc) =>
+      _t('Use account ending $last4 ($ifsc)', 'आख़िरी $last4 वाला खाता ($ifsc)');
+  String get bankOther => _t('Use a different account', 'दूसरा खाता');
+  String get accountLabel => _t('Account number', 'खाता नंबर');
+  String get checkBank => _t('Check with ₹1', '₹1 से जाँचें');
+  String staffMismatch(String name) =>
+      _t('The record says $name. Your employer will look at it.', 'रिकॉर्ड में $name लिखा है। मालिक देख लेंगे।');
+  String get staffNotFound =>
+      _t('Not found. Check the number and try again.', 'नहीं मिला। नंबर देखकर फिर से कोशिश करें।');
+  String get staffFailed => _t('Couldn’t check right now. Try again.', 'अभी जाँच नहीं हो पाई। फिर से कोशिश करें।');
+  String get allDone => _t('All done. Your employer can see the results.', 'सब हो गया। मालिक नतीजे देख सकते हैं।');
   String get changedTag => _t('Changed', 'बदला');
 
   // ---------------------------------------------------------------- Misc
