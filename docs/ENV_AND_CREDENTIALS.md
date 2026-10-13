@@ -124,7 +124,7 @@ Set `PAYMENT_PROVIDER=razorpay`.
 |---|---|
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | Razorpay Dashboard → API keys (test first, then live) |
 | `RAZORPAY_WEBHOOK_SECRET` | Set when adding the webhook `https://<api>/api/v1/webhooks/payments/razorpay`. Events: `subscription.*`, `payment.captured`, `payment.failed` |
-| **Razorpay plan IDs** | Create one plan per paid plan × interval in Razorpay, then store them with the admin API: `PUT /api/v1/admin/plans/starter` with `providerPlanIds: { razorpay: { monthly: "plan_xxx", yearly: "plan_yyy" } }` (same for `growth` and `pro`) |
+| **Razorpay plan IDs** | Nothing to do: the server creates a Razorpay plan the first time a price is used (plan × monthly/yearly × staff/business extras) and remembers it (config key `billing.providerPlans`). Optional: set your own ids with `PUT /api/v1/admin/plans/:code` and `providerPlanIds: { razorpay: { monthly, yearly } }`; they are used for the plain plan price |
 
 ### Email, maps and observability (⚪ / 🟡)
 | Variable | Notes |

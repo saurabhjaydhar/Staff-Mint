@@ -1,8 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { Types } from 'mongoose';
 import { api, auth, V, createOwner, addEmployee } from './helpers.js';
 import { Attendance, Notification, Receipt } from '../src/models/index.js';
 import { recommend } from '../src/modules/billing/usage.js';
+import { providerPlanFor } from '../src/modules/billing/service.js';
+import { RazorpayPaymentProvider } from '../src/providers/payments/razorpay.js';
 import { DEFAULT_PLANS } from '../src/modules/config/defaults.js';
 
 const plans = DEFAULT_PLANS.map((p: any) => ({ ...p, currency: 'INR', extraStaffPricePaise: p.extraStaffPricePaise ?? 0, maxStaffHardCap: p.maxStaffHardCap ?? p.staffLimit }));
@@ -84,5 +86,46 @@ describe('billing summary and receipts', () => {
     const after = (await api().get(`${V}/billing/subscription`).set(auth(owner.token))).body.data;
     expect(after.plan.code).toBe(before.plan.code);
     expect(after.trial?.active).toBe(true);
+  });
+});
+
+describe('gateway plans (Razorpay needs one per price)', () => {
+  const growth = plans.find((p) => p.code === 'growth')!;
+
+  it('made once per exact price and remembered; an admin-set id is used for the plain price', async () => {
+    const made: string[] = [];
+    const gateway = {
+      name: 'razorpay',
+      createPlan: async (i: { interval: string; amountPaise: number }) => {
+        made.push(`${i.interval}:${i.amountPaise}`);
+        return `plan_${made.length}`;
+      },
+    } as any;
+    expect(await providerPlanFor(gateway, growth, 'monthly', 99900)).toBe('plan_1');
+    expect(await providerPlanFor(gateway, growth, 'monthly', 99900)).toBe('plan_1');
+    // More businesses on one bill: a different price, so its own plan.
+    expect(await providerPlanFor(gateway, growth, 'monthly', 119800)).toBe('plan_2');
+    expect(await providerPlanFor(gateway, growth, 'yearly', 999000, 'plan_admin')).toBe('plan_admin');
+    expect(made).toEqual(['monthly:99900', 'monthly:119800']);
+  });
+
+  it('Razorpay: creates the plan, then the subscription against it', async () => {
+    const calls: { url: string; body: any }[] = [];
+    vi.stubGlobal('fetch', async (url: string, init: any) => {
+      calls.push({ url, body: init.body ? JSON.parse(init.body) : null });
+      const json = url.endsWith('/plans') ? { id: 'plan_rzp_1' } : { id: 'sub_rzp_1', short_url: 'https://rzp.io/i/abc' };
+      return { ok: true, json: async () => json } as any;
+    });
+    try {
+      const rzp = new RazorpayPaymentProvider({ keyId: 'k', keySecret: 's', webhookSecret: 'w' });
+      const id = await providerPlanFor(rzp, growth, 'monthly', 99900);
+      const sub = await rzp.createSubscription({ planCode: 'growth', providerPlanId: id, interval: 'monthly', amountPaise: 99900, currency: 'INR', customer: { name: 'Shop', phone: '', companyId: 'c1' }, trialDays: 10 });
+      expect(sub).toMatchObject({ providerSubId: 'sub_rzp_1', checkoutUrl: 'https://rzp.io/i/abc' });
+      expect(calls[0]).toMatchObject({ url: 'https://api.razorpay.com/v1/plans', body: { period: 'monthly', interval: 1, item: { amount: 99900, currency: 'INR' } } });
+      expect(calls[1]).toMatchObject({ url: 'https://api.razorpay.com/v1/subscriptions', body: { plan_id: 'plan_rzp_1' } });
+      expect(calls[1].body.start_at).toBeGreaterThan(Date.now() / 1000 + 9 * 86400);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

@@ -3,10 +3,10 @@ import { AppError } from '../../lib/errors.js';
 import type { Ctx } from '../../lib/context.js';
 import { Company, Plan, Receipt, Subscription, User, WebhookEvent } from '../../models/index.js';
 import { provider } from '../../providers/registry.js';
-import type { PaymentEvent, PaymentInfo } from '../../providers/types.js';
-import { activeStaffCount, billingGroupIds, billingStaffCount, companyPlan, getPlan, listPlans } from './plans.js';
+import type { PaymentEvent, PaymentInfo, PaymentProvider } from '../../providers/types.js';
+import { activeStaffCount, billingGroupIds, billingStaffCount, companyPlan, getPlan, listPlans, type PlanView } from './plans.js';
 import { featureUsage, recommend, usageSince } from './usage.js';
-import { getConfig } from '../config/service.js';
+import { getConfig, setConfig } from '../config/service.js';
 import { trialFromSubscription } from './trial.js';
 import { audit } from '../audit/service.js';
 import { systemCtx } from '../../lib/context.js';
@@ -77,7 +77,7 @@ export async function subscribe(ctx: Ctx, planCode: string, interval: 'monthly' 
   const trialDays = trial?.active ? trial.daysLeft : 0;
   const payments = await provider('payments', company!.paymentProvider);
   const planDoc = await Plan.findOne({ code: planCode }).lean();
-  const providerPlanId = (planDoc?.providerPlanIds as any)?.[payments.name]?.[interval];
+  const providerPlanId = await providerPlanFor(payments, plan, interval, amountPaise, (planDoc?.providerPlanIds as any)?.[payments.name]?.[interval]);
   const created = await payments.createSubscription({
     planCode,
     providerPlanId,
@@ -110,6 +110,31 @@ export async function subscribe(ctx: Ctx, planCode: string, interval: 'monthly' 
     firstChargeAt: trial?.active ? trial.endsAt : new Date(),
   };
 }
+
+/**
+ * The gateway plan to bill against. A plan id set by admin is used for the plain plan price; any other
+ * price (extra staff, more businesses on one bill) or a missing id gets a gateway plan made once and remembered.
+ */
+export async function providerPlanFor(
+  payments: PaymentProvider,
+  plan: PlanView,
+  interval: 'monthly' | 'yearly',
+  amountPaise: number,
+  adminSetId?: string,
+): Promise<string | undefined> {
+  const base = interval === 'yearly' ? plan.priceYearlyPaise : plan.priceMonthlyPaise;
+  if (adminSetId && amountPaise === base) return adminSetId;
+  if (!payments.createPlan) return adminSetId;
+  const key = `${payments.name}:${plan.code}:${interval}:${amountPaise}`;
+  const known = (await getConfig<Record<string, string>>(PROVIDER_PLANS_KEY)) ?? {};
+  if (known[key]) return known[key];
+  const id = await payments.createPlan({ planCode: plan.code, name: plan.name, interval, amountPaise, currency: plan.currency });
+  // Re-read before saving so two owners subscribing at once don't drop each other's entry.
+  const latest = (await getConfig<Record<string, string>>(PROVIDER_PLANS_KEY)) ?? {};
+  await setConfig(PROVIDER_PLANS_KEY, { ...latest, [key]: id });
+  return id;
+}
+const PROVIDER_PLANS_KEY = 'billing.providerPlans';
 
 export async function cancel(ctx: Ctx) {
   const sub = await Subscription.findOne({ companyId: ctx.companyId, status: { $in: ['active', 'past_due', 'trialing', 'pending'] } }).sort({ createdAt: -1 });
