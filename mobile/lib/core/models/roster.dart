@@ -65,19 +65,46 @@ class RosterStaff {
   );
 }
 
-/// Something to fix before sending: leave on a working day, or no day off all week.
+/// Something to look at before sending. `leave_working` and `no_day_off` have a one-tap fix; `short_rest`,
+/// `long_week` and `short_staff` are warnings only.
 class RosterProblem {
-  const RosterProblem({required this.type, required this.employeeId, required this.name, required this.date});
+  const RosterProblem({
+    required this.type,
+    this.employeeId = '',
+    this.name = '',
+    required this.date,
+    this.hours,
+    this.shiftId,
+    this.shiftName,
+    this.count,
+    this.min,
+  });
   final String type;
   final String employeeId;
   final String name;
   final String date;
+
+  /// Rest between shifts (`short_rest`) or hours in the week (`long_week`).
+  final double? hours;
+
+  /// `short_staff`: the shift, how many are on it and how many the shop needs.
+  final String? shiftId;
+  final String? shiftName;
+  final int? count;
+  final int? min;
+
+  bool get hasFix => type == 'leave_working' || type == 'no_day_off';
 
   factory RosterProblem.fromJson(Json j) => RosterProblem(
     type: asString(j['type']),
     employeeId: asString(j['employeeId']),
     name: asString(j['name']),
     date: asString(j['date']),
+    hours: j['hours'] is num ? (j['hours'] as num).toDouble() : null,
+    shiftId: asStringOrNull(j['shiftId']),
+    shiftName: asStringOrNull(j['shiftName']),
+    count: asIntOrNull(j['count']),
+    min: asIntOrNull(j['min']),
   );
 }
 
@@ -174,11 +201,20 @@ class MyRosterDay {
 }
 
 class MyRosterWeek {
-  const MyRosterWeek({required this.weekStart, this.rostered = false, this.shifts = const [], this.days = const []});
+  const MyRosterWeek({
+    required this.weekStart,
+    this.rostered = false,
+    this.swapsAllowed = false,
+    this.shifts = const [],
+    this.days = const [],
+  });
   final String weekStart;
 
   /// The owner sent a roster for this week (otherwise the home screen skips "My week").
   final bool rostered;
+
+  /// The plan lets staff ask a colleague to swap a day.
+  final bool swapsAllowed;
   final List<Shift> shifts;
   final List<MyRosterDay> days;
 
@@ -192,7 +228,95 @@ class MyRosterWeek {
   factory MyRosterWeek.fromJson(Json j) => MyRosterWeek(
     weekStart: asString(j['weekStart']),
     rostered: asBool(j['rostered']),
+    swapsAllowed: asBool(j['swapsAllowed']),
     shifts: asList(j['shifts'], Shift.fromJson),
     days: asList(j['days'], MyRosterDay.fromJson),
+  );
+}
+
+/// One side of a swap: the person and the day they had when asking.
+class SwapSide {
+  const SwapSide({required this.employeeId, required this.name, required this.kind, this.shiftId});
+  final String employeeId;
+  final String name;
+  final String kind;
+  final String? shiftId;
+
+  bool get isOff => kind == 'off';
+
+  factory SwapSide.fromJson(Json j) => SwapSide(
+    employeeId: asString(j['employeeId']),
+    name: asString(j['name']),
+    kind: asString(j['kind'], 'shift'),
+    shiftId: asStringOrNull(j['shiftId']),
+  );
+}
+
+/// Two staff swap one day. asked → accepted (by the colleague) → approved (by the owner), or declined /
+/// rejected / cancelled / expired.
+class RosterSwap {
+  const RosterSwap({
+    required this.id,
+    required this.date,
+    required this.from,
+    required this.to,
+    required this.status,
+    this.note,
+  });
+  final String id;
+  final String date;
+
+  /// The person who asked.
+  final SwapSide from;
+  final SwapSide to;
+  final String status;
+  final String? note;
+
+  bool get open => status == 'asked' || status == 'accepted';
+
+  factory RosterSwap.fromJson(Json j) => RosterSwap(
+    id: asString(j['id']),
+    date: asString(j['date']),
+    from: SwapSide.fromJson(asMap(j['from'])),
+    to: SwapSide.fromJson(asMap(j['to'])),
+    status: asString(j['status']),
+    note: asStringOrNull(j['note']),
+  );
+}
+
+/// A colleague someone could swap a day with, and what they have that day.
+class SwapOption {
+  const SwapOption({
+    required this.employeeId,
+    required this.name,
+    required this.kind,
+    this.shiftId,
+    required this.label,
+  });
+  final String employeeId;
+  final String name;
+  final String kind;
+  final String? shiftId;
+  final String label;
+
+  factory SwapOption.fromJson(Json j) => SwapOption(
+    employeeId: asString(j['employeeId']),
+    name: asString(j['name']),
+    kind: asString(j['kind'], 'shift'),
+    shiftId: asStringOrNull(j['shiftId']),
+    label: asString(j['label']),
+  );
+}
+
+class SwapOptions {
+  const SwapOptions({required this.date, required this.mineLabel, this.colleagues = const []});
+  final String date;
+  final String mineLabel;
+  final List<SwapOption> colleagues;
+
+  factory SwapOptions.fromJson(Json j) => SwapOptions(
+    date: asString(j['date']),
+    mineLabel: asString(asMap(j['mine'])['label']),
+    colleagues: asList(j['colleagues'], SwapOption.fromJson),
   );
 }

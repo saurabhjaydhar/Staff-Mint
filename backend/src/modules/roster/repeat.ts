@@ -22,9 +22,11 @@ async function staffInScope(ctx: Ctx, branchId?: string) {
   return Employee.find(f).select('_id').lean();
 }
 
-export async function canRepeat(companyId: Types.ObjectId) {
-  return (await companyPlan({ _id: companyId })).plan.features.includes('roster_repeat');
+export async function planHas(companyId: Types.ObjectId, feature: string) {
+  return (await companyPlan({ _id: companyId })).plan.features.includes(feature);
 }
+
+export const canRepeat = (companyId: Types.ObjectId) => planHas(companyId, 'roster_repeat');
 
 /** The repeat set up for the people in view, if any: how it repeats and for how many of them. */
 export async function repeatInfo(ctx: Ctx, branchId?: string) {

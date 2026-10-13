@@ -23,6 +23,9 @@ import { estimateFor } from '../payroll/service.js';
 import { renderReport, type ReportKind } from '../reports/service.js';
 import { sendPayslips, explain } from '../payslips/service.js';
 import { decideLeave, applyLeave } from '../leave/service.js';
+import { loadWeek, sendWeek, setCells, weekStartOf, weekView, type CellInput } from '../roster/service.js';
+import { Shift } from '../../models/index.js';
+import { Types } from 'mongoose';
 
 export type Lang = 'en' | 'hi';
 export const L = (lang: Lang, en: string, hi: string) => (lang === 'hi' ? hi : en);
@@ -362,9 +365,132 @@ const help: ToolDef<Record<string, never>> = {
     return {
       text: L(
         ctx.language,
-        'Try: "Ramesh half day today", "Who came late?", "Amit 5000 advance", "Raju 500 bonus", "New staff Pooja 9876543210 12000", "Holiday tomorrow", "Salary this month?", "October salary report", "Send all payslips". I always ask before saving anything.',
-        'ऐसे बोलिए: "Ramesh ko aaj half day laga do", "Kaun late aaya?", "Amit ko 5000 advance diya", "Raju ko 500 bonus", "Naya banda Pooja 9876543210 12000", "Kal sabki chutti hai", "Is month salary kitni banegi?", "October ka salary report bhejo", "Sab ki payslip bhej do". कुछ भी सेव करने से पहले मैं पूछूँगा।',
+        'Try: "Ramesh half day today", "Who came late?", "Raju evening shift this week", "Who is working on Sunday?", "Amit 5000 advance", "Raju 500 bonus", "New staff Pooja 9876543210 12000", "Holiday tomorrow", "Salary this month?", "October salary report", "Send all payslips". I always ask before saving anything.',
+        'ऐसे बोलिए: "Ramesh ko aaj half day laga do", "Kaun late aaya?", "Raju ko is hafte evening shift do", "Sunday ko kaun aa raha hai?", "Amit ko 5000 advance diya", "Raju ko 500 bonus", "Naya banda Pooja 9876543210 12000", "Kal sabki chutti hai", "Is month salary kitni banegi?", "October ka salary report bhejo", "Sab ki payslip bhej do". कुछ भी सेव करने से पहले मैं पूछूँगा।',
       ),
+    };
+  },
+};
+
+// ---------- Roster ----------
+const MAX_SHIFT_DAYS = 31;
+const days = (from: string, to: string) => {
+  const out: string[] = [];
+  for (let d = DateTime.fromISO(from); d <= DateTime.fromISO(to) && out.length < MAX_SHIFT_DAYS; d = d.plus({ days: 1 })) out.push(d.toISODate()!);
+  return out;
+};
+const dayName = (d: string, lang: Lang) => DateTime.fromISO(d).setLocale(lang === 'hi' ? 'hi-IN' : 'en-IN').toFormat('ccc d');
+
+async function shiftNamed(ctx: Ctx, name: string) {
+  if (name === 'off') return null;
+  const shifts = await Shift.find({ companyId: ctx.companyId, deletedAt: null }).lean();
+  const n = name.toLowerCase().trim();
+  const s = shifts.find((x) => x.name.toLowerCase() === n) ?? shifts.find((x) => x.name.toLowerCase().includes(n) || n.includes(x.name.toLowerCase()));
+  if (!s) throw new AppError('NOT_FOUND', L(ctx.language, `No shift called "${name}". Shifts: ${shifts.map((x) => x.name).join(', ')}.`, `"${name}" नाम की कोई शिफ़्ट नहीं। शिफ़्ट: ${shifts.map((x) => x.name).join(', ')}।`));
+  return s;
+}
+
+/** Days the command changes: a range keeps the person's days off; one day is changed as asked. */
+async function shiftDays(ctx: Ctx, employeeId: string, from: string, to: string, off: boolean) {
+  const list = days(from, to);
+  const emp = new Types.ObjectId(employeeId);
+  const out: string[] = [];
+  for (const week of [...new Set(list.map(weekStartOf))]) {
+    const w = await loadWeek(ctx, week, { employeeIds: [emp] });
+    const e = w.emps[0];
+    if (!e) continue;
+    for (const d of list.filter((x) => weekStartOf(x) === week)) {
+      if (list.length > 1 && !off && w.draftPlan(e, d).kind === 'off') continue;
+      out.push(d);
+    }
+  }
+  return out;
+}
+
+const setShiftTool: ToolDef<{ employeeName: string; shift: string; from?: string; to?: string }> = {
+  name: 'set_shift',
+  description: 'Put one employee on a shift (or a day off) for a day or a range of days and tell them. e.g. "Raju ko is hafte evening shift do", "Pooja ko Sunday off do". shift = the shift name, or "off".',
+  parameters: {
+    type: 'object',
+    properties: {
+      employeeName: { type: 'string' },
+      shift: { type: 'string', description: 'Shift name as the shop calls it, or "off"' },
+      from: { type: 'string', description: 'YYYY-MM-DD, default today' },
+      to: { type: 'string', description: 'YYYY-MM-DD, default same as from. "This week" = today to Sunday.' },
+    },
+    required: ['employeeName', 'shift'],
+  },
+  kind: 'write',
+  roles: ['owner', 'manager'],
+  feature: 'roster',
+  employeeArg: 'employeeName',
+  schema: z.object({ employeeName: z.string().min(1), shift: z.string().min(1), from: dateS.optional(), to: dateS.optional() }),
+  normalize: (a, _c, today) => {
+    const from = a.from ?? today;
+    const to = a.to && a.to >= from ? a.to : from;
+    return { ...a, from, to };
+  },
+  preview: async (ctx, a) => {
+    const sh = await shiftNamed(ctx, a.shift);
+    const list = await shiftDays(ctx, a.employeeId!, a.from!, a.to!, !sh);
+    if (!list.length) throw new AppError('VALIDATION_ERROR', L(ctx.language, 'Those are all days off. Name a day to change it.', 'वे सब छुट्टी के दिन हैं। बदलने के लिए दिन बताइए।'));
+    return {
+      title: L(ctx.language, 'Change shift and tell them?', 'शिफ़्ट बदलकर बता दूँ?'),
+      rows: [
+        { label: L(ctx.language, 'Staff', 'स्टाफ़'), value: a.employeeLabel! },
+        { label: L(ctx.language, 'Shift', 'शिफ़्ट'), value: sh ? `${sh.name} ${sh.start}–${sh.end}` : L(ctx.language, 'Day off', 'छुट्टी') },
+        { label: L(ctx.language, 'Days', 'दिन'), value: list.map((d) => dayName(d, ctx.language)).join(', ') },
+      ],
+    };
+  },
+  execute: async (ctx, a) => {
+    const sh = await shiftNamed(ctx, a.shift);
+    const list = await shiftDays(ctx, a.employeeId!, a.from!, a.to!, !sh);
+    const cells: CellInput[] = list.map((d) => ({ employeeId: a.employeeId!, date: d, kind: sh ? 'shift' : 'off', shiftId: sh ? String(sh._id) : null }));
+    await setCells(ctx, cells);
+    for (const week of [...new Set(list.map(weekStartOf))]) await sendWeek(ctx, week, undefined, { employeeIds: [new Types.ObjectId(a.employeeId!)] });
+    const what = sh ? sh.name : L(ctx.language, 'day off', 'छुट्टी');
+    return {
+      text: L(ctx.language, `Done. ${a.employeeLabel}: ${what} on ${list.map((d) => dayName(d, 'en')).join(', ')}. They've been told.`, `हो गया। ${a.employeeLabel}: ${list.map((d) => dayName(d, 'hi')).join(', ')} को ${what}। उन्हें बता दिया।`),
+    };
+  },
+};
+
+const whoWorks: ToolDef<{ date?: string }> = {
+  name: 'who_works',
+  description: 'Who works which shift on a day, from the roster. e.g. "Sunday ko kaun aa raha hai?", "Kal kaun kaam par hai?"',
+  parameters: { type: 'object', properties: { date: { type: 'string', description: 'YYYY-MM-DD, default today' } } },
+  kind: 'read',
+  roles: ['owner', 'manager'],
+  feature: 'roster',
+  schema: z.object({ date: dateS.optional() }),
+  normalize: (a, _c, today) => ({ ...a, date: a.date ?? today }),
+  execute: async (ctx, a) => {
+    const w = await weekView(ctx, a.date!);
+    const day = w.days.find((d) => d.date === a.date)!;
+    const groups = new Map<string, string[]>();
+    const off: string[] = [];
+    const leave: string[] = [];
+    let unsent = 0;
+    for (const p of w.staff) {
+      const c = p.cells.find((x) => x.date === a.date)!;
+      if (!c.employed) continue;
+      if (c.changed) unsent++;
+      if (c.leave) leave.push(p.name);
+      else if (c.kind === 'off' || !c.shiftId) off.push(p.name);
+      else groups.set(c.shiftId, [...(groups.get(c.shiftId) ?? []), p.name]);
+    }
+    const parts = [
+      ...w.shifts.filter((s) => groups.has(s.id)).map((s) => `${s.name} ${s.start}–${s.end}: ${groups.get(s.id)!.join(', ')}`),
+      ...(leave.length ? [`${L(ctx.language, 'On leave', 'छुट्टी पर')}: ${leave.join(', ')}`] : []),
+      ...(off.length ? [`${L(ctx.language, 'Off', 'छुट्टी')}: ${off.join(', ')}`] : []),
+    ];
+    const head = `${dayName(a.date!, ctx.language)}${day.holiday ? ` (${day.holiday})` : ''}`;
+    const note = unsent ? L(ctx.language, ` (${unsent} change${unsent === 1 ? '' : 's'} not sent to staff yet)`, ` (${unsent} बदलाव अभी स्टाफ़ को नहीं भेजे)`) : '';
+    const working = [...groups.values()].reduce((n, x) => n + x.length, 0);
+    return {
+      text: `${L(ctx.language, `${head}: ${working} working${note}.`, `${head}: ${working} लोग काम पर${note}।`)}\n${parts.join('\n')}`,
+      data: { date: a.date, working },
     };
   },
 };
@@ -436,7 +562,7 @@ const applyLeaveTool: ToolDef<{ from: string; to?: string; type?: 'paid' | 'sick
   },
 };
 
-export const TOOLS: ToolDef[] = [markAttendance, whoIs, recordAdvance, addAdjustment, addEmployeeTool, declareHoliday, salaryPreview, report, sendPayslipsTool, decideLeaveTool, help, mySalary, whySalaryLow, applyLeaveTool];
+export const TOOLS: ToolDef[] = [markAttendance, whoIs, setShiftTool, whoWorks, recordAdvance, addAdjustment, addEmployeeTool, declareHoliday, salaryPreview, report, sendPayslipsTool, decideLeaveTool, help, mySalary, whySalaryLow, applyLeaveTool];
 export const toolByName = new Map(TOOLS.map((t) => [t.name, t]));
 
 export function toolsForRole(role: string): LlmTool[] {

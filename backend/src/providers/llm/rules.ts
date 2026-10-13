@@ -5,7 +5,7 @@ import { parseCommand } from '../../modules/assistant/rulesParser.js';
 export class RulesLlmProvider implements LlmProvider {
   readonly name = 'rules';
   async extract(input: LlmExtractInput): Promise<LlmExtractResult> {
-    const r = parseCommand(input.text, { today: input.context.today, employeeNames: input.context.employeeNames, role: input.context.role });
+    const r = parseCommand(input.text, { today: input.context.today, employeeNames: input.context.employeeNames, shiftNames: input.context.shiftNames, role: input.context.role });
     return { ...r, provider: this.name };
   }
 }

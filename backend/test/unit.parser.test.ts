@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { parseCommand } from '../src/modules/assistant/rulesParser.js';
 import { matchEmployees } from '../src/modules/assistant/service.js';
 
-const ctx = { today: '2026-10-08', employeeNames: ['Ramesh Kumar', 'Suresh Yadav', 'Amit Verma', 'Raju', 'Pooja Singh', 'Vikas'], role: 'owner' };
+const ctx = { today: '2026-10-08', employeeNames: ['Ramesh Kumar', 'Suresh Yadav', 'Amit Verma', 'Raju', 'Pooja Singh', 'Vikas'], shiftNames: ['Morning', 'Evening', 'Day'], role: 'owner' };
 
 /** Owner phrase test set (seed for the PRD's 200-phrase pilot set). */
 const OWNER: [string, string, Record<string, unknown>?][] = [
@@ -40,6 +40,14 @@ const OWNER: [string, string, Record<string, unknown>?][] = [
   ['salary slip send karo', 'send_payslips'],
   ['Ramesh ki chutti approve kar do', 'decide_leave', { decision: 'approved' }],
   ['pooja ki leave reject karo', 'decide_leave', { decision: 'rejected' }],
+  // Roster (8 Oct 2026 is a Thursday)
+  ['Raju ko is hafte evening shift do', 'set_shift', { employeeName: 'Raju', shift: 'Evening', from: '2026-10-08', to: '2026-10-11' }],
+  ['Pooja ko agle hafte subah ki shift', 'set_shift', { employeeName: 'Pooja', shift: 'Morning', from: '2026-10-12', to: '2026-10-18' }],
+  ['Amit ko Sunday off do', 'set_shift', { employeeName: 'Amit', shift: 'off', from: '2026-10-11', to: '2026-10-11' }],
+  ['Raju kal morning shift', 'set_shift', { shift: 'Morning', from: '2026-10-09' }],
+  ['Sunday ko kaun aa raha hai?', 'who_works', { date: '2026-10-11' }],
+  ['kal kaun kaam par hai', 'who_works', { date: '2026-10-09' }],
+  ['who is working on saturday', 'who_works', { date: '2026-10-10' }],
   ['Kya kya kar sakte ho?', 'help'],
   ['help', 'help'],
 ];

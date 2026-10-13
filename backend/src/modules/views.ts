@@ -12,7 +12,7 @@ export const branchView = (b: any) => ({
   isDefault: !!b.isDefault,
 });
 
-export const shiftView = (s: any) => ({ id: String(s._id), name: s.name, start: s.start, end: s.end, graceMinutes: s.graceMinutes ?? null, weeklyOff: s.weeklyOff ?? [], weeklyOffWeeks: s.weeklyOffWeeks ?? {}, isDefault: !!s.isDefault });
+export const shiftView = (s: any) => ({ id: String(s._id), name: s.name, start: s.start, end: s.end, graceMinutes: s.graceMinutes ?? null, weeklyOff: s.weeklyOff ?? [], weeklyOffWeeks: s.weeklyOffWeeks ?? {}, minStaff: s.minStaff ?? 0, isDefault: !!s.isDefault });
 
 export const employeeView = (e: any, extra: Record<string, unknown> = {}) => ({
   id: String(e._id),

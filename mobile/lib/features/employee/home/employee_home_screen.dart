@@ -25,6 +25,7 @@ import '../punch/punch_providers.dart';
 import '../punch/punch_service.dart';
 import '../punch/punch_state.dart';
 import 'check_in_button.dart';
+import 'swap_widgets.dart';
 
 /// Employee home: the shift in words ("Started 12 minutes ago", never "848
 /// min late"), where they are and why it matters, one big button that says
@@ -289,6 +290,7 @@ class _EmployeeHomeScreenState extends ConsumerState<EmployeeHomeScreen> {
           onRefresh: () async {
             ref.invalidate(employeeTodayProvider);
             ref.invalidate(myRosterProvider);
+            ref.invalidate(mySwapsProvider);
             _prefetch().ignore();
             await ref.read(punchSyncProvider.notifier).syncNow();
             await ref.read(employeeTodayProvider.future);
@@ -415,6 +417,7 @@ class _EmployeeHomeScreenState extends ConsumerState<EmployeeHomeScreen> {
                 ),
               ),
             const _MyWeek(),
+            const _Swaps(),
             const Padding(padding: EdgeInsets.fromLTRB(16, 18, 16, 0), child: _MonthSummary()),
           ],
         ),
@@ -591,6 +594,17 @@ class _InfoCard extends StatelessWidget {
 
 /// "October so far · ✓ 8 days present · ⏰ 1 late · ✕ 1 absent ·
 /// Earned till today: ₹3,387" — counts in words instead of codes.
+class _Swaps extends ConsumerWidget {
+  const _Swaps();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final week = ref.watch(myRosterProvider(Dates.toApiDate(DateTime.now()))).value;
+    if (week == null || !week.swapsAllowed) return const SizedBox.shrink();
+    return MySwaps(week: week);
+  }
+}
+
 /// The week as the owner sent it: one line per day, today marked, changed days tagged.
 /// Shown only when the business uses the roster.
 class _MyWeek extends ConsumerWidget {
@@ -664,6 +678,16 @@ class _MyWeek extends ConsumerWidget {
                         ),
                       ],
                     ],
+                  ),
+                ),
+              if (week.swapsAllowed)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    key: const Key('mySwapButton'),
+                    onPressed: () => showSwapSheet(context, week),
+                    icon: const Icon(Icons.swap_horiz_rounded),
+                    label: Text(s.swapADay),
                   ),
                 ),
             ],

@@ -34,7 +34,7 @@ export const DEFAULT_PLANS = [
     extraStaffPricePaise: 0,
     maxStaffHardCap: 30,
     trialDays: 14,
-    features: ['attendance', 'leave', 'digest', 'payroll', 'advances', 'payslips', 'assistant', 'reports', 'roster', 'roster_repeat', 'branches', 'whatsapp_payslips', 'whatsapp_assistant', 'face_match'],
+    features: ['attendance', 'leave', 'digest', 'payroll', 'advances', 'payslips', 'assistant', 'reports', 'roster', 'roster_repeat', 'roster_swaps', 'branches', 'whatsapp_payslips', 'whatsapp_assistant', 'face_match'],
     sort: 2,
   },
   {
@@ -57,6 +57,7 @@ export const DEFAULT_PLANS = [
       'reports',
       'roster',
       'roster_repeat',
+      'roster_swaps',
       'branches',
       'whatsapp_payslips',
       'whatsapp_assistant',
@@ -75,6 +76,7 @@ export const DEFAULT_PLANS = [
 export const ADDED_FEATURES: Record<string, string[]> = {
   roster: ['starter', 'growth', 'pro'],
   roster_repeat: ['growth', 'pro'],
+  roster_swaps: ['growth', 'pro'],
 };
 
 export const DEFAULT_CONFIG: Record<string, unknown> = {
@@ -87,6 +89,9 @@ export const DEFAULT_CONFIG: Record<string, unknown> = {
   'leave.types': ['paid', 'sick', 'unpaid'],
   'assistant.pendingTtlMinutes': 15,
   'attendance.offlineLateSyncHours': 12,
+  /** Roster checks before sending: rest between two shifts, and hours in a week (Shops & Establishments). */
+  'roster.minRestHours': 8,
+  'roster.maxWeeklyHours': 48,
   /** Sent in staff invites. Replace with the real Play Store link at launch. */
   'app.downloadUrl': 'https://play.google.com/store/apps/details?id=app.staffmint',
   /** Days an owner can restore a business they closed. */

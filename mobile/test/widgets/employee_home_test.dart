@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:staffmint/core/api/api_exception.dart';
+import 'package:staffmint/core/api/providers.dart';
 import 'package:staffmint/core/api/services/attendance_api.dart';
+import 'package:staffmint/core/api/services/roster_api.dart';
 import 'package:staffmint/core/models/models.dart';
 import 'package:staffmint/core/storage/providers.dart';
 import 'package:staffmint/core/utils/dates.dart';
@@ -25,6 +27,46 @@ var _lockPolicy = 'recommended';
 
 /// This week's roster for the current test (not used by the shop unless `rostered`).
 var _roster = const MyRosterWeek(weekStart: '2026-10-05');
+
+/// Roster API for swaps in the current test.
+class _FakeRosterApi implements RosterApi {
+  List<RosterSwap> list = const [];
+  final calls = <String>[];
+  @override
+  Future<List<RosterSwap>> swaps() async => list;
+  @override
+  Future<RosterSwap> swapAction(String id, String action) async {
+    calls.add('$id/$action');
+    final x = list.firstWhere((e) => e.id == id);
+    list = [];
+    return x;
+  }
+
+  @override
+  Future<SwapOptions> swapOptions(String date) async => SwapOptions(
+    date: date,
+    mineLabel: 'Morning 08:00–14:00',
+    colleagues: const [
+      SwapOption(employeeId: 'e2', name: 'Pooja', kind: 'shift', shiftId: 'e', label: 'Evening 14:00–20:00'),
+    ],
+  );
+  @override
+  Future<RosterSwap> askSwap(String date, String withEmployeeId) async {
+    calls.add('ask/$date/$withEmployeeId');
+    return RosterSwap(
+      id: 'sw9',
+      date: date,
+      from: const SwapSide(employeeId: 'e1', name: 'Ramesh', kind: 'shift', shiftId: 'm'),
+      to: const SwapSide(employeeId: 'e2', name: 'Pooja', kind: 'shift', shiftId: 'e'),
+      status: 'asked',
+    );
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+var _rosterApi = _FakeRosterApi();
 
 class _FakeAuth extends AuthController {
   @override
@@ -108,6 +150,7 @@ void main() {
     serverRecord = null;
     _lockPolicy = 'recommended';
     _roster = const MyRosterWeek(weekStart: '2026-10-05');
+    _rosterApi = _FakeRosterApi();
   });
 
   Future<_FakePunchApi> pumpHome(WidgetTester tester, {GeoPoint shop = const GeoPoint(lat: 28.6001, lng: 77.2)}) async {
@@ -157,6 +200,7 @@ void main() {
             ),
           ),
           myRosterProvider.overrideWith((ref, date) async => _roster),
+          rosterApiProvider.overrideWithValue(_rosterApi),
           punchQueueProvider.overrideWithValue(queue),
           punchServiceProvider.overrideWithValue(PunchService(api: api, queue: queue)),
           punchCaptureProvider.overrideWithValue(capture),
@@ -213,6 +257,63 @@ void main() {
     expect(find.descendant(of: row, matching: find.text('2 – 8')), findsOneWidget);
     expect(find.descendant(of: row, matching: find.text('Changed')), findsOneWidget);
     expect(find.descendant(of: find.byKey(Key('myWeek_${d(offDay)}')), matching: find.text('Day off')), findsOneWidget);
+  });
+
+  testWidgets('swaps: answer a colleague, and ask someone to swap a day', (tester) async {
+    final now = DateTime.now();
+    final monday = DateTime(now.year, now.month, now.day).subtract(Duration(days: now.weekday - 1));
+    String d(int i) => Dates.toApiDate(monday.add(Duration(days: i)));
+    final today = Dates.toApiDate(now);
+    _roster = MyRosterWeek(
+      weekStart: d(0),
+      rostered: true,
+      swapsAllowed: true,
+      shifts: const [
+        Shift(id: 'm', name: 'Morning', start: '08:00', end: '14:00'),
+        Shift(id: 'e', name: 'Evening', start: '14:00', end: '20:00'),
+      ],
+      days: [for (var i = 0; i < 7; i++) MyRosterDay(date: d(i), kind: 'shift', shiftId: 'm')],
+    );
+    _rosterApi.list = [
+      RosterSwap(
+        id: 'sw1',
+        date: today,
+        from: const SwapSide(employeeId: 'e3', name: 'Amit', kind: 'shift', shiftId: 'e'),
+        to: const SwapSide(employeeId: 'e1', name: 'Ramesh', kind: 'shift', shiftId: 'm'),
+        status: 'asked',
+      ),
+    ];
+    await pumpHome(tester);
+    await tester.scrollUntilVisible(find.byKey(const Key('swapIncoming_sw1')), 300);
+    expect(find.textContaining('Amit wants to swap'), findsOneWidget);
+    expect(find.text('You’d work Evening 2 – 8; they’d take your Morning 8 – 2'), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const Key('swapAccept_sw1')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('swapAccept_sw1')));
+    await tester.pumpAndSettle();
+    expect(_rosterApi.calls, ['sw1/accept']);
+    expect(find.text('Accepted. Your owner will approve it.'), findsOneWidget);
+
+    await tester.scrollUntilVisible(find.byKey(const Key('mySwapButton')), 300);
+    await tester.ensureVisible(find.byKey(const Key('mySwapButton')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('mySwapButton')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('swapSheet')), findsOneWidget);
+    await tester.tap(find.byKey(Key('swapDay_$today')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('swapWith_e2')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('swapWith_e2')));
+    await tester.pumpAndSettle();
+    expect(find.text('You’d work: Evening 14:00–20:00'), findsOneWidget);
+    expect(find.text('Pooja would work: Morning 08:00–14:00'), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const Key('swapAsk')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('swapAsk')));
+    await tester.pumpAndSettle();
+    expect(_rosterApi.calls.last, 'ask/$today/e2');
+    expect(find.text('Asked Pooja. We’ll tell you when they answer.'), findsOneWidget);
   });
 
   testWidgets('a shop that does not use the roster sees no My week', (tester) async {

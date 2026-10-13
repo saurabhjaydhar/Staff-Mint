@@ -71,6 +71,21 @@ class _FakeRosterApi implements RosterApi {
   final bool repeatAllowed;
   final repeats = <String>[];
   var stops = 0;
+  List<RosterProblem> extraProblems = const [];
+  List<RosterSwap> swapList = const [];
+  final swapActions = <String>[];
+
+  @override
+  Future<List<RosterSwap>> swaps() async => swapList;
+
+  @override
+  Future<RosterSwap> swapAction(String id, String action) async {
+    swapActions.add('$id/$action');
+    final x = swapList.firstWhere((e) => e.id == id);
+    swapList = [];
+    return x;
+  }
+
   final saved = <List<_Cell>>[];
   final sentWeeks = <String>[];
   var loads = 0;
@@ -82,7 +97,17 @@ class _FakeRosterApi implements RosterApi {
     if (planError) {
       throw const ApiException(code: ApiErrorCode.featureNotInPlan, message: 'Upgrade', statusCode: 402);
     }
-    return _week(fixed: fixed, sent: sentWeeks.isNotEmpty, repeat: repeatOn, repeatAllowed: repeatAllowed);
+    final w = _week(fixed: fixed, sent: sentWeeks.isNotEmpty, repeat: repeatOn, repeatAllowed: repeatAllowed);
+    return RosterWeek(
+      weekStart: w.weekStart,
+      days: w.days,
+      shifts: w.shifts,
+      staff: w.staff,
+      notSent: w.notSent,
+      problems: [...w.problems, ...extraProblems],
+      repeat: w.repeat,
+      repeatAllowed: w.repeatAllowed,
+    );
   }
 
   @override
@@ -316,5 +341,50 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('यह हफ़्ता हर हफ़्ते दोहराएँ?'), findsOneWidget);
     expect(find.text('हाँ, हर हफ़्ते बदलें'), findsOneWidget);
+  });
+
+  testWidgets('send sheet: warnings that never block sending, under the one-tap fixes', (tester) async {
+    final api = _FakeRosterApi()
+      ..extraProblems = const [
+        RosterProblem(type: 'short_rest', employeeId: 'raju', name: 'Raju', date: '2026-10-07', hours: 6),
+        RosterProblem(type: 'long_week', employeeId: 'sita', name: 'Sita', date: '2026-10-11', hours: 52.5),
+        RosterProblem(type: 'short_staff', date: '2026-10-10', shiftId: 'm', shiftName: 'Morning', count: 1, min: 2),
+      ];
+    await _pump(tester, api);
+    await tester.tap(find.byKey(const Key('rosterSend')));
+    await tester.pumpAndSettle();
+    expect(find.text('1 thing to fix first'), findsOneWidget);
+    expect(find.text('Please check (3)'), findsOneWidget);
+    expect(find.text('These won’t stop sending.'), findsOneWidget);
+    expect(find.text('Raju gets only 6 hours’ rest before Wed'), findsOneWidget);
+    expect(find.text('Sita works 52.5 hours this week (more than 48)'), findsOneWidget);
+    expect(find.text('Sat Morning: 1 of 2 people'), findsOneWidget);
+    // Warnings have no fix button; sending still works.
+    expect(find.byKey(const Key('rosterFix_raju_2026-10-07')), findsNothing);
+    await tester.tap(find.byKey(const Key('rosterSendNow')));
+    await tester.pumpAndSettle();
+    expect(api.sentWeeks, ['2026-10-05']);
+  });
+
+  testWidgets('a swap two staff agreed on waits for the owner: approve tells both', (tester) async {
+    final api = _FakeRosterApi()
+      ..swapList = const [
+        RosterSwap(
+          id: 'sw1',
+          date: '2026-10-08',
+          from: SwapSide(employeeId: 'raju', name: 'Raju', kind: 'shift', shiftId: 'm'),
+          to: SwapSide(employeeId: 'sita', name: 'Sita', kind: 'shift', shiftId: 'e'),
+          status: 'accepted',
+        ),
+      ];
+    await _pump(tester, api);
+    expect(find.text('Swap requests (1)'), findsOneWidget);
+    expect(find.text('Raju and Sita want to swap Thu, 8 Oct'), findsOneWidget);
+    expect(find.text('Raju takes Evening 2 – 8 · Sita takes Morning 8 – 2'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('swapApprove_sw1')));
+    await tester.pumpAndSettle();
+    expect(api.swapActions, ['sw1/approve']);
+    expect(find.text('Swap approved. Both have been told.'), findsOneWidget);
+    expect(find.byKey(const Key('rosterSwapRequests')), findsNothing);
   });
 }

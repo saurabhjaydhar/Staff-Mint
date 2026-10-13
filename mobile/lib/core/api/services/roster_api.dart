@@ -31,6 +31,20 @@ class RosterApi {
 
   Future<void> stopRepeat() => _c.delete('/roster/repeat');
 
+  // ---- Swaps
+  Future<List<RosterSwap>> swaps() async => asList(await _c.get('/roster/swaps'), RosterSwap.fromJson);
+
+  Future<SwapOptions> swapOptions(String date) async =>
+      SwapOptions.fromJson(asMap(await _c.get('/roster/swap-options', query: {'date': date})));
+
+  Future<RosterSwap> askSwap(String date, String withEmployeeId) async => RosterSwap.fromJson(
+    asMap(await _c.post('/roster/swaps', body: {'date': date, 'withEmployeeId': withEmployeeId})),
+  );
+
+  /// `accept`, `decline` or `cancel` (staff); `approve` or `reject` (owner / manager).
+  Future<RosterSwap> swapAction(String id, String action) async =>
+      RosterSwap.fromJson(asMap(await _c.post('/roster/swaps/$id/$action')));
+
   Future<MyRosterWeek> mine(String date) async =>
       MyRosterWeek.fromJson(asMap(await _c.get('/roster/mine', query: {'week': date})));
 }

@@ -76,6 +76,9 @@ class _ShiftForm extends ConsumerStatefulWidget {
 class _ShiftFormState extends ConsumerState<_ShiftForm> {
   late final _name = TextEditingController(text: widget.shift?.name ?? '');
   late final _grace = TextEditingController(text: widget.shift?.graceMinutes?.toString() ?? '');
+  late final _minStaff = TextEditingController(
+    text: (widget.shift?.minStaff ?? 0) > 0 ? '${widget.shift!.minStaff}' : '',
+  );
   late String _start = widget.shift?.start ?? '09:00';
   late String _end = widget.shift?.end ?? '19:00';
   late List<int> _weeklyOff = [...?widget.shift?.weeklyOff];
@@ -86,6 +89,7 @@ class _ShiftFormState extends ConsumerState<_ShiftForm> {
   void dispose() {
     _name.dispose();
     _grace.dispose();
+    _minStaff.dispose();
     super.dispose();
   }
 
@@ -105,6 +109,7 @@ class _ShiftFormState extends ConsumerState<_ShiftForm> {
           if (_offWeeks[d]?.isNotEmpty == true) '$d': _offWeeks[d],
       },
       'graceMinutes': int.tryParse(_grace.text),
+      'minStaff': int.tryParse(_minStaff.text) ?? 0,
     };
     setState(() => _busy = true);
     final api = ref.read(companyApiProvider);
@@ -189,6 +194,13 @@ class _ShiftFormState extends ConsumerState<_ShiftForm> {
             controller: _grace,
             keyboardType: TextInputType.number,
             decoration: InputDecoration(labelText: s.useCompanyGrace),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            key: const Key('shiftMinStaff'),
+            controller: _minStaff,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(labelText: s.minStaffLabel, helperText: s.minStaffHint),
           ),
           const SizedBox(height: 12),
           Text(s.weeklyOff, style: Theme.of(context).textTheme.titleSmall),

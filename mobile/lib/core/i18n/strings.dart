@@ -665,6 +665,8 @@ class S {
         return _t('Roster', 'रोस्टर');
       case 'roster_repeat':
         return _t('Repeat roster every week', 'रोस्टर हर हफ़्ते दोहराना');
+      case 'roster_swaps':
+        return _t('Shift swaps', 'शिफ़्ट अदला-बदली');
       case 'whatsapp_payslips':
         return _t('Salary slips on WhatsApp', 'WhatsApp पर सैलरी स्लिप');
       case 'whatsapp_assistant':
@@ -2071,6 +2073,7 @@ class S {
     'slips' => _t('Salary slips & reports', 'सैलरी स्लिप, रिपोर्ट'),
     'roster' => _t('Weekly roster (shifts)', 'हफ़्ते का रोस्टर (शिफ़्ट)'),
     'roster_repeat' => _t('Roster repeats every week', 'रोस्टर हर हफ़्ते अपने-आप'),
+    'roster_swaps' => _t('Staff swap shifts (you approve)', 'स्टाफ़ शिफ़्ट बदलें (आप मंज़ूर करें)'),
     'mint' => _t('Ask Mint (voice)', 'Mint से पूछें (आवाज़)'),
     'branches' => _t('More branches', 'कई ब्रांच'),
     'whatsapp' => _t('Slips & helper on WhatsApp', 'WhatsApp पर स्लिप, सहायक'),
@@ -2243,6 +2246,55 @@ class S {
   );
   String get repeatTurnedOn => _t('Next week is filled in. Check it, then send.', 'अगला हफ़्ता भर गया। देखकर भेजें।');
   String get repeatTurnedOff => _t('Repeat turned off', 'दोहराना बंद किया');
+  String _hrs(double h) => h == h.roundToDouble() ? '${h.round()}' : h.toStringAsFixed(1);
+  String problemShortRest(String name, String day, double hours) => _t(
+    '$name gets only ${_hrs(hours)} hours’ rest before $day',
+    '$name को $day से पहले सिर्फ़ ${_hrs(hours)} घंटे आराम',
+  );
+  String problemLongWeek(String name, double hours) => _t(
+    '$name works ${_hrs(hours)} hours this week (more than 48)',
+    '$name इस हफ़्ते ${_hrs(hours)} घंटे काम करेंगे (48 से ज़्यादा)',
+  );
+  String problemShortStaff(String day, String shift, int count, int min) =>
+      _t('$day $shift: $count of $min people', '$day $shift: $min में से $count लोग');
+  String warningsTitle(int n) => _t('Please check ($n)', 'ज़रा देख लें ($n)');
+  String get warningsHint => _t('These won’t stop sending.', 'इनसे भेजना नहीं रुकेगा।');
+  String get minStaffLabel => _t('Fewest people needed on this shift', 'इस शिफ़्ट में कम से कम कितने लोग');
+  String get minStaffHint => _t('We tell you before sending if fewer are on it', 'कम हुए तो भेजने से पहले बताएँगे');
+  String swapRequestsTitle(int n) => _t('Swap requests ($n)', 'अदला-बदली की अर्ज़ी ($n)');
+  String swapLine(String from, String to, String day) =>
+      _t('$from and $to want to swap $day', '$from और $to $day की शिफ़्ट बदलना चाहते हैं');
+  String swapDetail(String from, String fromNew, String to, String toNew) =>
+      _t('$from takes $fromNew · $to takes $toNew', '$from: $fromNew · $to: $toNew');
+  String get swapApproved => _t('Swap approved. Both have been told.', 'अदला-बदली मंज़ूर। दोनों को बता दिया।');
+  String get swapRejected => _t('Swap not approved. Both have been told.', 'नामंज़ूर किया। दोनों को बता दिया।');
+  String get swapADay => _t('Swap a day', 'दिन बदलें');
+  String get swapPickDay => _t('Which day do you want to swap?', 'कौन सा दिन बदलना है?');
+  String get swapPickPerson => _t('Swap with', 'किसके साथ बदलें');
+  String get swapNobody => _t('Nobody has a different shift that day', 'उस दिन किसी की अलग शिफ़्ट नहीं');
+  String swapConfirm(String name, String day) => _t('Ask $name to swap $day?', '$name से $day बदलने को कहें?');
+  String swapYouGet(String label) => _t('You’d work: $label', 'आपकी: $label');
+  String swapTheyGet(String name, String label) => _t('$name would work: $label', '$name की: $label');
+  String get swapOwnerApproves =>
+      _t('After they say yes, your owner approves it.', 'उनके हाँ कहने के बाद मालिक मंज़ूर करेंगे।');
+  String get swapAsk => _t('Ask', 'पूछें');
+  String swapAsked(String name) =>
+      _t('Asked $name. We’ll tell you when they answer.', '$name से पूछ लिया। जवाब आने पर बताएँगे।');
+  String swapIncoming(String name, String day) =>
+      _t('$name wants to swap $day', '$name $day की शिफ़्ट बदलना चाहते हैं');
+  String swapIncomingDetail(String you, String theirs) =>
+      _t('You’d work $you; they’d take your $theirs', 'आपकी $you होगी, वे आपकी $theirs लेंगे');
+  String get swapYes => _t('Yes, swap', 'हाँ, बदलें');
+  String get swapNo => _t('Can’t', 'नहीं');
+  String swapWaitingFor(String name) => _t('Waiting for $name', '$name के जवाब का इंतज़ार');
+  String get swapWaitingOwner => _t('Waiting for the owner', 'मालिक के जवाब का इंतज़ार');
+  String get swapApprovedTag => _t('Approved', 'मंज़ूर');
+  String swapDeclinedTag(String name) => _t('$name said no', '$name ने मना किया');
+  String get swapRejectedTag => _t('Owner said no', 'मालिक ने मना किया');
+  String get swapCancelledTag => _t('Cancelled', 'रद्द');
+  String swapWith(String name, String day) => _t('Swap with $name · $day', '$name के साथ अदला-बदली · $day');
+  String get swapAccepted => _t('Accepted. Your owner will approve it.', 'हाँ कह दिया। मालिक मंज़ूर करेंगे।');
+  String get swapDeclined => _t('Told them you can’t.', 'उन्हें बता दिया कि नहीं हो पाएगा।');
   String get myWeek => _t('My week', 'मेरा हफ़्ता');
   String get changedTag => _t('Changed', 'बदला');
 

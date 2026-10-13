@@ -18,6 +18,9 @@ final rosterWeekProvider = FutureProvider.autoDispose.family<RosterWeek, String>
   (ref, week) => ref.watch(rosterApiProvider).week(week),
 );
 
+/// Swaps waiting for the owner's or manager's OK (and recent ones).
+final rosterSwapsProvider = FutureProvider.autoDispose<List<RosterSwap>>((ref) => ref.watch(rosterApiProvider).swaps());
+
 DateTime _mondayOf(DateTime d) => DateTime(d.year, d.month, d.day).subtract(Duration(days: d.weekday - 1));
 
 /// Roster: one day at a time. Tap a person to change their shift; changes reach staff only after "Send to staff".
@@ -42,7 +45,10 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
 
   void _moveWeek(int by) => setState(() => _weekStart = _weekStart.add(Duration(days: 7 * by)));
 
-  void _refresh() => ref.invalidate(rosterWeekProvider(_weekKey));
+  void _refresh() {
+    ref.invalidate(rosterWeekProvider(_weekKey));
+    ref.invalidate(rosterSwapsProvider);
+  }
 
   Future<void> _copyLastWeek() async {
     final s = context.s;
@@ -172,11 +178,17 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
         counts[c.shiftId ?? ''] = (counts[c.shiftId ?? ''] ?? 0) + 1;
       }
     }
-    final summary = [
+    // A shift with a minimum shows "1/2", in red when short (only on days the shop is open, not holidays).
+    final open = counts.values.any((n) => n > 0) && day.holiday == null;
+    final summary = <(String, bool)>[
       for (final sh in w.shifts)
-        if ((counts[sh.id] ?? 0) > 0) '${sh.name} ${counts[sh.id]}',
-      if (off > 0) '${s.dayOff} $off',
-    ].join(' · ');
+        if ((counts[sh.id] ?? 0) > 0 || (open && sh.minStaff > 0))
+          (
+            '${sh.name} ${counts[sh.id] ?? 0}${sh.minStaff > 0 ? '/${sh.minStaff}' : ''}',
+            (counts[sh.id] ?? 0) < sh.minStaff,
+          ),
+      if (off > 0) ('${s.dayOff} $off', false),
+    ];
     return RefreshableList(
       padding: const EdgeInsets.only(bottom: 24),
       onRefresh: () async {
@@ -267,11 +279,26 @@ class _RosterScreenState extends ConsumerState<RosterScreen> {
                 ),
               ),
               if (summary.isNotEmpty && !_wholeWeek)
-                Text(summary, style: const TextStyle(color: AppColors.muted, fontSize: 13.5)),
+                Text.rich(
+                  key: const Key('rosterSummary'),
+                  TextSpan(
+                    children: [
+                      for (final (i, (text, short)) in summary.indexed) ...[
+                        if (i > 0) const TextSpan(text: ' · '),
+                        TextSpan(
+                          text: text,
+                          style: short ? const TextStyle(color: AppColors.red, fontWeight: FontWeight.w800) : null,
+                        ),
+                      ],
+                    ],
+                  ),
+                  style: const TextStyle(color: AppColors.muted, fontSize: 13.5),
+                ),
             ],
           ),
         ),
         if (w.shifts.isNotEmpty) _RepeatTile(week: w, onTap: () => _repeat(w)),
+        _SwapRequests(week: w, onDone: _refresh),
         if (day.holiday != null && !_wholeWeek)
           Container(
             margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -659,6 +686,24 @@ class _SendSheetState extends ConsumerState<_SendSheet> {
     if (w == null) return const SizedBox(height: 200, child: LoadingView(rows: 2));
     final people = w.staff.where((p) => p.cells.any((c) => c.changed)).length;
     String day(String d) => Dates.weekdayOnly(DateTime.parse(d), lang);
+    final fixes = [
+      for (final p in w.problems)
+        if (p.hasFix) p,
+    ];
+    final warnings = [
+      for (final p in w.problems)
+        if (!p.hasFix) p,
+    ];
+    String warning(RosterProblem p) => switch (p.type) {
+      'short_rest' => s.problemShortRest(p.name, s.weekdayShort(DateTime.parse(p.date).weekday % 7), p.hours ?? 0),
+      'long_week' => s.problemLongWeek(p.name, p.hours ?? 0),
+      _ => s.problemShortStaff(
+        s.weekdayShort(DateTime.parse(p.date).weekday % 7),
+        p.shiftName ?? '',
+        p.count ?? 0,
+        p.min ?? 0,
+      ),
+    };
     return SingleChildScrollView(
       key: const Key('rosterSendSheet'),
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -668,10 +713,10 @@ class _SendSheetState extends ConsumerState<_SendSheet> {
           Text(s.sendSheetTitle, style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w800)),
           const SizedBox(height: 2),
           Text(s.sendSheetBody, style: const TextStyle(color: AppColors.muted)),
-          if (w.problems.isNotEmpty) ...[
+          if (fixes.isNotEmpty) ...[
             const SizedBox(height: 14),
-            Text(s.thingsToFix(w.problems.length), style: const TextStyle(fontWeight: FontWeight.w800)),
-            for (final p in w.problems)
+            Text(s.thingsToFix(fixes.length), style: const TextStyle(fontWeight: FontWeight.w800)),
+            for (final p in fixes)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 6),
                 child: Row(
@@ -689,6 +734,24 @@ class _SendSheetState extends ConsumerState<_SendSheet> {
                       onPressed: () => _fix(p),
                       child: Text(p.type == 'leave_working' ? s.fixMakeOff : s.fixGiveOff(day(p.date))),
                     ),
+                  ],
+                ),
+              ),
+          ],
+          if (warnings.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Text(s.warningsTitle(warnings.length), style: const TextStyle(fontWeight: FontWeight.w800)),
+            Text(s.warningsHint, style: const TextStyle(color: AppColors.muted, fontSize: 13)),
+            for (final p in warnings)
+              Padding(
+                key: Key('rosterWarning_${p.type}_${p.employeeId}_${p.shiftId ?? ''}_${p.date}'),
+                padding: const EdgeInsets.symmetric(vertical: 5),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.info_outline_rounded, color: AppColors.muted, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(warning(p), style: const TextStyle(fontSize: 14.5))),
                   ],
                 ),
               ),
@@ -1057,4 +1120,83 @@ class _Letter extends StatelessWidget {
       style: TextStyle(color: colors.fg, fontWeight: FontWeight.w800, fontSize: 12.5),
     ),
   );
+}
+
+/// Swaps two staff agreed on, waiting for the owner's or a manager's OK.
+class _SwapRequests extends ConsumerWidget {
+  const _SwapRequests({required this.week, required this.onDone});
+  final RosterWeek week;
+  final VoidCallback onDone;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = context.s;
+    final waiting = [
+      for (final x in ref.watch(rosterSwapsProvider).value ?? const <RosterSwap>[])
+        if (x.status == 'accepted') x,
+    ];
+    if (waiting.isEmpty) return const SizedBox.shrink();
+    String what(SwapSide side) {
+      if (side.isOff) return s.dayOff;
+      final sh = week.shiftById(side.shiftId);
+      return sh == null ? '' : '${sh.name} ${shortHours(sh)}';
+    }
+
+    Future<void> decide(RosterSwap x, bool approve) async {
+      final ok = await runGuarded(
+        context,
+        () => ref.read(rosterApiProvider).swapAction(x.id, approve ? 'approve' : 'reject'),
+      );
+      if (!ok || !context.mounted) return;
+      ref.invalidate(rosterSwapsProvider);
+      onDone();
+      showSnack(context, approve ? s.swapApproved : s.swapRejected);
+    }
+
+    return Card(
+      key: const Key('rosterSwapRequests'),
+      margin: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+      color: AppColors.amberLight,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.swap_horiz_rounded, color: AppColors.amberDark),
+                const SizedBox(width: 8),
+                Text(
+                  s.swapRequestsTitle(waiting.length),
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                ),
+              ],
+            ),
+            for (final x in waiting) ...[
+              const SizedBox(height: 8),
+              Text(
+                s.swapLine(x.from.name, x.to.name, Dates.weekdayShort(DateTime.parse(x.date), s.languageCode)),
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              Text(
+                s.swapDetail(x.from.name, what(x.to), x.to.name, what(x.from)),
+                style: const TextStyle(color: AppColors.muted, fontSize: 13.5),
+              ),
+              Row(
+                children: [
+                  FilledButton(
+                    key: Key('swapApprove_${x.id}'),
+                    onPressed: () => decide(x, true),
+                    child: Text(s.approve),
+                  ),
+                  const SizedBox(width: 8),
+                  TextButton(key: Key('swapReject_${x.id}'), onPressed: () => decide(x, false), child: Text(s.reject)),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 }

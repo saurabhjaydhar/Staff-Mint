@@ -59,7 +59,7 @@ export interface LlmTool {
 export interface LlmExtractInput {
   text: string;
   tools: LlmTool[];
-  context: { today: string; language: 'en' | 'hi'; employeeNames: string[]; role: string; history?: { role: string; text: string }[] };
+  context: { today: string; language: 'en' | 'hi'; employeeNames: string[]; shiftNames?: string[]; role: string; history?: { role: string; text: string }[] };
 }
 export interface LlmExtractResult {
   intent: string | null;

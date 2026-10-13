@@ -8,7 +8,7 @@ import { useAction, useAsync } from "@/hooks/useAsync";
 import { api, isApiError } from "@/lib/api";
 import { fill } from "@/lib/i18n";
 import { todayStr } from "@/lib/format";
-import type { RosterCell, RosterWeek, Shift } from "@/lib/types";
+import type { RosterCell, RosterProblem, RosterSwap, RosterWeek, Shift } from "@/lib/types";
 
 /** Each shift keeps one colour (by start time, as the server sorts them); days off are grey. */
 const PALETTE = [
@@ -34,6 +34,7 @@ export default function RosterPage() {
   const [sending, setSending] = useState(false);
   const [repeating, setRepeating] = useState(false);
   const week = useAsync(() => api.get<RosterWeek>("/roster", { week: weekStart }), `roster:${weekStart}`);
+  const swaps = useAsync(() => api.get<RosterSwap[]>("/roster/swaps"), "roster:swaps");
   const action = useAction();
   const locale = lang === "hi" ? "hi-IN" : "en-IN";
   const dayName = (d: string, style: "short" | "long" = "short") => new Date(`${d}T00:00:00`).toLocaleDateString(locale, { weekday: style });
@@ -103,6 +104,7 @@ export default function RosterPage() {
             {w.shifts.length < 2 && <span className="text-sm text-slate-500">{t("roster_add_shifts")}</span>}
           </div>
           <RepeatLine week={w} onOpen={() => setRepeating(true)} />
+          <SwapRequests week={w} swaps={swaps.data ?? []} dayName={(d) => dayName(d, "long")} onDone={() => { swaps.reload(); week.reload(); }} />
           <Card padded={false}>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[760px] text-sm">
@@ -323,6 +325,8 @@ function SendModal({
   const { t } = useI18n();
   const action = useAction();
   const people = week.staff.filter((p) => p.cells.some((c) => c.changed)).length;
+  const fixes = week.problems.filter((p): p is Extract<RosterProblem, { type: "leave_working" | "no_day_off" }> => p.type === "leave_working" || p.type === "no_day_off");
+  const warnings = week.problems.filter((p) => p.type !== "leave_working" && p.type !== "no_day_off");
   async function send() {
     const res = await action.run("send", () => api.post<{ sentTo: number }>("/roster/send", { week: week.weekStart }));
     if (res.ok) onSent(res.value.sentTo);
@@ -345,10 +349,10 @@ function SendModal({
     >
       {action.error && <Alert className="mb-3">{action.error}</Alert>}
       <p className="text-sm text-slate-600">{t("roster_send_body")}</p>
-      {week.problems.length > 0 && (
+      {fixes.length > 0 && (
         <div className="mt-4 space-y-2">
-          <div className="text-sm font-semibold">{fill(t("roster_fix_first"), { n: week.problems.length })}</div>
-          {week.problems.map((p) => (
+          <div className="text-sm font-semibold">{fill(t("roster_fix_first"), { n: fixes.length })}</div>
+          {fixes.map((p) => (
             <div key={`${p.employeeId}:${p.date}:${p.type}`} className="flex items-center justify-between gap-3 rounded-lg bg-amber-50 px-3 py-2 text-sm">
               <span>
                 {p.type === "leave_working"
@@ -362,6 +366,63 @@ function SendModal({
           ))}
         </div>
       )}
+      {warnings.length > 0 && (
+        <div className="mt-4 space-y-1">
+          <div className="text-sm font-semibold">{fill(t("roster_warnings"), { n: warnings.length })}</div>
+          <div className="text-xs text-slate-500">{t("roster_warnings_hint")}</div>
+          {warnings.map((p) => (
+            <div key={`${p.type}:${p.date}:${"employeeId" in p ? p.employeeId : p.shiftId}`} className="rounded-lg bg-slate-50 px-3 py-2 text-sm">
+              {p.type === "short_staff"
+                ? fill(t("roster_short_staff"), { day: dayName(p.date), shift: p.shiftName, count: p.count, min: p.min })
+                : p.type === "short_rest"
+                  ? fill(t("roster_short_rest"), { name: p.name, day: dayName(p.date), hours: p.hours })
+                  : p.type === "long_week"
+                    ? fill(t("roster_long_week"), { name: p.name, hours: p.hours })
+                    : ""}
+            </div>
+          ))}
+        </div>
+      )}
     </Modal>
+  );
+}
+
+/** Swaps two staff agreed on, waiting for the owner's or a manager's OK. */
+function SwapRequests({ week, swaps, dayName, onDone }: { week: RosterWeek; swaps: RosterSwap[]; dayName: (d: string) => string; onDone: () => void }) {
+  const { t } = useI18n();
+  const toast = useToast();
+  const action = useAction();
+  const waiting = swaps.filter((s) => s.status === "accepted");
+  if (!waiting.length) return null;
+  const what = (side: RosterSwap["from"]) => (side.kind === "off" ? t("roster_off") : (week.shifts.find((s) => s.id === side.shiftId)?.name ?? ""));
+  async function decide(s: RosterSwap, approve: boolean) {
+    const res = await action.run(`${s.id}:${approve}`, () => api.post(`/roster/swaps/${s.id}/${approve ? "approve" : "reject"}`, {}));
+    if (res.ok) {
+      toast(approve ? t("roster_swap_approved") : t("roster_swap_rejected"));
+      onDone();
+    }
+  }
+  return (
+    <Card title={fill(t("roster_swaps_title"), { n: waiting.length })}>
+      {action.error && <Alert className="mb-3">{action.error}</Alert>}
+      <div className="space-y-3">
+        {waiting.map((s) => (
+          <div key={s.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-amber-50 px-3 py-2">
+            <div>
+              <div className="font-medium">{fill(t("roster_swap_line"), { from: s.from.name, to: s.to.name, day: dayName(s.date) })}</div>
+              <div className="text-sm text-slate-600">{fill(t("roster_swap_detail"), { from: s.from.name, fromNew: what(s.to), to: s.to.name, toNew: what(s.from) })}</div>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" loading={action.busy === `${s.id}:true`} onClick={() => decide(s, true)}>
+                {t("approve")}
+              </Button>
+              <Button size="sm" variant="secondary" loading={action.busy === `${s.id}:false`} onClick={() => decide(s, false)}>
+                {t("reject")}
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }

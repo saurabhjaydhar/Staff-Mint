@@ -70,6 +70,7 @@ Webhook URL to register: `https://<api>/api/v1/webhooks/messaging/meta` (or `/ai
 | `trial_ended` | business name | Free trial ended; now on Free, data kept |
 | `staff_invite` | staff name, business name, staff phone, app link | Invite sent when an owner adds staff (and "Resend invite"). The app link is config `app.downloadUrl` — set the real Play Store URL at launch (`PUT /admin/config`) |
 | `roster_published` | staff name, business name, week (e.g. "5 Oct – 11 Oct"), the week in one line ("Mon 5 Morning 09:00–17:00 · … · Sun 11 Off", changed days marked) | Roster sent; only to staff who haven't joined the app (others get a push) |
+| `roster_changed` | staff name, business name, week (e.g. "19 Oct – 25 Oct"), the changed days in one line ("Wed 21 Off · Thu 22 Evening 14:00–21:00") | A roster they already had for that week changed; only to staff who haven't joined the app |
 
 ### Push notifications (🟡)
 Set `PUSH_PROVIDER=fcm`.

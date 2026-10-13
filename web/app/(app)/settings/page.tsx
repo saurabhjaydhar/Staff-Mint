@@ -436,7 +436,7 @@ function OffWeeksPicker({ days, value, onChange }: { days: number[]; value: Reco
   );
 }
 
-type ShiftDraft = { name: string; start: string; end: string; graceMinutes: string; weeklyOff: number[]; weeklyOffWeeks: Record<string, number[]> };
+type ShiftDraft = { name: string; start: string; end: string; graceMinutes: string; weeklyOff: number[]; weeklyOffWeeks: Record<string, number[]>; minStaff: string };
 
 function shiftBody(s: ShiftDraft) {
   return {
@@ -446,18 +446,20 @@ function shiftBody(s: ShiftDraft) {
     graceMinutes: s.graceMinutes === "" ? null : Number(s.graceMinutes),
     weeklyOff: s.weeklyOff,
     weeklyOffWeeks: Object.fromEntries(Object.entries(s.weeklyOffWeeks).filter(([d, w]) => s.weeklyOff.includes(Number(d)) && w.length)),
+    minStaff: s.minStaff === "" ? 0 : Number(s.minStaff),
   };
 }
 
 function ShiftsCard() {
   const toast = useToast();
+  const { t } = useI18n();
   const shifts = useAsync(() => api.get<Shift[]>("/shifts"), "shifts");
   const [edits, setEdits] = useState<Record<string, ShiftDraft>>({});
-  const [newShift, setNewShift] = useState<ShiftDraft>({ name: "", start: "09:00", end: "18:00", graceMinutes: "", weeklyOff: [0], weeklyOffWeeks: {} });
+  const [newShift, setNewShift] = useState<ShiftDraft>({ name: "", start: "09:00", end: "18:00", graceMinutes: "", weeklyOff: [0], weeklyOffWeeks: {}, minStaff: "" });
   const action = useAction();
 
   const draftOf = (s: Shift): ShiftDraft =>
-    edits[s.id] ?? { name: s.name, start: s.start, end: s.end, graceMinutes: s.graceMinutes == null ? "" : String(s.graceMinutes), weeklyOff: s.weeklyOff, weeklyOffWeeks: s.weeklyOffWeeks ?? {} };
+    edits[s.id] ?? { name: s.name, start: s.start, end: s.end, graceMinutes: s.graceMinutes == null ? "" : String(s.graceMinutes), weeklyOff: s.weeklyOff, weeklyOffWeeks: s.weeklyOffWeeks ?? {}, minStaff: s.minStaff ? String(s.minStaff) : "" };
   const edit = (s: Shift, p: Partial<ShiftDraft>) => setEdits((e) => ({ ...e, [s.id]: { ...draftOf(s), ...p } }));
 
   async function save(s: Shift) {
@@ -478,7 +480,7 @@ function ShiftsCard() {
     const res = await action.run("add", () => api.post<Shift>("/shifts", shiftBody(newShift)));
     if (res.ok) {
       shifts.setData((prev) => [...(prev ?? []), res.value]);
-      setNewShift({ name: "", start: "09:00", end: "18:00", graceMinutes: "", weeklyOff: [0], weeklyOffWeeks: {} });
+      setNewShift({ name: "", start: "09:00", end: "18:00", graceMinutes: "", weeklyOff: [0], weeklyOffWeeks: {}, minStaff: "" });
       toast("Shift added");
     }
   }
@@ -498,6 +500,7 @@ function ShiftsCard() {
               <Th>End</Th>
               <Th>Grace (min)</Th>
               <Th>Weekly off</Th>
+              <Th>{t("shift_min_staff")}</Th>
               <Th />
             </tr>
           </thead>
@@ -514,6 +517,7 @@ function ShiftsCard() {
                     <WeekdayPicker value={d.weeklyOff} onChange={(v) => edit(s, { weeklyOff: v })} />
                     <OffWeeksPicker days={d.weeklyOff} value={d.weeklyOffWeeks} onChange={(v) => edit(s, { weeklyOffWeeks: v })} />
                   </Td>
+                  <Td><Input className="h-8 w-20 py-1" type="number" min={0} placeholder="—" value={d.minStaff} onChange={(e) => edit(s, { minStaff: e.target.value })} aria-label="Min people" /></Td>
                   <Td className="text-right">
                     {edits[s.id] && (
                       <Button size="sm" loading={action.busy === `save:${s.id}`} onClick={() => save(s)}>
@@ -533,6 +537,7 @@ function ShiftsCard() {
                 <WeekdayPicker value={newShift.weeklyOff} onChange={(v) => setNewShift((n) => ({ ...n, weeklyOff: v }))} />
                 <OffWeeksPicker days={newShift.weeklyOff} value={newShift.weeklyOffWeeks} onChange={(v) => setNewShift((n) => ({ ...n, weeklyOffWeeks: v }))} />
               </Td>
+              <Td><Input className="h-8 w-20 py-1" type="number" min={0} placeholder="—" value={newShift.minStaff} onChange={(e) => setNewShift((n) => ({ ...n, minStaff: e.target.value }))} aria-label="New shift min people" /></Td>
               <Td className="text-right">
                 <form onSubmit={add}>
                   <Button size="sm" type="submit" loading={action.busy === "add"}>

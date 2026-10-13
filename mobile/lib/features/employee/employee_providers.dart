@@ -19,3 +19,6 @@ final mySalaryProvider = FutureProvider.autoDispose<SalaryOverview>((ref) => ref
 final myRosterProvider = FutureProvider.autoDispose.family<MyRosterWeek, String>(
   (ref, date) => ref.watch(rosterApiProvider).mine(date),
 );
+
+/// Swaps this person asked for or was asked (recent and open ones).
+final mySwapsProvider = FutureProvider.autoDispose<List<RosterSwap>>((ref) => ref.watch(rosterApiProvider).swaps());
