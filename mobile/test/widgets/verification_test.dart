@@ -51,7 +51,15 @@ class _FakeApi implements VerificationApi {
   bool onPaper = false;
   bool idPhoto = true;
   List<String> kinds = const ['aadhaar', 'pan', 'bank'];
-  final status = {'aadhaar': 'waiting', 'pan': 'waiting', 'bank': 'waiting', 'face': 'waiting'};
+  final status = {
+    'aadhaar': 'waiting',
+    'pan': 'waiting',
+    'dl': 'waiting',
+    'voter': 'waiting',
+    'bank': 'waiting',
+    'uan': 'waiting',
+    'face': 'waiting',
+  };
 
   MyVerification get me => MyVerification(
     businessName: 'Sharma Medical',
@@ -65,6 +73,7 @@ class _FakeApi implements VerificationApi {
     consentHi: const ['आपके मालिक आपके दस्तावेज़ सरकारी रिकॉर्ड से जाँचेंगे।'],
     savedBankLast4: '1234',
     savedBankIfsc: 'SBIN0001234',
+    savedUanLast4: '7891',
   );
 
   @override
@@ -147,6 +156,33 @@ class _FakeApi implements VerificationApi {
     calls.add('bank:${accountNumber ?? 'saved'}');
     status['bank'] = 'verified';
     return me;
+  }
+
+  @override
+  Future<MyVerification> dl(String number, String dob, {String? employeeId}) async {
+    calls.add('dl:$number:$dob');
+    status['dl'] = 'verified';
+    return me;
+  }
+
+  @override
+  Future<MyVerification> voter(String epic, {String? employeeId}) async {
+    calls.add('voter:$epic');
+    status['voter'] = 'mismatch';
+    return me;
+  }
+
+  @override
+  Future<MyVerification> uan({String? uan, String? employeeId}) async {
+    calls.add('uan:${uan ?? 'saved'}');
+    status['uan'] = 'verified';
+    return me;
+  }
+
+  @override
+  Future<String> reportUrl(String employeeId) async {
+    calls.add('report:$employeeId');
+    return 'http://localhost/doc-files/report/x';
   }
 
   @override
@@ -342,5 +378,81 @@ void main() {
     expect(find.text('Verified · Match 97% · photo on PAN'), findsOneWidget);
     expect(find.text('Agreed on paper'), findsOneWidget);
     expect(find.byKey(const Key('verifySeeSlip')), findsOneWidget);
+  });
+
+  testWidgets('owner: licence, voter ID and UAN are under "More checks", not ticked to begin with', (tester) async {
+    final api = _FakeApi();
+    await _pump(tester, api, const VerifyCard(employee: _raju));
+    await tester.tap(find.byKey(const Key('verifyCheckNow')));
+    await tester.pumpAndSettle();
+    expect(find.text('More checks'), findsOneWidget);
+    expect(find.text('Name and past jobs, from the PF office'), findsOneWidget);
+    expect(tester.widget<CheckboxListTile>(find.byKey(const Key('verifyKind_dl'))).value, isFalse);
+    await tester.ensureVisible(find.byKey(const Key('verifyKind_uan')));
+    await tester.tap(find.byKey(const Key('verifyKind_uan')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('verifySend')));
+    await tester.tap(find.byKey(const Key('verifySend')));
+    await tester.pumpAndSettle();
+    expect(api.calls, ['request:aadhaar,pan,bank,uan,face']);
+  });
+
+  testWidgets('owner: licence valid till, past jobs from the PF record, and the report', (tester) async {
+    final api = _FakeApi()
+      ..owner = OwnerVerification(
+        badge: 'verified',
+        request: const VerifyRequest(id: 'r1', kinds: ['dl', 'uan'], status: 'done', consented: true),
+        checks: [
+          _c('dl', 'verified', name: 'RAJU', last4: '4567', details: const {'validTill': '2034-05-20'}),
+          const VerifyCheck(
+            id: 'c_uan',
+            kind: 'uan',
+            status: 'verified',
+            nameOnRecord: 'RAJU',
+            last4: '7891',
+            employers: [
+              PastJob(name: 'City Mart Pvt Ltd', joined: '2022-04-15', left: '2025-12-31'),
+              PastJob(name: 'Sharma Traders', joined: '2019-06-01'),
+            ],
+          ),
+        ],
+        used: 1,
+        limit: 3,
+      );
+    await _pump(tester, api, const VerifyCard(employee: _raju));
+    expect(find.text('Driving licence'), findsOneWidget);
+    expect(find.text('Verified · RAJU · ending 4567 · Valid till 20 May 2034'), findsOneWidget);
+    expect(find.text('Past jobs (PF record)'), findsOneWidget);
+    expect(find.text('• City Mart Pvt Ltd · 15 Apr 2022 – 31 Dec 2025'), findsOneWidget);
+    expect(find.text('• Sharma Traders · 1 Jun 2019 – now'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('verifyReport')));
+    await tester.pumpAndSettle();
+    expect(api.calls, ['report:e1']);
+  });
+
+  testWidgets('staff: licence with date of birth, voter ID, and the UAN on file', (tester) async {
+    final api = _FakeApi()
+      ..consented = true
+      ..kinds = const ['dl', 'voter', 'uan'];
+    await _pump(tester, api, const SizedBox(height: 1600, child: VerifyScreen()));
+    expect(find.text('Step 1 of 3'), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('verifyDl')), 'DL0420191234567');
+    expect(tester.widget<FilledButton>(find.byKey(const Key('verifyDlGo'))).onPressed, isNull);
+    await tester.tap(find.byKey(const Key('verifyDob')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Date of birth: '), findsOneWidget);
+    await tester.tap(find.byKey(const Key('verifyDlGo')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('verifyVoter')), 'ABC1234567');
+    await tester.tap(find.byKey(const Key('verifyVoterGo')));
+    await tester.pumpAndSettle();
+    expect(find.text('The record says . Your employer will look at it.'), findsOneWidget);
+    expect(find.text('Use UAN ending 7891'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('verifyUanSaved')));
+    await tester.pumpAndSettle();
+    expect(api.calls[0], matches(RegExp(r'^dl:DL0420191234567:\d{4}-\d{2}-\d{2}$')));
+    expect(api.calls.sublist(1), ['voter:ABC1234567', 'uan:saved']);
   });
 }

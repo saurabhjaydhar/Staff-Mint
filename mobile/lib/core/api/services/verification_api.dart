@@ -52,9 +52,24 @@ class VerificationApi {
         asMap(await _c.post('${_steps(employeeId)}/bank', body: {'accountNumber': ?accountNumber, 'ifsc': ?ifsc})),
       );
 
+  /// Driving licence number and date of birth ("1995-04-12").
+  Future<MyVerification> dl(String number, String dob, {String? employeeId}) async =>
+      MyVerification.fromJson(asMap(await _c.post('${_steps(employeeId)}/dl', body: {'number': number, 'dob': dob})));
+
+  Future<MyVerification> voter(String epic, {String? employeeId}) async =>
+      MyVerification.fromJson(asMap(await _c.post('${_steps(employeeId)}/voter', body: {'epic': epic})));
+
+  /// No UAN given: checks the one in their profile.
+  Future<MyVerification> uan({String? uan, String? employeeId}) async =>
+      MyVerification.fromJson(asMap(await _c.post('${_steps(employeeId)}/uan', body: {'uan': ?uan})));
+
   /// Selfie (base64 JPEG) matched with the photo on their ID. Not kept.
   Future<MyVerification> face(String selfie, {String? employeeId}) async =>
       MyVerification.fromJson(asMap(await _c.post('${_steps(employeeId)}/face', body: {'selfie': selfie})));
+
+  /// A 5-minute link to the documents check report (PDF).
+  Future<String> reportUrl(String employeeId) async =>
+      asString(asMap(await _c.post('/verification/employees/$employeeId/report/open'))['url']);
 
   /// A short link to the slip they signed.
   Future<String> slipUrl(String employeeId) async =>

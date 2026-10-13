@@ -1,6 +1,21 @@
 import '../utils/json.dart';
 
-/// One check against government records: `aadhaar`, `pan` or `bank`.
+/// A job on the PF (EPFO) record.
+class PastJob {
+  const PastJob({required this.name, this.joined, this.left});
+  final String name;
+
+  /// "2022-04-15"
+  final String? joined;
+
+  /// null while still working there.
+  final String? left;
+
+  factory PastJob.fromJson(Json j) =>
+      PastJob(name: asString(j['name']), joined: asStringOrNull(j['joined']), left: asStringOrNull(j['left']));
+}
+
+/// One check against government records: aadhaar · pan · dl · voter · bank · uan · face.
 class VerifyCheck {
   const VerifyCheck({
     required this.id,
@@ -11,6 +26,7 @@ class VerifyCheck {
     this.matchScore,
     this.overrideReason,
     this.details = const {},
+    this.employers = const [],
     this.attempts = 0,
   });
   final String id;
@@ -27,6 +43,9 @@ class VerifyCheck {
 
   /// Owner only: e.g. date of birth from Aadhaar.
   final Map<String, String> details;
+
+  /// Owner only, UAN: past jobs on the PF record, newest first.
+  final List<PastJob> employers;
   final int attempts;
 
   bool get accepted => overrideReason != null;
@@ -42,6 +61,7 @@ class VerifyCheck {
     matchScore: asIntOrNull(j['matchScore']),
     overrideReason: asStringOrNull(asMapOrNull(j['override'])?['reason']),
     details: {for (final e in asMap(j['details']).entries) e.key: '${e.value}'},
+    employers: asList(j['employers'], PastJob.fromJson),
     attempts: asInt(j['attempts']),
   );
 }
@@ -129,6 +149,7 @@ class MyVerification {
     this.consentHi = const [],
     this.savedBankLast4,
     this.savedBankIfsc,
+    this.savedUanLast4,
     this.idPhoto = false,
   });
   final String businessName;
@@ -143,6 +164,9 @@ class MyVerification {
   /// Their salary account on file, if any (the bank step can use it).
   final String? savedBankLast4;
   final String? savedBankIfsc;
+
+  /// The UAN in their profile, if any (the UAN step can use it).
+  final String? savedUanLast4;
 
   VerifyCheck? check(String kind) {
     for (final c in checks) {
@@ -165,6 +189,7 @@ class MyVerification {
       consentHi: [for (final x in (t['hi'] as List? ?? const [])) '$x'],
       savedBankLast4: asStringOrNull(bank?['last4']),
       savedBankIfsc: asStringOrNull(bank?['ifsc']),
+      savedUanLast4: asStringOrNull(j['savedUanLast4']),
       idPhoto: asBool(j['idPhoto']),
     );
   }
