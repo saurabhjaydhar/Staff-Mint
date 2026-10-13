@@ -22,6 +22,8 @@ const settingsSchema = new Schema(
     language: { type: String, enum: ['en', 'hi'], default: 'hi' },
     digestTime: { type: String, default: '09:30' },
     roundToRupee: { type: Boolean, default: true },
+    /** Field staff: travel allowance per km tracked during shifts, added to salary. 0 = off. */
+    travelRatePaisePerKm: { type: Number, default: 0 },
     selfieRequired: { type: Boolean, default: true },
     maxDeviceTimeDriftMin: { type: Number, default: 10 },
     selfieRetentionDays: { type: Number, default: 90 },

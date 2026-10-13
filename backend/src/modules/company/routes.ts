@@ -60,6 +60,7 @@ const settingsSchema = z
     language: z.enum(['en', 'hi']),
     digestTime: zTime,
     roundToRupee: z.boolean(),
+    travelRatePaisePerKm: z.number().int().min(0).max(10000),
     selfieRequired: z.boolean(),
     maxDeviceTimeDriftMin: z.number().int().min(1).max(720),
     selfieRetentionDays: z.number().int().min(7).max(365),

@@ -90,6 +90,9 @@ export interface EmployeePayrollInput {
   /** This person is outside PF / ESI (e.g. opted out, or covered elsewhere). */
   pfExempt?: boolean;
   esiExempt?: boolean;
+  /** Field staff: km tracked during shifts this month, and the business's travel allowance per km. */
+  travelKm?: number;
+  travelRatePaisePerKm?: number;
 }
 
 export interface EngineInput {
@@ -107,7 +110,7 @@ export interface Bilingual {
 }
 
 export interface EngineLine {
-  code: 'basic' | 'allowance' | 'bonus' | 'deduction' | 'advance' | 'pf' | 'esi' | 'pt';
+  code: 'basic' | 'allowance' | 'travel' | 'bonus' | 'deduction' | 'advance' | 'pf' | 'esi' | 'pt';
   kind: 'earning' | 'deduction';
   amountPaise: number;
   label: Bilingual;
@@ -255,6 +258,19 @@ export function computePayslip(input: EngineInput): EngineResult {
     });
   }
 
+  // Travel allowance: km tracked during shifts × the business's rate (a reimbursement, kept out of ESI wages).
+  if ((e.travelKm ?? 0) > 0 && (e.travelRatePaisePerKm ?? 0) > 0) {
+    const km = Math.round(e.travelKm! * 10) / 10;
+    const rateRs = money(e.travelRatePaisePerKm!);
+    lines.push({
+      code: 'travel',
+      kind: 'earning',
+      amountPaise: round(km * e.travelRatePaisePerKm!),
+      label: { en: `Travel allowance (${km} km)`, hi: `यात्रा भत्ता (${km} किमी)` },
+      explanation: { en: `${km} km travelled during shifts × ${rateRs} per km.`, hi: `शिफ़्ट में ${km} किमी × ${rateRs} प्रति किमी।` },
+    });
+  }
+
   for (const a of e.adjustments.filter((x) => x.type === 'bonus')) {
     lines.push({
       code: 'bonus',
@@ -311,7 +327,7 @@ export function computePayslip(input: EngineInput): EngineResult {
         explanation: { en: `${st.pfRatePercent}% of Basic, paid by the employer (EPF + pension)`, hi: `बेसिक का ${st.pfRatePercent}%, मालिक देता है (EPF + पेंशन)` },
       });
   }
-  const esiWages = lines.filter((l) => l.kind === 'earning' && l.code !== 'bonus').reduce((a, l) => a + l.amountPaise, 0);
+  const esiWages = lines.filter((l) => l.kind === 'earning' && l.code !== 'bonus' && l.code !== 'travel').reduce((a, l) => a + l.amountPaise, 0);
   if (st && esiOn && esiWages > 0 && esiWages <= st.esiWageLimitPaise) {
     const esi = upToRupee((esiWages * st.esiEmployeePercent) / 100);
     addStatutory(

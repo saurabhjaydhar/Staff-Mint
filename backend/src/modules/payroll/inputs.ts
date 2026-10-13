@@ -1,6 +1,6 @@
 import { Types } from 'mongoose';
 import { monthDays, previousMonth } from '../../lib/dates.js';
-import { Adjustment, Attendance, Company, Employee, PayrollRun, Payslip } from '../../models/index.js';
+import { Adjustment, Attendance, Company, Employee, PayrollRun, Payslip, TrackingSession } from '../../models/index.js';
 import { dayContext, implicitStatus } from '../attendance/service.js';
 import { advancesForMonth, outstandingOf } from '../advances/service.js';
 import { rateOn } from '../employees/service.js';
@@ -63,6 +63,15 @@ export async function buildEngineInputs(companyId: Types.ObjectId, month: string
     dayContext(companyId, days[0], days[days.length - 1], ids),
     PayrollRun.find({ companyId, month: previousMonth(month), status: { $in: ['approved', 'paid'] } }).sort({ revision: -1 }).limit(1).lean(),
   ]);
+  // Field staff: km tracked during shifts in the month (only when the business pays travel per km).
+  const travelRate = (company?.settings as any)?.travelRatePaisePerKm ?? 0;
+  const travelM = new Map<string, number>();
+  if (travelRate > 0) {
+    const last = opts.asOfDate && opts.asOfDate < days[days.length - 1] ? opts.asOfDate : days[days.length - 1];
+    for (const s of await TrackingSession.find({ companyId, employeeId: { $in: ids }, date: { $gte: days[0], $lte: last } }).select('employeeId distanceM').lean()) {
+      travelM.set(String(s.employeeId), (travelM.get(String(s.employeeId)) ?? 0) + (s.distanceM ?? 0));
+    }
+  }
   const prevSlips = prevRuns[0] ? await Payslip.find({ companyId, runId: prevRuns[0]._id }).lean() : [];
   const lastNet = new Map(prevSlips.map((p) => [String(p.employeeId), p.netPaise ?? null]));
   const rec = new Map(records.map((r) => [`${r.employeeId}:${r.date}`, r]));
@@ -95,6 +104,8 @@ export async function buildEngineInputs(companyId: Types.ObjectId, month: string
         lastNetPaise: lastNet.get(String(e._id)) ?? (e as any).openingLastNetPaise ?? null,
         pfExempt: !!(e as any).pfExempt,
         esiExempt: !!(e as any).esiExempt,
+        travelKm: (travelM.get(String(e._id)) ?? 0) / 1000,
+        travelRatePaisePerKm: travelRate,
       },
     });
   }
