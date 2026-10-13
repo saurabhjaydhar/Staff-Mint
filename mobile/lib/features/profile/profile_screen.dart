@@ -328,6 +328,19 @@ class _ProfileBody extends ConsumerWidget {
                   ),
           ),
         ],
+        if (p.isStaff)
+          _Section(
+            title: s.myDocumentsBi,
+            children: [
+              _Row(
+                key: const Key('rowDocuments'),
+                icon: Icons.folder_shared_rounded,
+                label: s.myDocuments,
+                value: s.myDocumentsHint,
+                onTap: () => context.push(Routes.employeeDocuments),
+              ),
+            ],
+          ),
         if (!p.isStaff && p.companyName != null)
           _Section(
             title: s.businessBi,

@@ -41,4 +41,42 @@ class VerificationApi {
   Future<MyVerification> bank({String? accountNumber, String? ifsc}) async => MyVerification.fromJson(
     asMap(await _c.post('/verification/mine/bank', body: {'accountNumber': ?accountNumber, 'ifsc': ?ifsc})),
   );
+
+  // ---- Documents
+  Future<StaffDocs> documentsFor(String employeeId) async =>
+      StaffDocs.fromJson(asMap(await _c.get('/verification/employees/$employeeId/documents')));
+
+  Future<StaffDocs> myDocuments() async => StaffDocs.fromJson(asMap(await _c.get('/verification/mine/documents')));
+
+  /// [employeeId] null: the staff member adds their own. Otherwise the owner adds it for them (with consent).
+  Future<StaffDoc> addDocument({
+    String? employeeId,
+    required String kind,
+    String? label,
+    String? number,
+    String? expiresOn,
+    required List<DocFile> files,
+    bool staffAgreed = false,
+    DocFile? slip,
+  }) async {
+    final body = <String, dynamic>{
+      'kind': kind,
+      'label': ?label,
+      'number': ?number,
+      'expiresOn': ?expiresOn,
+      'files': [for (final f in files) f.toJson()],
+      if (employeeId != null) 'staffAgreed': staffAgreed,
+      if (employeeId != null && slip != null) 'slip': slip.toJson(),
+    };
+    final path = employeeId == null ? '/verification/mine/documents' : '/verification/employees/$employeeId/documents';
+    return StaffDoc.fromJson(asMap(await _c.post(path, body: body)));
+  }
+
+  Future<StaffDoc> updateDocument(String id, {String? expiresOn}) async =>
+      StaffDoc.fromJson(asMap(await _c.patch('/verification/documents/$id', body: {'expiresOn': expiresOn})));
+
+  Future<void> removeDocument(String id) async => _c.delete('/verification/documents/$id');
+
+  Future<OpenedDoc> openDocument(String id) async =>
+      OpenedDoc.fromJson(asMap(await _c.post('/verification/documents/$id/open')));
 }

@@ -669,6 +669,8 @@ class S {
         return _t('Shift swaps', 'शिफ़्ट अदला-बदली');
       case 'verification':
         return _t('Documents check', 'दस्तावेज़ जाँच');
+      case 'documents':
+        return _t('Staff documents', 'स्टाफ़ के दस्तावेज़');
       case 'whatsapp_payslips':
         return _t('Salary slips on WhatsApp', 'WhatsApp पर सैलरी स्लिप');
       case 'whatsapp_assistant':
@@ -2377,6 +2379,71 @@ class S {
   String get staffFailed => _t('Couldn’t check right now. Try again.', 'अभी जाँच नहीं हो पाई। फिर से कोशिश करें।');
   String get allDone => _t('All done. Your employer can see the results.', 'सब हो गया। मालिक नतीजे देख सकते हैं।');
   String get changedTag => _t('Changed', 'बदला');
+
+  // ---------------------------------------------------------------- Staff documents
+  String get documentsTitle => _t('Documents', 'दस्तावेज़');
+  String get myDocuments => _t('My documents', 'मेरे दस्तावेज़');
+  Bi get myDocumentsBi => _b('My documents', 'मेरे दस्तावेज़');
+  String get myDocumentsHint =>
+      _t('Aadhaar, PAN, licence. Only your employer sees them.', 'आधार, PAN, लाइसेंस। सिर्फ़ आपके मालिक देखते हैं।');
+  String get noDocuments => _t('No documents yet', 'अभी कोई दस्तावेज़ नहीं');
+  String get noDocumentsHint => _t(
+    'Keep copies of Aadhaar, PAN, licence and more, safely in one place.',
+    'आधार, PAN, लाइसेंस वगैरह की कॉपी एक जगह सुरक्षित रखें।',
+  );
+  String get addDocument => _t('Add document', 'दस्तावेज़ जोड़ें');
+  String fileKind(String kind) => switch (kind) {
+    'aadhaar' => _t('Aadhaar', 'आधार'),
+    'pan' => _t('PAN', 'PAN'),
+    'dl' => _t('Driving licence', 'ड्राइविंग लाइसेंस'),
+    'voter' => _t('Voter ID', 'वोटर ID'),
+    'passport' => _t('Passport', 'पासपोर्ट'),
+    'bank_proof' => _t('Bank passbook', 'बैंक पासबुक'),
+    'address' => _t('Address proof', 'पते का सबूत'),
+    'police' => _t('Police verification', 'पुलिस जाँच पत्र'),
+    'experience' => _t('Experience letter', 'अनुभव पत्र'),
+    _ => _t('Other', 'दूसरा'),
+  };
+  String get whichDocument => _t('Which document?', 'कौन-सा दस्तावेज़?');
+  String get documentName => _t('What is it?', 'यह क्या है?');
+  String get documentNameHint => _t('e.g. 10th marksheet', 'जैसे 10वीं की मार्कशीट');
+  String get documentNumber => _t('Number', 'नंबर');
+  String get aadhaarLast4 => _t('Last 4 digits of Aadhaar', 'आधार के आख़िरी 4 अंक');
+  String get maskedAadhaarNote => _t(
+    'Upload the masked Aadhaar (from the UIDAI website) if you can. We keep only the last 4 digits.',
+    'हो सके तो छिपे अंकों वाला आधार (आधार की सरकारी वेबसाइट से) लगाएँ। हम सिर्फ़ आख़िरी 4 अंक रखते हैं।',
+  );
+  String get validTill => _t('Valid till', 'कब तक मान्य');
+  String get pickDate => _t('Pick date', 'तारीख़ चुनें');
+  String get photosOfDocument => _t('Photos (front and back)', 'फ़ोटो (आगे और पीछे)');
+  String get addPhoto => _t('Add photo', 'फ़ोटो जोड़ें');
+  String get addSlipPhoto => _t('Add photo of slip', 'पर्ची की फ़ोटो जोड़ें');
+  String staffAgreedTick(String name) => _t('$name agreed to me keeping a copy', '$name ने कॉपी रखने की सहमति दी है');
+  String get consentSlip => _t('Photo of the signed consent slip', 'साइन की हुई सहमति पर्ची की फ़ोटो');
+  String get consentSlipHint => _t(
+    'Needed once, for staff who don’t use the app. They sign a slip saying you may keep copies of their documents.',
+    'एक बार चाहिए, उन स्टाफ़ के लिए जो ऐप नहीं चलाते। वे पर्ची पर साइन करें कि आप उनके दस्तावेज़ों की कॉपी रख सकते हैं।',
+  );
+  String get onlyOwnerSees => _t(
+    'Kept locked. Only the owner can open it, and each opening is noted in History.',
+    'ताले में रखा जाता है। सिर्फ़ मालिक खोल सकते हैं, और हर बार खोलना इतिहास में दर्ज होता है।',
+  );
+  String get documentSaved => _t('Document saved', 'दस्तावेज़ सेव हुआ');
+  String get documentRemoved => _t('Document removed', 'दस्तावेज़ हटाया');
+  String removeDocumentQ(String name) => _t('Remove $name?', '$name हटाएँ?');
+  String get removeDocumentBody => _t('The copy is deleted for good.', 'कॉपी हमेशा के लिए हट जाएगी।');
+  String endingWith(String last4) => _t('ending $last4', 'आख़िरी $last4');
+  String pagesCount(int n) => _t(n == 1 ? '1 page' : '$n pages', '$n पेज');
+  String get addedByStaff => _t('Added by staff', 'स्टाफ़ ने जोड़ा');
+  String get addedByYou => _t('Added by you', 'आपने जोड़ा');
+  String validTillDate(String date) => _t('Valid till $date', '$date तक मान्य');
+  String expiresSoon(String date) => _t('Expires $date', '$date को ख़त्म');
+  String expiredOn(String date) => _t('Expired $date', '$date को ख़त्म हो गया');
+  String get openPdf => _t('Open PDF', 'PDF खोलें');
+  String get changeExpiry => _t('Change date', 'तारीख़ बदलें');
+  String get signedSlip => _t('Signed consent slip', 'साइन की हुई सहमति पर्ची');
+  String get couldNotLoadFile =>
+      _t('Couldn’t load. Pull down to try again.', 'लोड नहीं हुआ। नीचे खींचकर फिर कोशिश करें।');
 
   // ---------------------------------------------------------------- Misc
   String get thisMonth => _t('This month', 'इस महीने');

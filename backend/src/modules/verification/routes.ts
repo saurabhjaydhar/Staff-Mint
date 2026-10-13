@@ -2,8 +2,9 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { body, param } from '../../lib/http.js';
 import { authenticate, ctxOf, requireFeature, requireRole } from '../../middleware/auth.js';
-import { VERIFICATION_KINDS } from '../../models/index.js';
+import { DOCUMENT_KINDS, VERIFICATION_KINDS } from '../../models/index.js';
 import * as svc from './service.js';
+import * as docs from './documents.js';
 
 export const verificationRouter = Router();
 
@@ -41,4 +42,31 @@ verificationRouter.post('/mine/pan', ...staff, async (req, res) => {
 verificationRouter.post('/mine/bank', ...staff, async (req, res) => {
   const b = body(req, z.object({ accountNumber: z.string().max(24).optional(), ifsc: z.string().max(14).optional() }));
   res.json({ data: await svc.verifyBank(ctxOf(req), b) });
+});
+
+// Documents (photos and PDFs, encrypted). Owners see everyone's; staff see and add their own.
+const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const file = z.object({ data: z.string().min(8), mime: z.string().max(40) });
+const doc = {
+  kind: z.enum(DOCUMENT_KINDS),
+  label: z.string().trim().max(60).nullish(),
+  number: z.string().trim().max(24).nullish(),
+  expiresOn: date.nullish(),
+  files: z.array(file).min(1).max(3),
+};
+verificationRouter.get('/employees/:id/documents', ...owner, async (req, res) => res.json({ data: await docs.listForEmployee(ctxOf(req), param(req, 'id')) }));
+verificationRouter.post('/employees/:id/documents', ...owner, requireFeature('documents'), async (req, res) => {
+  const b = body(req, z.object({ ...doc, staffAgreed: z.boolean(), slip: file.nullish() }));
+  res.status(201).json({ data: await docs.addForEmployee(ctxOf(req), param(req, 'id'), b) });
+});
+verificationRouter.patch('/documents/:id', ...owner, async (req, res) => {
+  const b = body(req, z.object({ expiresOn: date.nullish(), label: z.string().trim().max(60).nullish() }));
+  res.json({ data: await docs.updateDocument(ctxOf(req), param(req, 'id'), b) });
+});
+verificationRouter.delete('/documents/:id', authenticate, requireRole('owner', 'employee', 'manager'), async (req, res) => res.json({ data: await docs.removeDocument(ctxOf(req), param(req, 'id')) }));
+verificationRouter.post('/documents/:id/open', authenticate, requireRole('owner', 'employee', 'manager'), async (req, res) => res.json({ data: await docs.openDocument(ctxOf(req), param(req, 'id')) }));
+verificationRouter.get('/mine/documents', ...staff, async (req, res) => res.json({ data: await docs.listMine(ctxOf(req)) }));
+verificationRouter.post('/mine/documents', ...staff, requireFeature('documents'), async (req, res) => {
+  const b = body(req, z.object(doc));
+  res.status(201).json({ data: await docs.addMine(ctxOf(req), b) });
 });

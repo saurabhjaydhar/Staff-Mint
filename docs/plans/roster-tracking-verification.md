@@ -1,6 +1,6 @@
 # Plan: Roster, live tracking for field staff, background verification
 
-Status (13 Oct 2026): **The roster is built (rounds 1, 2a and 2b)** (owner day view, change-shift sheet, send with one-tap fixes, staff "My week"; attendance and salary follow the sent roster). Round 2a added "Repeat every week", the whole-week view, alternating weekly offs and the web roster grid; round 2b adds shift swaps, minimum staff per shift, rest and 48-hour checks, the "roster changed" message and Mint roster commands. Background verification round V1a is built: owner "Check now", staff consent as step 0, Aadhaar OTP, PAN and bank ₹1 test, results with accept / ask again, badges, monthly allowance. Next: V1b (documents upload, face vs ID photo, report). Screenshots: [roster](../screenshots/roster/README.md), [documents check](../screenshots/verification/README.md). Live tracking is planned, not built. Round 0 mock-ups (step-by-step guides): [docs/mockups/roster-tracking-verification.html](../mockups/roster-tracking-verification.html).
+Status (13 Oct 2026): **The roster is built (rounds 1, 2a and 2b)** (owner day view, change-shift sheet, send with one-tap fixes, staff "My week"; attendance and salary follow the sent roster). Round 2a added "Repeat every week", the whole-week view, alternating weekly offs and the web roster grid; round 2b adds shift swaps, minimum staff per shift, rest and 48-hour checks, the "roster changed" message and Mint roster commands. Background verification round V1a is built: owner "Check now", staff consent as step 0, Aadhaar OTP, PAN and bank ₹1 test, results with accept / ask again, badges, monthly allowance. Round V1b-1 adds staff documents: upload from the app or the website (the owner can upload for staff without the app, with a signed consent slip), encrypted files opened through short-lived links, every opening in History, and expiry reminders 30 days ahead; the website now shows documents check results. Next: V1b-2 (face vs ID photo, the owner doing the check steps on a staff member's behalf). Screenshots: [roster](../screenshots/roster/README.md), [documents check](../screenshots/verification/README.md), [staff documents](../screenshots/documents/README.md). Live tracking is planned, not built. Round 0 mock-ups (step-by-step guides): [docs/mockups/roster-tracking-verification.html](../mockups/roster-tracking-verification.html).
 
 **Mock-up changes the owner approved (13 Oct):**
 - **Verification:** the staff consent screen is now **step 0 of the staff steps** (one flow: agree → Aadhaar → PAN → bank), not a separate screen.
@@ -306,7 +306,14 @@ Document storage itself (upload and view) is on all paid plans. Only the governm
   - Only the last 4 digits of Aadhaar and account numbers are kept; Aadhaar extras (date of birth) are encrypted; owner only. Results are deleted 180 days after someone leaves.
   - Monthly allowance enforced (Growth 3, Pro 10); more checks show the ₹149 price as "coming soon" until paid checks land.
   - Providers: mock and Cashfree (`VERIFICATION_PROVIDER`), Cashfree built from its API reference and to be tried with sandbox keys.
-- **V1b:** documents (upload, view, expiry, audit), face match (selfie vs ID photo), the owner doing the steps on a staff member's behalf (with a consent slip), web results panel.
+- **V1b-1 (built, 13 Oct):** staff documents.
+  - Owner: staff profile → Documents → list with "ending 234F · 2 pages · Added by staff" and the expiry ("Expires 2 Nov 2026" in amber, expired in red). "Add document" for staff without the app needs "they agreed" ticked and, the first time, a photo of the signed consent slip.
+  - Staff: Profile → My documents: add (camera or gallery, up to 3 photos), see, and remove what they added.
+  - Files are encrypted before storage and open through 5-minute signed links; each opening is in History. Only the last 4 characters of a number are kept. Owners only (not managers or accountants).
+  - Driving licence, passport and police certificate: "valid till" date, reminders to owner and staff 30 days before (and when expired), once per date.
+  - Deleted 180 days after the person leaves. Feature `documents` on Starter, Growth and Pro.
+  - Website: staff list → "Documents" opens the documents check (results, accept, ask again, check now) and the documents (upload incl. PDF, preview, remove).
+- **V1b-2:** face match (selfie vs ID photo), the owner doing the check steps on a staff member's behalf (with a consent slip).
 - **V2:** DigiLocker Aadhaar, DL, Voter ID, UAN history, PDF report, paid checks (Razorpay one-time payment), police certificate reminders, the verification step in add-staff.
 
 ---

@@ -9,6 +9,7 @@ import '../../features/auth/auth_controller.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/auth/otp_screen.dart';
 import '../../features/auth/splash_screen.dart';
+import '../../features/documents/documents.dart';
 import '../../features/employee/attendance/employee_attendance_screen.dart';
 import '../../features/employee/consent/consent_screen.dart';
 import '../../features/employee/home/employee_home_screen.dart';
@@ -177,7 +178,10 @@ final routerProvider = Provider<GoRouter>((ref) {
               r(
                 Routes.employeeProfile,
                 (_) => const ProfileScreen(),
-                routes: [GoRoute(path: 'face', builder: (_, _) => const FaceSetupScreen())],
+                routes: [
+                  GoRoute(path: 'face', builder: (_, _) => const FaceSetupScreen()),
+                  GoRoute(path: 'documents', builder: (_, _) => const MyDocumentsScreen()),
+                ],
               ),
             ],
           ),

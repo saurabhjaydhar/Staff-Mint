@@ -151,6 +151,18 @@ function diff(
 }
 
 const DOC_KIND: Record<string, [string, string]> = { aadhaar: ['Aadhaar', 'आधार'], pan: ['PAN', 'PAN'], bank: ['bank account', 'बैंक खाता'] };
+const FILE_KIND: Record<string, [string, string]> = {
+  aadhaar: ['Aadhaar', 'आधार'],
+  pan: ['PAN', 'PAN'],
+  dl: ['driving licence', 'ड्राइविंग लाइसेंस'],
+  voter: ['voter ID', 'वोटर आईडी'],
+  passport: ['passport', 'पासपोर्ट'],
+  bank_proof: ['bank passbook', 'बैंक पासबुक'],
+  address: ['address proof', 'पते का सबूत'],
+  police: ['police verification', 'पुलिस वेरिफ़िकेशन'],
+  experience: ['experience letter', 'अनुभव पत्र'],
+  other: ['a document', 'एक दस्तावेज़'],
+};
 const DOC_RESULT: Record<string, [string, string]> = {
   verified: ['verified', 'सही निकला'],
   mismatch: ['name doesn’t match', 'नाम नहीं मिला'],
@@ -336,6 +348,20 @@ export function describe(
       );
     case 'verification.ask_again':
       return r(t(`${emp}: asked to check ${pick(DOC_KIND[a.kind] ?? [a.kind, a.kind], lang)} again`, `${emp}: ${pick(DOC_KIND[a.kind] ?? [a.kind, a.kind], lang)} फिर से जाँचने को कहा`), 'staff');
+    case 'document.add':
+    case 'document.view':
+    case 'document.update':
+    case 'document.delete': {
+      const d = { ...b, ...a };
+      const what = d.kind === 'other' && d.label ? String(d.label) : pick(FILE_KIND[d.kind] ?? [String(d.kind), String(d.kind)], lang);
+      if (log.action === 'document.view') return r(t(`${emp}: ${what} opened`, `${emp}: ${what} खोला`), 'staff');
+      if (log.action === 'document.delete') return r(t(`${emp}: ${what} removed`, `${emp}: ${what} हटाया`), 'staff');
+      if (log.action === 'document.update') {
+        return r(t(`${emp}: ${what} updated`, `${emp}: ${what} बदला`), 'staff', diff(b, a, { expiresOn: ['Valid till', 'कब तक मान्य'] }, lang));
+      }
+      const changes = a.by === 'owner_on_behalf' ? [{ label: t('Consent', 'सहमति'), to: a.slip ? t('Signed slip added', 'साइन की हुई पर्ची लगाई') : t('Agreed earlier', 'पहले से सहमति') }] : [];
+      return r(t(`${emp}: ${what} added`, `${emp}: ${what} जोड़ा`), 'staff', changes);
+    }
     case 'employee.bank.remove':
       return r(t(`${emp}: salary account removed`, `${emp}: सैलरी खाता हटाया`), 'staff');
     case 'employee.phone_recycled':
@@ -488,7 +514,7 @@ export const CATEGORY_ACTIONS: Record<Exclude<HistoryCategory, 'other'>, RegExp>
   attendance: /^(attendance|roster)\./,
   leave: /^leave(_balance)?\./,
   salary: /^(advance|adjustment|payroll|payslips)\./,
-  staff: /^(employee|device|verification)\.(?!role$)/,
+  staff: /^(employee|device|verification|document)\.(?!role$)/,
   settings: /^(company\.(create|update|settings\.update|statutory\.update|close|restore)|branch\.|shift\.|holiday\.)/,
   team: /^(employee\.role$|user\.ca\.|owner\.|account\.)/,
   billing: /^billing\./,

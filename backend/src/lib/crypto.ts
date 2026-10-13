@@ -37,3 +37,20 @@ export function safeEqual(a: string, b: string): boolean {
 export const randomToken = (bytes = 32): string => crypto.randomBytes(bytes).toString('base64url');
 
 export const randomDigits = (n: number): string => Array.from({ length: n }, () => crypto.randomInt(0, 10)).join('');
+
+const FILE_MAGIC = Buffer.from('SMe1');
+
+/** AES-256-GCM for whole files (documents). Output: "SMe1" | iv(12) | tag(16) | ciphertext. */
+export function encryptBuffer(plain: Buffer): Buffer {
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', key(), iv);
+  const ct = Buffer.concat([cipher.update(plain), cipher.final()]);
+  return Buffer.concat([FILE_MAGIC, iv, cipher.getAuthTag(), ct]);
+}
+
+export function decryptBuffer(enc: Buffer): Buffer {
+  if (!enc.subarray(0, 4).equals(FILE_MAGIC)) throw new Error('Unknown file encryption');
+  const decipher = crypto.createDecipheriv('aes-256-gcm', key(), enc.subarray(4, 16));
+  decipher.setAuthTag(enc.subarray(16, 32));
+  return Buffer.concat([decipher.update(enc.subarray(32)), decipher.final()]);
+}

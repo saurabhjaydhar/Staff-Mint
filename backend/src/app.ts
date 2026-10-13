@@ -30,6 +30,7 @@ import { messagingWebhookRouter } from './modules/messaging/routes.js';
 import { dashboardRouter } from './modules/dashboard/routes.js';
 import { adminAuthRouter, adminRouter } from './modules/admin/routes.js';
 import { filesRouter } from './modules/files/routes.js';
+import { docFilesRouter } from './modules/verification/files.js';
 import { accountsRouter } from './modules/accounts/routes.js';
 import { geoRouter } from './modules/geo/routes.js';
 import { enabledFlags } from './modules/config/service.js';
@@ -53,6 +54,7 @@ export function createApp() {
     res.status(db ? 200 : 503).json({ ok: db, db, version: process.env.npm_package_version ?? '0.1.0', time: new Date().toISOString() });
   });
   app.use('/files', filesRouter);
+  app.use('/doc-files', docFilesRouter);
   app.use('/mock-checkout', mockCheckoutRouter);
 
   const api = Router();
