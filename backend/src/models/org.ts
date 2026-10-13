@@ -26,6 +26,8 @@ const shiftSchema = new Schema(
     weeklyOff: { type: [Number], default: [0] },
     /** Alternating offs: weekday → weeks of the month it is off, e.g. { '6': [1, 3] } = 1st and 3rd Saturday. */
     weeklyOffWeeks: { type: Schema.Types.Mixed, default: {} },
+    /** Fewest people the shop needs on this shift (0 = no check). */
+    minStaff: { type: Number, default: 0 },
     isDefault: { type: Boolean, default: false },
   },
   { timestamps: true },
@@ -99,3 +101,29 @@ const rosterRepeatSchema = new Schema(
 rosterRepeatSchema.plugin(tenantPlugin);
 rosterRepeatSchema.index({ employeeId: 1 }, { unique: true });
 export const RosterRepeat = model('RosterRepeat', rosterRepeatSchema);
+
+const dayPlanSchema = new Schema({ kind: { type: String, enum: ['shift', 'off'] }, shiftId: { type: Schema.Types.ObjectId, default: null } }, { _id: false });
+
+/**
+ * Two staff swap one day: the asker takes the colleague's plan and the other way round.
+ * asked → (colleague) accepted / declined → (owner or manager) approved / rejected; the asker can cancel.
+ */
+const rosterSwapSchema = new Schema(
+  {
+    ...tenantFields,
+    date: { type: String, required: true },
+    fromEmployeeId: { type: Schema.Types.ObjectId, ref: 'Employee', required: true },
+    toEmployeeId: { type: Schema.Types.ObjectId, ref: 'Employee', required: true },
+    /** What each had that day when asked; approval checks nothing changed since. */
+    fromPlan: { type: dayPlanSchema, required: true },
+    toPlan: { type: dayPlanSchema, required: true },
+    status: { type: String, enum: ['asked', 'accepted', 'declined', 'approved', 'rejected', 'cancelled'], default: 'asked' },
+    note: { type: String, default: null },
+    decidedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+    decidedAt: { type: Date, default: null },
+  },
+  { timestamps: true },
+);
+rosterSwapSchema.plugin(tenantPlugin);
+rosterSwapSchema.index({ companyId: 1, status: 1, date: 1 });
+export const RosterSwap = model('RosterSwap', rosterSwapSchema);

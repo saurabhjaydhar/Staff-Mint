@@ -28,3 +28,17 @@ Captured from the Flutter app compiled for the browser (390×844) against the lo
 | <img src="r2-web-roster.jpg" width="480"><br>Roster grid: pick a shift in any box | <img src="r2-web-roster-next-week.jpg" width="480"><br>Next week, filled in by "swap every week" |
 | <img src="r2-web-repeat-modal.jpg" width="480"><br>Repeat every week | <img src="r2-web-send-modal.jpg" width="480"><br>Send to staff, with one-tap fixes |
 | <img src="r2-web-settings-shifts.jpg" width="480"><br>Shifts: each weekly off can be every week, 1st & 3rd, or 2nd & 4th | <img src="r2-web-roster-hindi.jpg" width="480"><br>Hindi |
+
+## Round 2b: swaps, checks before sending
+
+| | | |
+|---|---|---|
+| <img src="r2b-en-s2-confirm.jpg" width="240"><br>Staff: "Swap a day": pick the day and a colleague, see what each would work | <img src="r2b-en-s4-incoming.jpg" width="240"><br>The colleague answers on their home screen | <img src="r2b-en-o1-swap-request.jpg" width="240"><br>Owner: approve or reject in Roster |
+| <img src="r2b-en-o4-send-warnings.jpg" width="240"><br>Before sending: 48-hour week and minimum staff warnings (never block sending) | <img src="r2b-hi-o3-next-week-day.jpg" width="240"><br>Day view: "Morning 3/5" in red when a shift is short | <img src="r2b-hi-o4-send-warnings.jpg" width="240"><br>भेजने से पहले चेतावनियाँ |
+
+### Web dashboard
+
+| | |
+|---|---|
+| <img src="r2b-web-roster-swap-request.jpg" width="480"><br>Swap requests on the roster page | <img src="r2b-web-send-warnings.jpg" width="480"><br>Warnings before sending |
+| <img src="r2b-web-settings-shifts.jpg" width="480"><br>Shifts: minimum people per shift | |

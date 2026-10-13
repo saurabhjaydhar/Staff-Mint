@@ -15,7 +15,54 @@ export interface ParseResult {
 export interface ParseContext {
   today: string;
   employeeNames: string[];
+  /** The shop's shift names ("Morning", "Evening"), for roster commands. */
+  shiftNames?: string[];
   role: string;
+}
+
+const ROSTER_WORDS = new Set(['shift', 'hafte', 'hafta', 'agle', 'next', 'this', 'week', 'off', 'duty', 'subah', 'shaam', 'sham', 'raat', 'dopahar', 'morning', 'evening', 'night']);
+
+const WEEKDAYS: Record<string, number> = {
+  monday: 1, somvar: 1, somwar: 1, सोमवार: 1,
+  tuesday: 2, mangalvar: 2, mangalwar: 2, मंगलवार: 2,
+  wednesday: 3, budhvar: 3, budhwar: 3, बुधवार: 3,
+  thursday: 4, guruvar: 4, guruwar: 4, brihaspativar: 4, गुरुवार: 4,
+  friday: 5, shukravar: 5, shukrawar: 5, शुक्रवार: 5,
+  saturday: 6, shanivar: 6, shaniwar: 6, शनिवार: 6,
+  sunday: 7, ravivar: 7, raviwar: 7, itwar: 7, itvaar: 7, इतवार: 7, रविवार: 7,
+};
+
+/** "Sunday" → the next Sunday (today if it is Sunday). */
+function resolveWeekday(t: string, today: string): string | null {
+  const w = t.split(' ').find((x) => WEEKDAYS[x]);
+  if (!w) return null;
+  const d = DateTime.fromISO(today);
+  return d.plus({ days: (WEEKDAYS[w] - d.weekday + 7) % 7 }).toISODate();
+}
+
+/** "is hafte" → today..Sunday; "agle hafte" → next Monday..Sunday. */
+function resolveWeek(t: string, today: string): { from: string; to: string } | null {
+  const d = DateTime.fromISO(today);
+  if (has(t, /agle (hafte|week|hafta)/, /next week/, /aane wale hafte/)) {
+    const mon = d.startOf('week').plus({ weeks: 1 });
+    return { from: mon.toISODate()!, to: mon.plus({ days: 6 }).toISODate()! };
+  }
+  if (has(t, /is (hafte|week|hafta)/, /iss (hafte|week)/, /this week/, /poore hafte/, /pure hafte/, /whole week/)) return { from: today, to: d.endOf('week').toISODate()! };
+  return null;
+}
+
+const SHIFT_WORDS: Record<string, string[]> = { morning: ['subah', 'savere', 'सुबह'], evening: ['shaam', 'sham', 'शाम'], night: ['raat', 'रात'], afternoon: ['dopahar', 'dopehar', 'दोपहर'] };
+
+/** A shift the owner named ("evening", or "shaam" for a shift called Evening). */
+function findShift(t: string, names: string[]): string | null {
+  const sorted = [...names].sort((a, b) => b.length - a.length);
+  for (const n of sorted) if (n.trim().length >= 3 && has(t, n.toLowerCase().trim())) return n;
+  for (const [en, words] of Object.entries(SHIFT_WORDS)) {
+    if (!has(t, ...words)) continue;
+    const n = sorted.find((x) => x.toLowerCase().includes(en));
+    if (n) return n;
+  }
+  return null;
 }
 
 const MONTHS: Record<string, number> = {
@@ -133,8 +180,8 @@ function findKnownName(t: string, names: string[]): string | null {
 /** Guess a name: first non-stopword alphabetic token, preferring the one before "ko/ka/ki/ne". */
 function guessName(t: string): string | null {
   const m = t.match(/([a-zऀ-ॿ]{3,})\s+(ko|ka|ki|ke|ne)(\s|$)/);
-  if (m && !STOP.has(m[1])) return m[1].charAt(0).toUpperCase() + m[1].slice(1);
-  const tok = t.split(' ').find((w) => /^[a-zऀ-ॿ]{3,}$/.test(w) && !STOP.has(w) && !MONTHS[w]);
+  if (m && !STOP.has(m[1]) && !WEEKDAYS[m[1]] && !ROSTER_WORDS.has(m[1])) return m[1].charAt(0).toUpperCase() + m[1].slice(1);
+  const tok = t.split(' ').find((w) => /^[a-zऀ-ॿ]{3,}$/.test(w) && !STOP.has(w) && !MONTHS[w] && !WEEKDAYS[w] && !ROSTER_WORDS.has(w));
   return tok ? tok.charAt(0).toUpperCase() + tok.slice(1) : null;
 }
 
@@ -177,6 +224,12 @@ export function parseCommand(raw: string, ctx: ParseContext): ParseResult {
     return { intent: 'salary_preview', args: { month, employeeName: findKnownName(t, ctx.employeeNames) ?? undefined }, confidence: 0.9 };
   }
 
+  // Roster: "Sunday ko kaun aa raha hai?", "Kal kaun kaam par hai?"
+  if (has(t, 'kaun', 'kon', 'who', 'kis kis') && has(t, /aa rah[aei]/, /aayeg[ai]/, /aayenge/, /aaenge/, /kaam (par|pe) (hai|hoga|rahega)/, 'duty', 'working', /shift (me|mein|par|pe)/, /kis shift/, 'roster')) {
+    const date = resolveWeekday(t, ctx.today) ?? resolveDate(t, ctx.today, true) ?? ctx.today;
+    return { intent: 'who_works', args: { date }, confidence: 0.9 };
+  }
+
   // Who's late / absent / present / on leave
   if (has(t, 'kaun', 'kon', 'who', 'kitne', 'kis kis', 'list')) {
     const date = resolveDate(t, ctx.today, false) ?? ctx.today;
@@ -197,6 +250,18 @@ export function parseCommand(raw: string, ctx: ParseContext): ParseResult {
     const wageType = has(t, 'daily', /per day/, 'dihadi', /roz ka/) ? 'daily' : undefined;
     const name = rest.slice(0, 3).join(' ');
     return { intent: 'add_employee', args: { name: name ? capitalize(name) : undefined, phone: phone ?? undefined, salary: amount ?? undefined, wageType }, confidence: name && phone ? 0.9 : 0.6 };
+  }
+
+  // Roster: "Raju ko is hafte evening shift do", "Raju ko Sunday off do"
+  // "Half day" / "full day" are attendance, even in a shop with a shift called "Day".
+  const shiftName = has(t, /half ?day/, /haf ?day/, /full ?day/, /aadha din/, /per day/) ? null : findShift(t, ctx.shiftNames ?? []);
+  const offWord = has(t, 'off', /week ?off/, /weekly off/);
+  if ((shiftName || (offWord && !has(t, 'leave', 'chutti', 'chhutti'))) && (knownName || guessName(t))) {
+    const week = resolveWeek(t, ctx.today);
+    const day = resolveWeekday(t, ctx.today) ?? resolveDate(t, ctx.today, true);
+    const from = week?.from ?? day ?? ctx.today;
+    const to = week?.to ?? from;
+    return { intent: 'set_shift', args: { employeeName: knownName ?? guessName(t) ?? undefined, shift: shiftName ?? 'off', from, to }, confidence: knownName ? 0.9 : 0.7 };
   }
 
   // Holiday for everyone: "Kal sabki chutti hai"

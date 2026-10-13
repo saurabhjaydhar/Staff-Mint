@@ -37,6 +37,7 @@ export type PlanFeature =
   | "reports"
   | "roster"
   | "roster_repeat"
+  | "roster_swaps"
   | "whatsapp_payslips"
   | "ca_access"
   | "priority_support";
@@ -139,6 +140,8 @@ export interface Shift {
   /** Alternating offs: weekday → weeks of the month it is off ({ "6": [1, 3] } = 1st and 3rd Saturday). */
   weeklyOffWeeks?: Record<string, number[]>;
   isDefault?: boolean;
+  /** Fewest people the shop needs on this shift (0 = no check). */
+  minStaff?: number;
 }
 
 export interface RosterCell {
@@ -153,13 +156,28 @@ export interface RosterCell {
   employed: boolean;
 }
 
+/** "leave_working" / "no_day_off" have a one-tap fix; the others are warnings and never block sending. */
+export type RosterProblem =
+  | { type: "leave_working" | "no_day_off"; employeeId: string; name: string; date: string }
+  | { type: "short_rest" | "long_week"; employeeId: string; name: string; date: string; hours: number }
+  | { type: "short_staff"; date: string; shiftId: string; shiftName: string; count: number; min: number };
+
+export interface RosterSwap {
+  id: string;
+  date: string;
+  from: { employeeId: string; name: string; kind: "shift" | "off"; shiftId: string | null };
+  to: { employeeId: string; name: string; kind: "shift" | "off"; shiftId: string | null };
+  status: "asked" | "accepted" | "declined" | "approved" | "rejected" | "cancelled" | "expired";
+  note: string | null;
+}
+
 export interface RosterWeek {
   weekStart: string;
   days: { date: string; holiday: string | null }[];
   shifts: Shift[];
   staff: { id: string; name: string; designation: string | null; cells: RosterCell[] }[];
   notSent: number;
-  problems: { type: "leave_working" | "no_day_off"; employeeId: string; name: string; date: string }[];
+  problems: RosterProblem[];
   repeat: { mode: "same" | "rotate"; startWeek: string; autoSend: boolean; staff: number } | null;
   repeatAllowed: boolean;
 }

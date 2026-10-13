@@ -10,7 +10,8 @@ import { audit } from '../audit/service.js';
 import { notifyEmployee } from '../notifications/service.js';
 import { applyRules } from '../attendance/service.js';
 import { shiftView } from '../views.js';
-import { canRepeat, fillIfAhead, repeatInfo } from './repeat.js';
+import { canRepeat, fillIfAhead, planHas, repeatInfo } from './repeat.js';
+import { getConfig } from '../config/service.js';
 
 export type Kind = 'shift' | 'off';
 export interface DayPlan {
@@ -68,7 +69,8 @@ export async function weekView(ctx: Ctx, date: string, branchId?: string) {
   const start = weekStartOf(date);
   await fillIfAhead(ctx, start, branchId);
   const w = await loadWeek(ctx, start, { branchId });
-  const problems: { type: 'leave_working' | 'no_day_off'; employeeId: string; name: string; date: string }[] = [];
+  const [minRest, maxWeek] = await Promise.all([getConfig<number>('roster.minRestHours', ctx.companyId), getConfig<number>('roster.maxWeeklyHours', ctx.companyId)]);
+  const problems: Problem[] = [];
   let notSent = 0;
   const staff = w.emps.map((e) => {
     const cells = w.days.map((d) => {
@@ -80,11 +82,34 @@ export async function weekView(ctx: Ctx, date: string, branchId?: string) {
       if (leave && draft.kind === 'shift' && !holiday) problems.push({ type: 'leave_working', employeeId: String(e._id), name: e.name, date: d });
       return { date: d, ...draft, usual: !w.entryOf.has(`${e._id}:${d}`) || w.entryOf.get(`${e._id}:${d}`)!.kind === 'usual', changed, leave, employed: employedOn(e, d) };
     });
-    const working = cells.filter((c) => c.employed && c.kind === 'shift' && !c.leave && !w.holidayOn.get(c.date)).length;
+    const workingCells = cells.filter((c) => c.employed && c.kind === 'shift' && !c.leave && !w.holidayOn.get(c.date));
     const employedDays = cells.filter((c) => c.employed).length;
-    if (employedDays === 7 && working === 7) problems.push({ type: 'no_day_off', employeeId: String(e._id), name: e.name, date: w.days[6] });
+    if (employedDays === 7 && workingCells.length === 7) problems.push({ type: 'no_day_off', employeeId: String(e._id), name: e.name, date: w.days[6] });
+    // Hours and rest are checked only for weeks the owner planned, not for a shop's usual hours.
+    const planned = cells.some((c) => !c.usual);
+    // Rest between two shifts in a row (overnight shifts end the next morning).
+    for (let i = 1; i < 7 && planned; i++) {
+      const [a, b] = [cells[i - 1], cells[i]];
+      const [sa, sb] = [w.shiftById.get(a.shiftId ?? ''), w.shiftById.get(b.shiftId ?? '')];
+      if (!workingCells.includes(a) || !workingCells.includes(b) || !sa || !sb || (a.usual && b.usual)) continue;
+      const rest = (24 * 60 + minutesOf(sb.start) - endMinutes(sa)) / 60;
+      if (rest < minRest) problems.push({ type: 'short_rest', employeeId: String(e._id), name: e.name, date: b.date, hours: Math.max(0, Math.round(rest * 10) / 10) });
+    }
+    const hours = workingCells.reduce((h, c) => h + shiftHours(w.shiftById.get(c.shiftId ?? '')), 0);
+    if (planned && hours > maxWeek) problems.push({ type: 'long_week', employeeId: String(e._id), name: e.name, date: w.days[6], hours: Math.round(hours * 10) / 10 });
     return { id: String(e._id), name: e.name, designation: e.designation ?? null, cells };
   });
+  // A shift with fewer people than the shop needs.
+  for (const d of w.days) {
+    // Nobody works that day: the shop is closed, nothing to count.
+    if (!staff.some((p) => p.cells.some((c) => c.date === d && c.employed && c.kind === 'shift' && !c.leave))) continue;
+    for (const sh of w.shifts) {
+      const min = sh.minStaff ?? 0;
+      if (!min) continue;
+      const count = staff.filter((p) => p.cells.some((c) => c.date === d && c.employed && c.kind === 'shift' && c.shiftId === String(sh._id) && !c.leave)).length;
+      if (count < min && !w.holidayOn.get(d)) problems.push({ type: 'short_staff', date: d, shiftId: String(sh._id), shiftName: sh.name, count, min });
+    }
+  }
   return {
     weekStart: start,
     days: w.days.map((d) => ({ date: d, holiday: w.holidayOn.get(d) ?? null })),
@@ -96,6 +121,20 @@ export async function weekView(ctx: Ctx, date: string, branchId?: string) {
     repeatAllowed: await canRepeat(ctx.companyId),
   };
 }
+
+/**
+ * Something to look at before sending. Only "leave_working" and "no_day_off" have a one-tap fix;
+ * the rest are warnings and never stop sending.
+ */
+export type Problem =
+  | { type: 'leave_working' | 'no_day_off'; employeeId: string; name: string; date: string }
+  | { type: 'short_rest' | 'long_week'; employeeId: string; name: string; date: string; hours: number }
+  | { type: 'short_staff'; date: string; shiftId: string; shiftName: string; count: number; min: number };
+
+const minutesOf = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
+/** Minutes after the shift's start-day midnight when it ends (past midnight for overnight shifts). */
+const endMinutes = (s: { start: string; end: string }) => minutesOf(s.end) + (minutesOf(s.end) <= minutesOf(s.start) ? 24 * 60 : 0);
+const shiftHours = (s?: { start: string; end: string } | null) => (s ? (endMinutes(s) - minutesOf(s.start)) / 60 : 0);
 
 export interface CellInput {
   employeeId: string;
@@ -153,12 +192,12 @@ export async function copyLastWeek(ctx: Ctx, date: string, branchId?: string) {
  * Send the week to staff: changes become what attendance and salary use, the people whose days changed
  * are told, and days already worked are re-checked against the new shift.
  */
-export async function sendWeek(ctx: Ctx, date: string, branchId?: string) {
+export async function sendWeek(ctx: Ctx, date: string, branchId?: string, opts: { employeeIds?: Types.ObjectId[] } = {}) {
   const start = weekStartOf(date);
-  const w = await loadWeek(ctx, start, { branchId });
+  const w = await loadWeek(ctx, start, { branchId, employeeIds: opts.employeeIds });
   const company = await Company.findById(ctx.companyId).lean();
   const today = todayIn(company!.timezone);
-  const changedBy = new Map<string, { emp: any; days: string[] }>();
+  const changedBy = new Map<string, { emp: any; days: string[]; hadRoster: boolean }>();
   const now = new Date();
   for (const e of w.emps) {
     for (const d of w.days) {
@@ -169,7 +208,8 @@ export async function sendWeek(ctx: Ctx, date: string, branchId?: string) {
       if (r.kind === 'usual') await RosterEntry.deleteOne({ _id: r._id, companyId: ctx.companyId });
       else if (differs || !r.sent) await RosterEntry.updateOne({ _id: r._id, companyId: ctx.companyId }, { $set: { sent: { kind: r.kind, shiftId: r.shiftId ?? null, at: now } } });
       if (!differs) continue;
-      const c = changedBy.get(String(e._id)) ?? { emp: e, days: [] };
+      // They were already sent this week's roster: tell them what changed.
+      const c = changedBy.get(String(e._id)) ?? { emp: e, days: [], hadRoster: w.days.some((x) => !!w.entryOf.get(`${e._id}:${x}`)?.sent) };
       c.days.push(d);
       changedBy.set(String(e._id), c);
       // A day already worked: late / half day follow the new shift.
@@ -184,26 +224,26 @@ export async function sendWeek(ctx: Ctx, date: string, branchId?: string) {
     }
   }
   const label = `${DateTime.fromISO(w.days[0]).toFormat('d LLL')} – ${DateTime.fromISO(w.days[6]).toFormat('d LLL')}`;
-  for (const { emp, days } of changedBy.values()) {
-    const lines = w.days
-      .map((d) => {
-        const p = w.draftPlan(emp, d);
-        const sh = p.kind === 'shift' && p.shiftId ? w.shiftById.get(p.shiftId) : null;
-        return `${DateTime.fromISO(d).toFormat('ccc d')} ${sh ? `${sh.name} ${sh.start}–${sh.end}` : 'Off'}${days.includes(d) ? ' (changed)' : ''}`;
-      })
-      // WhatsApp template values can't hold line breaks.
-      .join(' · ');
+  const dayLine = (emp: any, d: string, mark: boolean) => {
+    const p = w.draftPlan(emp, d);
+    const sh = p.kind === 'shift' && p.shiftId ? w.shiftById.get(p.shiftId) : null;
+    return `${DateTime.fromISO(d).toFormat('ccc d')} ${sh ? `${sh.name} ${sh.start}–${sh.end}` : 'Off'}${mark ? ' (changed)' : ''}`;
+  };
+  for (const { emp, days, hadRoster } of changedBy.values()) {
+    // WhatsApp template values can't hold line breaks.
+    const lines = hadRoster ? days.map((d) => dayLine(emp, d, false)).join(' · ') : w.days.map((d) => dayLine(emp, d, days.includes(d))).join(' · ');
+    const template = hadRoster ? 'roster_changed' : 'roster_published';
     await notifyEmployee(
       ctx.companyId,
       emp._id,
       {
-        template: 'roster_published',
-        title: `Your shifts for ${label}`,
-        titleHi: `${label} की आपकी शिफ़्ट`,
-        body: days.length === 1 ? `1 day changed. Open the app to see your week.` : `${days.length} days changed. Open the app to see your week.`,
-        bodyHi: `${days.length} दिन बदले। अपना हफ़्ता देखने के लिए ऐप खोलें।`,
+        template,
+        title: hadRoster ? `Your shift changed (${label})` : `Your shifts for ${label}`,
+        titleHi: hadRoster ? `आपकी शिफ़्ट बदली (${label})` : `${label} की आपकी शिफ़्ट`,
+        body: hadRoster ? lines : days.length === 1 ? `1 day changed. Open the app to see your week.` : `${days.length} days changed. Open the app to see your week.`,
+        bodyHi: hadRoster ? lines : `${days.length} दिन बदले। अपना हफ़्ता देखने के लिए ऐप खोलें।`,
         data: { type: 'roster', weekStart: start },
-        whatsapp: { template: 'roster_published', params: [emp.name, company!.name, label, lines] },
+        whatsapp: { template, params: [emp.name, company!.name, label, lines] },
       },
       // Staff with the app get a push; WhatsApp only for those who haven't joined yet.
       { whatsapp: !emp.userId },
@@ -225,6 +265,8 @@ export async function myWeek(ctx: Ctx, date: string) {
     weekStart: start,
     /** True when the owner sent a roster touching this week; the app shows "My week" only then. */
     rostered: !!e && w.days.some((d) => !!w.entryOf.get(`${e._id}:${d}`)?.sent),
+    /** The plan lets staff ask a colleague to swap a day. */
+    swapsAllowed: await planHas(ctx.companyId, 'roster_swaps'),
     shifts: w.shifts.map(shiftView),
     days: w.days.map((d) => {
       const p = e ? w.sentPlan(e, d) : { kind: 'off' as Kind, shiftId: null };

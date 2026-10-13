@@ -1,6 +1,6 @@
 # Plan: Roster, live tracking for field staff, background verification
 
-Status (13 Oct 2026): **Roster round 1 and round 2a are built** (owner day view, change-shift sheet, send with one-tap fixes, staff "My week"; attendance and salary follow the sent roster). Round 2a adds "Repeat every week", the whole-week view, alternating weekly offs and the web roster grid. Screenshots: [docs/screenshots/roster](../screenshots/roster/README.md). Verification and tracking are planned, not built. Round 0 mock-ups (step-by-step guides): [docs/mockups/roster-tracking-verification.html](../mockups/roster-tracking-verification.html).
+Status (13 Oct 2026): **The roster is built (rounds 1, 2a and 2b)** (owner day view, change-shift sheet, send with one-tap fixes, staff "My week"; attendance and salary follow the sent roster). Round 2a added "Repeat every week", the whole-week view, alternating weekly offs and the web roster grid; round 2b adds shift swaps, minimum staff per shift, rest and 48-hour checks, the "roster changed" message and Mint roster commands. Next: background verification. Screenshots: [docs/screenshots/roster](../screenshots/roster/README.md). Verification and tracking are planned, not built. Round 0 mock-ups (step-by-step guides): [docs/mockups/roster-tracking-verification.html](../mockups/roster-tracking-verification.html).
 
 **Mock-up changes the owner approved (13 Oct):**
 - **Verification:** the staff consent screen is now **step 0 of the staff steps** (one flow: agree → Aadhaar → PAN → bank), not a separate screen.
@@ -121,7 +121,11 @@ Attendance (late, early, half day, overtime, auto-absent at 11:59 PM), the Today
   - **Alternating weekly offs** on a shift ("1st & 3rd Saturday off"), in the app and web shift editors; attendance, salary, leave counting and the roster all follow it.
   - **Web roster grid** (Roster in the sidebar): pick a shift in any box, Copy last week, Send to staff with one-tap fixes, Repeat every week.
   - Also fixed: days with no punches now use the branch's shift when a person has none of their own (as check-in already did).
-- **R2b:** swaps between staff, minimum staff per shift, rest-hours and 48-hour checks, `roster_changed` message, Mint commands.
+- **R2b (built, 13 Oct):**
+  - **Shift swaps** (Growth and up): staff tap "Swap a day" under My week, pick the day and a colleague with a different shift, and see what each would get. The colleague answers on their home screen; then the owner or a manager approves in Roster (app and web). Approval checks nobody's day changed since they asked, swaps it as sent (attendance and salary follow it) and tells both. Swaps stay inside one branch.
+  - **Checks before sending**, as warnings that never block: less than 8 hours' rest between two shifts, more than 48 hours in a week (both only for people with roster days that week, so a shop's usual long hours aren't flagged every week), and a shift below its **minimum staff** (new field on shifts, app and web; the day view shows "Morning 1/2" in red).
+  - **"Roster changed" message**: staff who already had that week's roster are told just the changed days (WhatsApp `roster_changed` for staff without the app).
+  - **Mint**: "Raju ko is hafte evening shift do" (sets and sends it; a range keeps their days off), "Sunday ko kaun aa raha hai?" (who works which shift that day).
 
 ---
 

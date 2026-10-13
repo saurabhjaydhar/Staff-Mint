@@ -412,6 +412,15 @@ export function describe(
         'attendance',
         a.autoSend ? [{ label: t('Sent to staff', 'स्टाफ़ को भेजना'), to: t('On its own', 'अपने-आप') }] : [],
       );
+    case 'roster.swap_approved':
+    case 'roster.swap_rejected':
+      return r(
+        log.action === 'roster.swap_approved'
+          ? t(`Swap approved: ${a.from} and ${a.to} on ${a.date}`, `अदला-बदली मंज़ूर: ${a.from} और ${a.to}, ${a.date}`)
+          : t(`Swap not approved: ${a.from} and ${a.to} on ${a.date}`, `अदला-बदली नामंज़ूर: ${a.from} और ${a.to}, ${a.date}`),
+        'attendance',
+        [],
+      );
     case 'roster.repeat_off':
       return r(t('Roster repeat turned off', 'रोस्टर दोहराना बंद किया'), 'attendance', []);
 

@@ -206,13 +206,13 @@ const cleanOffWeeks = (weeklyOff: number[], weeks: OffWeeks | undefined): OffWee
       .map(([d, w]) => [d, [...new Set(w)].sort()]),
   );
 
-export async function createShift(ctx: Ctx, input: { name: string; start: string; end: string; graceMinutes?: number | null; weeklyOff: number[]; weeklyOffWeeks?: OffWeeks }) {
+export async function createShift(ctx: Ctx, input: { name: string; start: string; end: string; graceMinutes?: number | null; weeklyOff: number[]; weeklyOffWeeks?: OffWeeks; minStaff?: number }) {
   const s = await Shift.create({ companyId: ctx.companyId, ...input, weeklyOffWeeks: cleanOffWeeks(input.weeklyOff, input.weeklyOffWeeks) });
   await audit(ctx, { action: 'shift.create', entity: 'shift', entityId: s._id, after: s });
   return shiftView(s);
 }
 
-export async function updateShift(ctx: Ctx, id: string, patch: Partial<{ name: string; start: string; end: string; graceMinutes: number | null; weeklyOff: number[]; weeklyOffWeeks: OffWeeks }>) {
+export async function updateShift(ctx: Ctx, id: string, patch: Partial<{ name: string; start: string; end: string; graceMinutes: number | null; weeklyOff: number[]; weeklyOffWeeks: OffWeeks; minStaff: number }>) {
   const s = await Shift.findOne({ _id: id, companyId: ctx.companyId, deletedAt: null });
   if (!s) throw notFound('Shift');
   const before = s.toObject();

@@ -9,7 +9,7 @@ import { AppError } from '../../lib/errors.js';
 import { todayIn } from '../../lib/dates.js';
 import { env } from '../../config/env.js';
 import { logger } from '../../lib/logger.js';
-import { AssistantSession, Company, Employee } from '../../models/index.js';
+import { AssistantSession, Company, Employee, Shift } from '../../models/index.js';
 import { provider } from '../../providers/registry.js';
 import type { LlmExtractResult } from '../../providers/types.js';
 import { companyPlan } from '../billing/plans.js';
@@ -86,7 +86,8 @@ async function extract(ctx: Ctx, text: string, history: { role: string; text: st
   const company = await Company.findById(ctx.companyId).lean();
   const today = todayIn(company!.timezone);
   const names = ctx.role === 'employee' ? [] : (await Employee.find({ ...employeeScope(ctx), status: 'active' }).select('name').lean()).map((e) => e.name);
-  const input = { text, tools: toolsForRole(ctx.role), context: { today, language: ctx.language, employeeNames: names, role: ctx.role === 'system' ? 'owner' : ctx.role, history } };
+  const shiftNames = ctx.role === 'employee' ? [] : (await Shift.find({ companyId: ctx.companyId, deletedAt: null }).select('name').lean()).map((s) => s.name);
+  const input = { text, tools: toolsForRole(ctx.role), context: { today, language: ctx.language, employeeNames: names, shiftNames, role: ctx.role === 'system' ? 'owner' : ctx.role, history } };
   const rules = await provider('rules');
   const fast = await rules.extract(input);
   const llm = await provider('llm');
